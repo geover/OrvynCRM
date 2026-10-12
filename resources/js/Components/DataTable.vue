@@ -1,0 +1,90 @@
+<script setup>
+import { computed } from 'vue';
+import { Columns3, X } from 'lucide-vue-next';
+import Dropdown from '@/Components/Dropdown.vue';
+import { useStored } from '@/lib/stored';
+
+/**
+ * The shared list table: optional row selection with a bulk-action bar, a column chooser remembered per browser,
+ * a sticky header, skeleton rows while loading and a card layout on phones.
+ *
+ * columns: [{ key, label, hideBelow?: 'lg'|'xl'|'2xl' (hidden on narrower desktops), title?: true (primary column, always shown), off?: true (hidden by default) }]
+ * Cell content: slot `cell-<key>` ({row}); default is row[key]. Row actions: slot `actions` ({row}). Bulk actions: slot `bulk`.
+ */
+const props = defineProps({
+    columns: { type: Array, required: true },
+    rows: { type: Array, default: () => [] },
+    loading: Boolean,
+    selectable: Boolean,
+    selected: { type: Array, default: () => [] },
+    storageKey: { type: String, default: 'table' },
+    emptyText: { type: String, default: 'Nothing here yet.' },
+    rowClickable: Boolean,
+    noun: { type: String, default: 'item' },
+});
+const emit = defineEmits(['update:selected', 'row-click']);
+
+const hidden = useStored(`cols:${props.storageKey}`, props.columns.filter((c) => c.off).map((c) => c.key));
+const visible = computed(() => props.columns.filter((c) => !hidden.value.includes(c.key)));
+const toggleCol = (k) => { hidden.value = hidden.value.includes(k) ? hidden.value.filter((x) => x !== k) : [...hidden.value, k]; };
+const resetCols = () => { hidden.value = props.columns.filter((c) => c.off).map((c) => c.key); };
+
+const allIds = computed(() => props.rows.map((r) => r.id));
+const allOn = computed(() => allIds.value.length > 0 && allIds.value.every((id) => props.selected.includes(id)));
+const toggleAll = () => emit('update:selected', allOn.value ? [] : [...allIds.value]);
+const toggleOne = (id) => emit('update:selected', props.selected.includes(id) ? props.selected.filter((x) => x !== id) : [...props.selected, id]);
+const band = (c) => ({ lg: 'md:max-lg:hidden', xl: 'md:max-xl:hidden', '2xl': 'md:max-2xl:hidden' })[c.hideBelow] ?? '';
+const clickRow = (r) => props.rowClickable && emit('row-click', r);
+</script>
+
+<template>
+    <div>
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2"><slot name="toolbar" /></div>
+            <Dropdown width="w-56">
+                <template #trigger="{ toggle }"><button type="button" class="btn-outline" title="Choose columns" @click="toggle"><Columns3 class="size-4" /><span class="hidden sm:inline"> Columns</span></button></template>
+                <p class="px-2 pb-1 pt-0.5 text-xs font-semibold uppercase tracking-wide text-slate-400">Show columns</p>
+                <label v-for="c in columns.filter((x) => !x.title)" :key="c.key" class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-slate-50">
+                    <input type="checkbox" class="rounded" :checked="!hidden.includes(c.key)" @change="toggleCol(c.key)" /> {{ c.label }}
+                </label>
+                <button type="button" class="mt-1 w-full rounded-md px-2 py-1.5 text-left text-xs text-slate-500 hover:bg-slate-50" @click="resetCols">Reset to default</button>
+            </Dropdown>
+        </div>
+
+        <div v-if="selectable && selected.length" class="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-brand-100 bg-brand-50 px-4 py-2.5 text-sm" role="toolbar" aria-label="Bulk actions">
+            <span class="font-medium text-brand-700">{{ selected.length }} selected</span>
+            <button v-if="selected.length < rows.length" type="button" class="text-brand-700 underline-offset-2 hover:underline" @click="toggleAll">Select all {{ rows.length }} loaded</button>
+            <div class="ml-auto flex flex-wrap items-center gap-2"><slot name="bulk" :selected="selected" /></div>
+            <button type="button" class="btn-ghost !px-2" title="Clear selection" @click="emit('update:selected', [])"><X class="size-4" /></button>
+        </div>
+
+        <div class="card max-md:overflow-hidden">
+            <div v-if="loading && !rows.length" class="divide-y divide-slate-100" aria-busy="true" aria-label="Loading">
+                <div v-for="n in 6" :key="n" class="flex items-center gap-6 px-5 py-4">
+                    <span class="h-4 w-1/5 animate-pulse rounded bg-slate-100" /><span class="h-4 w-1/4 animate-pulse rounded bg-slate-100" /><span class="hidden h-4 w-1/6 animate-pulse rounded bg-slate-100 md:block" /><span class="hidden h-4 w-1/6 animate-pulse rounded bg-slate-100 lg:block" />
+                </div>
+            </div>
+            <table v-else class="w-full text-sm max-md:block">
+                <thead class="max-md:hidden">
+                    <tr class="text-left text-xs uppercase tracking-wide text-slate-500">
+                        <th v-if="selectable" class="sticky top-[65px] z-10 w-10 rounded-tl-xl border-b border-slate-100 bg-white px-5 py-3"><input type="checkbox" class="rounded" aria-label="Select all rows" :checked="allOn" @change="toggleAll" /></th>
+                        <th v-for="c in visible" :key="c.key" :class="band(c)" class="sticky top-[65px] z-10 border-b border-slate-100 bg-white px-5 py-3 font-semibold">{{ c.label }}</th>
+                        <th v-if="$slots.actions" class="sticky top-[65px] z-10 rounded-tr-xl border-b border-slate-100 bg-white px-5 py-3"><span class="sr-only">Actions</span></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 max-md:block">
+                    <tr v-for="r in rows" :key="r.id" :class="[rowClickable && 'cursor-pointer', selected.includes(r.id) ? 'bg-brand-50/50' : 'hover:bg-slate-50']" class="group max-md:relative max-md:block max-md:px-4 max-md:py-3" @click="clickRow(r)">
+                        <td v-if="selectable" class="w-10 px-5 py-3 max-md:absolute max-md:right-2 max-md:top-2 max-md:w-auto max-md:p-2" @click.stop><input type="checkbox" class="rounded" :aria-label="`Select ${noun}`" :checked="selected.includes(r.id)" @change="toggleOne(r.id)" /></td>
+                        <td v-for="c in visible" :key="c.key" :class="[band(c), c.title ? 'max-md:pr-8 max-md:text-base' : 'max-md:text-slate-600 max-md:before:content-[attr(data-label)]']" :data-label="c.label"
+                            class="px-5 py-3 max-md:block max-md:px-0 max-md:py-0.5 max-md:before:mr-2 max-md:before:text-xs max-md:before:text-slate-400 max-md:empty:hidden">
+                            <slot :name="`cell-${c.key}`" :row="r">{{ r[c.key] }}</slot>
+                        </td>
+                        <td v-if="$slots.actions" class="whitespace-nowrap px-3 text-right max-md:block max-md:px-0 max-md:pt-2 max-md:text-left" @click.stop><slot name="actions" :row="r" /></td>
+                    </tr>
+                    <tr v-if="!rows.length && !loading" class="max-md:block"><td :colspan="visible.length + 2" class="px-5 py-12 text-center text-slate-400 max-md:block"><slot name="empty">{{ emptyText }}</slot></td></tr>
+                </tbody>
+            </table>
+            <slot name="footer" />
+        </div>
+    </div>
+</template>

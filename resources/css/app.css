@@ -1,0 +1,210 @@
+@import 'tailwindcss';
+
+@source '../js/**/*.vue';
+
+@theme {
+    --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --color-brand-50: #eef2ff;
+    --color-brand-100: #e0e7ff;
+    --color-brand-500: #6366f1;
+    --color-brand-600: #4f46e5;
+    --color-brand-700: #4338ca;
+    --color-brand-900: #1e1b4b;
+}
+
+@utility btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-brand-500/40 disabled:opacity-50;
+}
+
+@utility btn-primary {
+    @apply btn bg-brand-600 text-white hover:bg-brand-700;
+}
+
+@utility btn-ghost {
+    @apply btn text-slate-600 hover:bg-slate-100;
+}
+
+@utility btn-outline {
+    @apply btn border border-slate-200 bg-white text-slate-700 hover:bg-slate-50;
+}
+
+@utility input {
+    @apply w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20;
+}
+
+@utility card {
+    @apply rounded-xl border border-slate-200 bg-white shadow-sm;
+}
+
+@utility label {
+    @apply mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500;
+}
+
+@utility badge {
+    @apply inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600;
+}
+
+
+/* ---- type + spacing tokens (one place to tune the scale) ---- */
+@utility page-title {
+    @apply text-2xl font-semibold tracking-tight;
+}
+
+@utility card-title {
+    @apply border-b border-slate-100 px-5 py-3 text-sm font-semibold;
+}
+
+@utility eyebrow {
+    @apply text-xs font-semibold uppercase tracking-wide text-slate-400;
+}
+
+/* ---- accessibility ---- */
+@layer base {
+    :where(a, button, summary, [role='option'], [tabindex]):focus-visible {
+        outline: 2px solid var(--color-brand-500);
+        outline-offset: 2px;
+        border-radius: 0.375rem;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *, ::before, ::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+        }
+    }
+}
+
+.skip-link {
+    position: absolute;
+    left: 0.75rem;
+    top: -4rem;
+    z-index: 100;
+    border-radius: 0.5rem;
+    background: var(--color-brand-600);
+    padding: 0.5rem 0.875rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: white;
+    transition: top 0.15s;
+}
+
+.skip-link:focus {
+    top: 0.75rem;
+}
+
+/* ---- dark mode: the slate scale and the surfaces are inverted, so every existing utility class follows ---- */
+html.dark {
+    color-scheme: dark;
+    --surface: #111a2e;
+    --color-slate-50: #0b1220;
+    --color-slate-100: #1b2740;
+    --color-slate-200: #2a3855;
+    --color-slate-300: #3d4d6b;
+    --color-slate-400: #6b7a96;
+    --color-slate-500: #94a3b8;
+    --color-slate-600: #b4c0d4;
+    --color-slate-700: #d3dbe8;
+    --color-slate-800: #e8edf5;
+    --color-slate-900: #f4f7fb;
+    /* status colours: tinted backgrounds go dark, their borders and text go light, so notes, badges and alerts stay readable */
+    --color-red-50: #3b1620;
+    --color-red-100: #4a1c28;
+    --color-red-500: #f87171;
+    --color-red-600: #f87171;
+    --color-red-700: #fca5a5;
+    --color-red-800: #fecaca;
+    --color-emerald-50: #0c2b22;
+    --color-emerald-100: #11382c;
+    --color-emerald-200: #1b5442;
+    --color-emerald-300: #2f8f72;
+    --color-emerald-500: #34d399;
+    --color-emerald-600: #34d399;
+    --color-emerald-700: #6ee7b7;
+    --color-emerald-800: #a7f3d0;
+    --color-amber-50: #3a2a0c;
+    --color-amber-100: #4a350f;
+    --color-amber-200: #6b4c14;
+    --color-amber-500: #fbbf24;
+    --color-amber-600: #fbbf24;
+    --color-amber-700: #fcd34d;
+    --color-amber-800: #fde68a;
+    --color-amber-900: #fef3c7;
+    --color-sky-50: #0c2a3d;
+    --color-sky-100: #11384f;
+    --color-sky-200: #1d5575;
+    --color-sky-700: #7dd3fc;
+    --color-sky-900: #e0f2fe;
+    --color-blue-50: #0f2747;
+    --color-blue-300: #93c5fd;
+    --color-blue-700: #93c5fd;
+    --color-blue-800: #bfdbfe;
+    --color-indigo-100: #26275c;
+    --color-indigo-500: #818cf8;
+    --color-indigo-700: #a5b4fc;
+    --color-rose-100: #4c1d2c;
+    --color-rose-500: #fb7185;
+    --color-rose-700: #fda4af;
+    --color-cyan-100: #0e3a45;
+    --color-cyan-500: #22d3ee;
+    --color-cyan-700: #67e8f9;
+}
+
+/*
+ * Dark styles: the same dark theme in other colours. "navy" is the default above; each style below only re-states the surface
+ * and the slate scale (50 = page, 100/200 = fills and borders, 400-500 = muted text, 700-900 = text). The style is picked per
+ * area (company app, platform) and set on <html> as data-dark-style.
+ */
+html.dark[data-dark-style='graphite'] {
+    --surface: #1c1c1e; --color-slate-50: #121213; --color-slate-100: #262628; --color-slate-200: #37373a; --color-slate-300: #4d4d51; --color-slate-400: #7c7c82;
+    --color-slate-500: #a1a1a8; --color-slate-600: #bcbcc2; --color-slate-700: #d6d6db; --color-slate-800: #ebebee; --color-slate-900: #f7f7f8;
+}
+
+html.dark[data-dark-style='midnight'] {
+    --surface: #0f1226; --color-slate-50: #070918; --color-slate-100: #171b36; --color-slate-200: #252a4d; --color-slate-300: #383f6b; --color-slate-400: #6a72a3;
+    --color-slate-500: #9097c4; --color-slate-600: #b1b6dc; --color-slate-700: #d0d3ee; --color-slate-800: #e6e8f7; --color-slate-900: #f5f6fd;
+}
+
+html.dark[data-dark-style='black'] {
+    --surface: #0a0a0a; --color-slate-50: #000000; --color-slate-100: #161616; --color-slate-200: #262626; --color-slate-300: #3a3a3a; --color-slate-400: #6e6e6e;
+    --color-slate-500: #9a9a9a; --color-slate-600: #b8b8b8; --color-slate-700: #d4d4d4; --color-slate-800: #ececec; --color-slate-900: #fafafa;
+}
+
+html.dark[data-dark-style='dim'] {
+    --surface: #2b303b; --color-slate-50: #20242d; --color-slate-100: #353b49; --color-slate-200: #454c5d; --color-slate-300: #5d667b; --color-slate-400: #8993a8;
+    --color-slate-500: #aab2c3; --color-slate-600: #c3c9d6; --color-slate-700: #dadee7; --color-slate-800: #eceef3; --color-slate-900: #f8f9fb;
+}
+
+html.dark[data-dark-style='mocha'] {
+    --surface: #231f1c; --color-slate-50: #161311; --color-slate-100: #2f2a26; --color-slate-200: #413a35; --color-slate-300: #5a5149; --color-slate-400: #8b7f74;
+    --color-slate-500: #b0a498; --color-slate-600: #c9beb2; --color-slate-700: #e0d7cd; --color-slate-800: #f0eae3; --color-slate-900: #faf7f3;
+}
+
+html.dark .bg-white,
+html.dark .card,
+html.dark .input,
+html.dark .btn-outline {
+    background-color: var(--surface);
+}
+
+html.dark header.sticky {
+    background-color: color-mix(in srgb, var(--surface) 90%, transparent);
+}
+
+html.dark .card {
+    box-shadow: none;
+}
+
+html.dark ::placeholder {
+    color: var(--color-slate-400);
+}
+
+/* A company's own LIGHT sidebar colour: the sidebar's white-on-dark text and highlights flip to dark-on-light. */
+aside.sidebar-light { color: #334155; }
+aside.sidebar-light .text-white { color: #0f172a; }
+aside.sidebar-light .text-white\/50, aside.sidebar-light .text-white\/60 { color: #64748b; }
+aside.sidebar-light .bg-white\/15 { background-color: rgb(15 23 42 / 0.1); }
+aside.sidebar-light .hover\:bg-white\/10:hover { background-color: rgb(15 23 42 / 0.07); }
+aside.sidebar-light .hover\:text-white:hover { color: #0f172a; }
+aside.sidebar-light .border-white\/10 { border-color: rgb(15 23 42 / 0.12); }

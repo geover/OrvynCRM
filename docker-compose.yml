@@ -1,0 +1,48 @@
+# Same image, three roles. Replaces Macanta's Dockerfile.web + Dockerfile.automation + hand-rolled daemon.
+x-app: &app
+  build: .
+  env_file: .env
+  depends_on: [db, redis]
+  restart: unless-stopped
+
+services:
+  web:
+    <<: *app
+    command: php artisan serve --host=0.0.0.0 --port=8000   # put nginx/Caddy + php-fpm (or Octane) in front in production
+    ports: ["8000:8000"]
+
+  worker:           # short jobs: ticks, automations, webhooks, everything else (all companies share the pool)
+    <<: *app
+    command: php artisan queue:work redis --queue=ticks,automations,webhooks,default --sleep=1 --tries=3 --max-time=3600 --max-jobs=1000
+    stop_grace_period: 2m
+    deploy: { replicas: 2 }
+
+  worker-messages:  # outbound e-mail/SMS, apart so a campaign never delays automations
+    <<: *app
+    command: php artisan queue:work redis --queue=messages --sleep=1 --tries=3 --max-time=3600 --max-jobs=1000
+    stop_grace_period: 2m
+
+  worker-long:      # imports and syncs on their own connection (retry_after longer than the longest job)
+    <<: *app
+    command: php artisan queue:work redis-long --queue=sync,imports,messages,default --sleep=3 --tries=1 --timeout=3600 --max-time=7200
+    stop_grace_period: 3700s
+
+  scheduler:
+    <<: *app
+    command: php artisan schedule:work
+
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: orvyn
+      MYSQL_USER: orvyn
+      MYSQL_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD}
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+    command: ["--innodb-ft-min-token-size=2", "--innodb-buffer-pool-size=512M"]
+    volumes: [dbdata:/var/lib/mysql]
+
+  redis:
+    image: redis:7-alpine
+    volumes: [redisdata:/data]
+
+volumes: { dbdata: {}, redisdata: {} }
