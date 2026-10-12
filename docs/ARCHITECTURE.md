@@ -1,15 +1,15 @@
 # OrvynCRM — Architecture
 
 > **Build. Connect. Automate.** — a unified system for organizing business operations.
-> Successor to Macanta (CodeIgniter 3 + Gatsby/React).
+> Successor to OldCRM (CodeIgniter 3 + Gatsby/React).
 
 ## 1. Stack (and why)
 
 | Layer | Choice | Reason |
 |---|---|---|
-| Framework | **Laravel 13** (PHP 8.3+) | Queue, scheduler, events, validation, rate limiting, testing built in — each replaces hand-rolled Macanta code |
-| API auth | **Sanctum** (SPA cookie + personal tokens) | One mechanism for the web app and for API/mobile clients; replaces `api_key` + `session_name` + `MacantaUserSession` |
-| Frontend | **Inertia 2 + Vue 3 + Tailwind 4 + Vite** | No second repo/deploy (Gatsby build, Apollo, MUI, 15k files → a few dozen components), server-driven routing, SPA feel, tiny bundle (≈60 kB gz shared) |
+| Framework | **Laravel 13** (PHP 8.3+) | Queue, scheduler, events, validation, rate limiting, testing built in — each replaces hand-rolled OldCRM code |
+| API auth | **Sanctum** (SPA cookie + personal tokens) | One mechanism for the web app and for API/mobile clients; replaces `api_key` + `session_name` + `OldCRMUserSession` |
+| Frontend | **Inertia 3 + Vue 3 + Tailwind 4 + Vite** | No second repo/deploy (Gatsby build, Apollo, MUI, 15k files → a few dozen components), server-driven routing, SPA feel, tiny bundle (≈60 kB gz shared) |
 | DB | **MySQL 8 / MariaDB 10.6+** (SQLite for tests) | Same engine family as legacy → trivial ETL; JSON + FULLTEXT used on purpose |
 | Queue / cache / sessions | **Redis** in production (`database` driver in dev) | Horizon-ready; workers scale horizontally |
 | Query API | `spatie/laravel-query-builder` | Whitelisted filters/sorts, cursor pagination |
@@ -17,7 +17,7 @@
 
 Why not Livewire/React? Inertia+Vue keeps one deployable and a very small surface; the UI talks to the *same* `/api/v1` that third parties use, so there is no duplicated controller logic. The API is frontend-agnostic if you later want React Native / a React SPA.
 
-## 2. Why Macanta was slow — and what replaces it
+## 2. Why OldCRM was slow — and what replaces it
 
 | Legacy problem | Evidence | OrvynCRM answer |
 |---|---|---|
@@ -28,7 +28,7 @@ Why not Livewire/React? Inertia+Vue keeps one deployable and a very small surfac
 | **Rescan-everything automation** (`all_data` vs `active_data` passes; `ConnectedDataAutomationTriggerRecord`) | `_service.php`, `V1::automation_*` | `EvaluateAutomation` anti-joins `automation_runs` (unique key) — already-fired subjects are never re-read. Event-driven (`DataObjectRecordChanged`) for `on_change`; cron tick for time-based |
 | **Per-row sync** (SELECT then INSERT/UPDATE per contact) | `tcards_sync.php`, `sync.php` | Generator-paged API client + one bulk `upsert()` per page |
 | **One 17,501-line `V1.php`** (169 methods, input parsing, auth, SQL, HTML generation, side effects mixed) | `rest/V1.php` | One controller per resource; Form Requests for validation; Actions/Services for logic; API Resources for output (see §3) |
-| `MacantaContact` with ~100 `text NOT NULL` columns; LIKE searches across tables | `db_table.sql` | Typed core columns + `addresses`/`custom_fields` JSON; one FULLTEXT index; `Contact::search()` |
+| `OldCRMContact` with ~100 `text NOT NULL` columns; LIKE searches across tables | `db_table.sql` | Typed core columns + `addresses`/`custom_fields` JSON; one FULLTEXT index; `Contact::search()` |
 | Plain-text-ish secrets, API key in query string | `_validateREQUEST` | Encrypted casts on `integrations.credentials` / webhook secrets; bearer tokens; signature-verified hooks |
 | No tests | `test/` empty-ish | PHPUnit feature tests (`tests/Feature/CrmFlowTest.php`) |
 
@@ -37,29 +37,36 @@ Why not Livewire/React? Inertia+Vue keeps one deployable and a very small surfac
 ```
 app/
   Actions/Contacts/        SaveContact, MergeContacts          ← one use-case per class
-  Console/Commands/        ImportMacanta (ETL), PruneHistory
+  Console/Commands/        company and platform-admin commands, ImportMacanta (ETL), PruneHistory, bench:*
   Events/ Listeners/       DataObjectRecordChanged → QueueAutomationsForRecord
   Http/
-    Controllers/Api/V1/    Auth, Contact, ContactNote, Task, Timeline, DataObject,
-                           DataObjectRecord, Automation, Message, Dashboard, Search,
-                           User, InboundWebhook   (≈ 12 small controllers ← V1.php)
-    Controllers/           WebAuth, PublicForm, Tracking
-    Middleware/            EnsureUserIsActive, HandleInertiaRequests
-    Requests/ Resources/   ContactRequest, ContactResource, RecordResource
+    Controllers/Api/V1/    the company app's JSON API: contacts, data objects, records, automations,
+                           messages, users, seats and limits, platform threads, ... (one small controller each)
+    Controllers/Platform*  the platform area (Inertia pages): companies, dashboard, requests, messages,
+                           settings, pricing, services, branding, announcements, administrators
+    Controllers/           WebAuth, PublicForm, Tracking, Branding
+    Middleware/            EnsureUserIsActive, ResolveTenant, EnsurePlatformAdmin, HandleInertiaRequests
   Integrations/            Keap/KeapClient, Twilio/TwilioClient   ← one folder per provider
-  Jobs/                    EvaluateAutomation, RunAutomationActions, SendEmailMessage,
-                           SendSmsMessage, DispatchDueMessages, SyncKeapContacts, DeliverWebhook
-  Models/                  27 models (casts, scopes, relations only — no business logic)
+  Jobs/                    EvaluateAutomation, RunAutomationActions, SendEmailMessage, SendSmsMessage,
+                           DispatchDueMessages, TenantTick, CollectCompanyMetrics, SyncKeapContacts, DeliverWebhook ...
+  Models/                  central models (companies, accounts, requests, threads, settings) and company models
+                           (contacts, data objects, records, ...): casts, scopes, relations only
   Services/
-    DataObjects/           RecordService (validate/create/update/attach),
-                           RecordQuery (filter tree → SQL), RecordIndexer (index sync)
-    Automation/            ActionRunner
-    Messaging/             MessageComposer (merge fields, suppression, opt-out)
-    Webhooks/              WebhookDispatcher
-database/migrations/       4 files, 40 tables
-resources/js/              Inertia pages, layout, tiny API client
+    Tenancy/               everything about companies and the platform: TenantProvisioner, Seats and Limits,
+                           LimitRequests, CompanyServices, PlatformNotifier, MailSettings, Pricing, QueueSnapshot,
+                           ThreadPoll, ThreadMailer, JobMetrics, CompanyScheduler
+    DataObjects/           RecordService, RecordQuery (filter tree → SQL), RecordIndexer
+    Automation/            ActionRunner, FailureNotifier
+    Messaging/ Queries/ Webhooks/
+database/migrations/       central tables (accounts, companies, requests, messages, settings, metrics)
+database/migrations/tenant/ the per-company tables (contacts, data objects, automations, ...)
+resources/js/
+  Pages/                   Inertia pages (Platform/ holds the platform area, Admin/ the company's settings)
+  Components/              shared Vue components; charts/ and company/ hold groups of them
+  lib/                     api client, live polling (live.js), theme, formatting, stored preferences
 routes/{api,web,console}.php
-docs/                      ARCHITECTURE, SERVICES_MAP, LEGACY_ENDPOINT_MAP, DEPLOYMENT
+tests/Feature, tests/e2e   PHPUnit (tenancy-aware) and Playwright (isolated instance on port 8123)
+docs/                      this folder
 ```
 
 Rule of thumb: **controllers parse + authorize + return resources; Actions/Services decide; Jobs do slow things; Models stay thin.**
@@ -70,20 +77,20 @@ Legacy → new:
 
 | Legacy | New |
 |---|---|
-| `MacantaContact` | `contacts` (+ `tags`, `contact_tag`) |
+| `OldCRMContact` | `contacts` (+ `tags`, `contact_tag`) |
 | `ConnectedDataGroup/Field/Relationship` | `data_objects`, `data_object_fields`, `data_object_relationships`, `data_object_relationship_rules` |
 | `ConnectedDataItem` + `ConnectedDataValue` (+`ValueCO`) | `data_object_records.data` (JSON) + `data_object_field_index` |
 | `ConnectedDataRelatedContact` | `data_object_record_contact` (pivot; `contact_values` JSON = old *ContactSpecific* values) |
 | `ConnectedDataQuery` | `saved_queries` |
 | `ConnectedDataAutomation` / `…TriggerRecord` / `…Process` | `automations` / `automation_runs` (unique key) |
-| `MacantaEmailSent`, `EmailMessage(Sent)`, queue tables | `email_messages` (queue **and** history, `status` column) |
-| `MacantaSMSSent` | `sms_messages` |
+| `OldCRMEmailSent`, `EmailMessage(Sent)`, queue tables | `email_messages` (queue **and** history, `status` column) |
+| `OldCRMSMSSent` | `sms_messages` |
 | `HistoryTimeline`, `connected_data_history`, `InfusionsoftContactAction` | `activities`, `notes`, `tasks` |
-| `MacantaUser`, `MacantaUserSession`, `users_meta`, permission templates | `users`, Sanctum tokens/sessions, `permission_templates` |
-| `MacantaWebForm(Record)` | `forms`, `form_submissions` |
+| `OldCRMUser`, `OldCRMUserSession`, `users_meta`, permission templates | `users`, Sanctum tokens/sessions, `permission_templates` |
+| `OldCRMWebForm(Record)` | `forms`, `form_submissions` |
 | `RestHookRequest`, `WebHookRequest` | `webhook_endpoints`, `webhook_deliveries` |
-| `MacantaImportRequest/ExportRequest` | `data_transfers` |
-| `config_data`, `MacantaMeta` | `settings`, `integrations` |
+| `OldCRMImportRequest/ExportRequest` | `data_transfers` |
+| `config_data`, `OldCRMMeta` | `settings`, `integrations` |
 
 **Indexing contract for custom fields:** mark a field `is_indexed` (builder UI / API) and `RecordIndexer` mirrors it into `data_object_field_index` on every save. Mark only fields you filter/sort/automate on; everything else stays in JSON.
 
@@ -97,13 +104,47 @@ Legacy → new:
 - Credentials encrypted at rest (`encrypted:array` casts).
 - Merge-field output is HTML-escaped; no raw SQL string-building from user input (JSON paths are sanitized to `[A-Za-z0-9_]`).
 
-## 6. Decisions you still need to make
+## 6. Companies and the platform area
 
-1. **Tenancy (decided: multi-database).** One central database holds identities (`account_users`), companies (`tenants`), memberships, public-link lookups and API tokens; every company has its own database (`stancl/tenancy`, migrations in `database/migrations/tenant`). People sign in once at a common login page and pick a company; the company is held in the session (API tokens belong to one company). Platform administrators can switch companies. Settings, cache keys, files, queue jobs, rate limits and overlap locks are all per company. Public form/price-list/webhook/tracking URLs are the same for everyone and resolve the company from a central lookup. Create companies and people with `orvyn:company:create`, `orvyn:company:member`, `orvyn:platform-admin`.
+### Where data lives
 
-   **The sign-in pages are the platform's.** Login, company chooser and password pages (and the platform area) always use the platform's look (name, tagline, colour, logo), edited only on Platform -> Sign-in page and stored centrally (`platform_settings`, logo on the `platform` disk). A company's own look & feel applies only after sign-in and can never change them.
+- **Central database** (`DB_*`): people (`account_users`), companies (`tenants`, with their limits), memberships, API tokens, platform settings (`platform_settings`: sign-in look, pricing, mail server), limit requests (`seat_requests`), message threads (`message_threads`, `thread_messages`, `thread_attachments`), announcements, per-company service switches (`tenant_services`, `object_services`), and the hourly numbers behind the dashboard (`tenant_metrics`, `tenant_stats`).
+- **Company database** (one per company, `<TENANCY_DB_PREFIX><id>`): everything a company owns, from `database/migrations/tenant`. Code that runs inside a company is wrapped by stancl/tenancy (`$tenant->run(...)`); queued jobs carry the company id and open its database.
+- A person signs in once with a central identity and picks a company if they belong to several. A company administrator never sees another company; platform administrators open a company in **support mode** and are never listed as company users.
+
+One central database holds identities (`account_users`), companies (`tenants`), memberships, public-link lookups and API tokens; every company has its own database (`stancl/tenancy`, migrations in `database/migrations/tenant`). People sign in once at a common login page and pick a company; the company is held in the session (API tokens belong to one company). Platform administrators can switch companies. Settings, cache keys, files, queue jobs, rate limits and overlap locks are all per company. Public form/price-list/webhook/tracking URLs are the same for everyone and resolve the company from a central lookup. Create companies and people with `orvyn:company:create`, `orvyn:company:member`, `orvyn:platform-admin`.
+
+   **The sign-in pages are the platform's.** Login, company chooser and password pages (and the platform area) always use the platform's look (name, tagline, colour, logo), edited only on Platform -> Settings -> Sign-in page and stored centrally (`platform_settings`, logo on the `platform` disk). A company's own look & feel applies only after sign-in and can never change them.
 
    **Platform administrators are not company users.** Their profiles inside a company are flagged `is_platform_support`: never listed, not editable or removable by the company, and their email cannot be added as a company user. They are added, edited and demoted only on the Platform -> Administrators page (demoting can keep the person as an ordinary administrator of one company). Promoting someone is refused if it would leave a company without an administrator.
+
+### The platform area (`/platform`)
+
+Companies (create, edit, suspend, open, people, a per-company overview), Dashboard, Requests, Messages, Background services, Settings (sign-in page, e-mail notifications, e-mail server, pricing) and Announcements. It has its own layout, theme and sidebar, and nothing a company customises reaches it.
+
+### Limits and requests
+
+A company has a maximum number of **active users**, **data objects**, and **automations per data object** (`tenants.max_users`, `max_data_objects`, `max_automations_per_object`, plus per-object overrides in `object_automation_limits`). `Seats` and `Limits` count and enforce them (the controllers that create a user, data object or automation call them). `LimitRequests` records a company's request with the price it saw, tells the platform, grants it (raising the matching limit) and tells the requester. One table, `seat_requests`, serves all three kinds (`kind`).
+
+### Notifications and mail
+
+`PlatformNotifier` decides who among the platform administrators is e-mailed (requests, messages, failed automations; each chooses a topic and an address) and sends. `FailureNotifier` e-mails when an automation run gives up or an action fails, at most once per automation per hour. `MailSettings` lets the platform override the `.env` mail server; it is applied lazily, the first time a mailer is built.
+
+### Messaging and "live" pages
+
+Company administrators and platform administrators talk in threads. The pages stay current by **polling**, not websockets: `ThreadPoll` computes a cheap fingerprint of what a viewer can see, a page asks every few seconds with the last fingerprint it saw, and the server answers "unchanged" in one query or returns the new list and messages. On the client, `lib/live.js` pauses polling while the tab is hidden, backs off on errors, stops when the session ends, and drops an answer that was overtaken by something the person did (`useEpoch`).
+
+### Background services
+
+`CompanyScheduler` runs once a minute per company (`TenantTick`) and queues what is due. `CompanyServices` holds the platform's on/off switches per company, and for automations, e-mail and SMS sending, and the overdue-task digest also per data object. A switch is read by the job itself, so it never stops a server process; see `docs/SERVICES_MAP.md`.
+
+### Front-end patterns
+
+Shared building blocks: `CardBoard` (movable, hideable cards, remembered per browser), `SettingsShell` (the settings frame with its grouped menu), `StatTile`, `ToggleSwitch`, `ThreadChat`, the chart components, and `lib/format.js` for numbers. The company app and the platform each keep their own light or dark theme, and the dark theme has several styles (`resources/css/app.css`, `lib/theme.js`).
+
+## 7. Decisions you still need to make
+
+1. **Tenancy:** decided (a database per company); see §6.
 2. **Keap OAuth** token lifecycle (refresh) — client is written; the OAuth connect screen is not.
 3. **Editor for email templates** (Stripo today). Embedding Unlayer/Stripo is a front-end task; storage (`email_templates.design`) is ready.
 4. **Data cut-over strategy** — big-bang vs. dual-run with periodic `orvyn:import-macanta` (idempotent, safe to repeat).

@@ -22,8 +22,10 @@ php artisan test
    `SANCTUM_STATEFUL_DOMAINS=app.example.com`, mail provider, `SENDGRID_WEBHOOK_TOKEN`, `TWILIO_WEBHOOK_TOKEN`.
 3. `composer install --no-dev -o && npm ci && npm run build`
 4. `php artisan migrate --force && php artisan storage:link && php artisan optimize` (config/route/view/event cache; `storage:link` serves the uploaded logo)
-5. Processes: web (php-fpm/Octane) · queue workers under Supervisor (`deploy/supervisor/orvyn-workers.conf`: fast, messages and long-job pools) · one cron line `* * * * * php artisan schedule:run`. `php artisan queue:restart` after each deploy; `orvyn:queue-status` shows backlog.
+5. Processes: web (php-fpm/Octane) · queue workers under Supervisor (`deploy/supervisor/orvyn-workers.conf`: fast, messages and long-job pools) · one cron line `* * * * * php artisan schedule:run`. `php artisan queue:restart` after each deploy; `orvyn:queue-status` shows backlog; with the `database` queue driver the platform dashboard's "Queue right now" card also lists the waiting jobs by kind and company and the latest failures.
 5a. **Companies.** `DB_*` is the central database; the app needs permission to `CREATE DATABASE` for new companies (or pre-create them). After a deploy that adds company migrations run `php artisan tenants:migrate --force`. Back up the central database and every company database. `php artisan orvyn:platform-admin you@example.com` creates a platform administrator.
+5b. **Settings to review.** In `.env`: `DEFAULT_MAX_USERS`, `DEFAULT_MAX_DATA_OBJECTS` and `DEFAULT_MAX_AUTOMATIONS_PER_OBJECT` are what a *new* company may have (the platform edits each company afterwards under Platform -> Companies -> Edit); `MAIL_*` is the default e-mail server, which a platform administrator can replace under Platform -> Settings -> E-mail server (saving it asks the queue workers to restart so they pick it up). E-mail about requests, messages and failed automations goes to the platform administrators who ticked it under Platform -> Settings -> E-mail notifications.
+5c. **Every deploy that adds migrations** needs both `php artisan migrate --force` (central tables) and `php artisan tenants:migrate --force` (every company database). The platform's Background services switches pause work per company or per data object but never stop a worker or the scheduler; those stay Supervisor's and cron's job.
 6. MySQL: `innodb_buffer_pool_size` ≈ 60–70 % of RAM. Search words shorter than `innodb_ft_min_token_size` (default 3) are matched with `LIKE`; if you lower that server setting, set `FULLTEXT_MIN_WORD` to the same number so the app uses the index for them too. Run `ANALYZE TABLE contacts, data_object_records, data_object_field_index` after big imports and after migrations that add indexes (stale statistics made the planner ignore a new index in testing).
 7. Put uploads on S3-compatible storage (`FILESYSTEM_DISK=s3`) — replaces Backblaze B2 usage.
 
@@ -71,7 +73,7 @@ php artisan bench:seed --purge                                                  
 * **Health**: `GET /up` is enabled for load balancers.
 * Log queries slower than 500 ms in non-production (`LOG_SLOW_QUERIES`); in production use Laravel Pulse or your APM.
 
-## Migrating Macanta data
+## Migrating OldCRM data
 
 ```bash
 # .env
@@ -88,15 +90,15 @@ What each step does and does NOT do:
 
 | Step | Source | Notes |
 |---|---|---|
-| contacts | `MacantaContact` | addresses 1-2, custom fields JSON; address 3 and phones 3-5 not mapped yet |
-| tags / contact-tags | `tags`, `MacantaContact.Groups` | tag ids not found in `tags` are counted and reported |
-| templates | `MacantaUserPermissionTemplates` | raw legacy JSON kept in `permissions.legacy`; **mapping to new abilities is a manual decision** |
-| users | `MacantaUser` + contact | **passwords are NOT copied**; users must reset. Needs the contact to have an e-mail |
+| contacts | `OldCRMContact` | addresses 1-2, custom fields JSON; address 3 and phones 3-5 not mapped yet |
+| tags / contact-tags | `tags`, `OldCRMContact.Groups` | tag ids not found in `tags` are counted and reported |
+| templates | `OldCRMUserPermissionTemplates` | raw legacy JSON kept in `permissions.legacy`; **mapping to new abilities is a manual decision** |
+| users | `OldCRMUser` + contact | **passwords are NOT copied**; users must reset. Needs the contact to have an e-mail |
 | notes / tasks | `InfusionsoftContactAction` | rows whose contact was not imported are skipped and counted |
 | schema / records | `ConnectedData*` | contact-specific values go to the pivot `contact_values` |
 | config | `config_data` | allow-listed settings; Twilio imported **disabled**; Keap OAuth must be reconnected |
 
-Not imported yet: email/SMS history (`MacantaEmailSent`, `MacantaSMSSent`), data-object notes (`InfusionsoftDataObjectNotes`), forms, widgets, custom tabs, automations (`ConnectedDataAutomation`), saved queries, attachments.
+Not imported yet: email/SMS history (`OldCRMEmailSent`, `OldCRMSMSSent`), data-object notes (`InfusionsoftDataObjectNotes`), forms, widgets, custom tabs, automations (`ConnectedDataAutomation`), saved queries, attachments.
 
 Idempotent (matches on `legacy_id`), so you can run it repeatedly during a dual-run period and once more at cut-over.
 **Validate on a copy first** — see "Known gaps" in the README.

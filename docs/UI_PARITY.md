@@ -1,6 +1,6 @@
-# UI parity: old Macanta (React/Gatsby) → OrvynCRM (Inertia + Vue)
+# UI parity: old OldCRM (React/Gatsby) → OrvynCRM (Inertia + Vue)
 
-Source of truth for the old UI: `MacantaReact/src/modules/*` and `src/pages/app.js`.
+Source of truth for the old UI: `OldCRMReact/src/modules/*` and `src/pages/app.js`.
 **Done** = built, exercised by tests and/or checked in the browser. **Partial** = core flow works, noted gaps. **Not built** = deliberately left out or needs an external account/decision.
 
 ## App shell
@@ -78,3 +78,18 @@ Source of truth for the old UI: `MacantaReact/src/modules/*` and `src/pages/app.
 Enforced **server-side**: contact view/create/edit/delete/merge; data-object view/create/edit/delete (per object); task scope (own / everyone / specific users); admin-only areas (settings, users, queries admin writes, boards admin, automation, forms, transfers, webhooks).
 Enforced **in the UI only**: hidden contact tabs (notes, communication, relationships, attachments, custom tabs); widget / board / e-mail-template-group allow-lists are stored but only boards and widgets lists are filtered server-side.
 Imported legacy templates keep their original JSON under `permissions.legacy` and do **not** grant anything until mapped by an admin.
+
+## Beyond parity: what OrvynCRM adds
+
+These have no counterpart in the old app.
+
+| Area | Where | Status |
+|---|---|---|
+| Many companies, one platform | `/platform` (Companies, per-company overview, support mode) | Done |
+| Platform dashboard | `/platform/dashboard` (activity, automation weight, worker time, queue details; movable cards) | Done |
+| Limits: users, data objects, automations per data object | meters on the company's User management, Data Objects and Automation pages; requests with prices; the platform's Requests page | Done (nothing is charged yet) |
+| Messages between company and platform administrators | `/admin/platform-messages` (company) and `/platform/messages` (platform); threads, images, live updates, archive | Done |
+| Background services switches | Platform -> Background services and each company's page, per company and per data object | Done |
+| Platform settings | Platform -> Settings: sign-in page, e-mail notifications, e-mail server, pricing | Done |
+| Announcements | Platform -> Updates and news; shown on the sign-in page and inside every company | Done |
+| Look and feel | company logo, favicon, colours and sidebar colour; platform and company light/dark themes; several dark styles | Done |

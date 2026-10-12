@@ -1,6 +1,6 @@
 # Legacy `rest/V1.php` -> OrvynCRM endpoint map
 
-Source: `MacantaCRM/application/controllers/rest/V1.php` (17,501 lines, 169 methods in ONE class).
+Source: `OldCRM/application/controllers/rest/V1.php` (17,501 lines, 169 methods in ONE class).
 
 Status: **Done** = implemented and covered here. **Planned** = target designed (table/route named), not yet coded. **Retired** = one-off/legacy, intentionally dropped. **Infra** = handled outside the app.
 
@@ -30,8 +30,8 @@ Summary: Done 135, Infra 2, Planned 28, Retired 3
 | `html_get` | 1245 | 5 | Forms | Frontend | Done |
 | `generate_html_form` | 1250 | 501 | Forms | Frontend renders forms.schema (Vue) | Done |
 | `generateMFields` | 1751 | 227 | Forms | Frontend renders forms.schema (Vue) | Done |
-| `macanta_form_submit_post` | 1978 | 170 | Forms | POST /api/v1/forms/{uuid}/submit | Done |
-| `macanta_form_js_get` | 2148 | 70 | Forms | POST /api/v1/forms/{uuid}/submit | Done |
+| `oldcrm_form_submit_post` | 1978 | 170 | Forms | POST /api/v1/forms/{uuid}/submit | Done |
+| `oldcrm_form_js_get` | 2148 | 70 | Forms | POST /api/v1/forms/{uuid}/submit | Done |
 | `form_builder_delete` | 2218 | 20 | Forms | FormController (CRUD) + hosted /f/{uuid} page + embed script | Done |
 | `form_builder_get` | 2238 | 84 | Forms | FormController (CRUD) + hosted /f/{uuid} page + embed script | Done |
 | `form_builder_post` | 2322 | 152 | Forms | FormController (CRUD) + hosted /f/{uuid} page + embed script | Done |

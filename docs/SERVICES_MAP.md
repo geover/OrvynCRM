@@ -1,4 +1,4 @@
-# Background services: `MacantaCRM/services/*` → Laravel
+# Background services: `OldCRM/services/*` → Laravel
 
 Legacy model: `_service.php` is a hand-written daemon (`while(true)`, `exec('ps -ef')`, `kill -9`, per-database loop,
 `all_data` vs `active_data` passes, sleep timers) started by `Dockerfile.automation` with `tini`.
@@ -14,6 +14,10 @@ supervisor: see deploy/supervisor/orvyn-workers.conf  (fast pool, messages pool,
 The scheduler queues one `TenantTick` job per active company each minute; the job carries the company id and the worker opens that company's database, so one pool serves every company and a slow company cannot block the schedule. Check backlog with `php artisan orvyn:queue-status`.
 
 **Per-company control:** Platform -> Background services lists every company with a switch per service (messages, automations, task digest, Keap sync, history clean-up), a pause/resume-all button, a stop/start-for-all-companies link per service, and "Run now". Switches are stored centrally (`tenant_services`) and honoured by the scheduler and by the jobs themselves, so a paused company stops within seconds and its due work resumes when switched back on. The worker and scheduler *processes* are started and stopped on the server (Supervisor / Docker).
+
+**Per data object:** the same switch page has one row per data object for the services that belong to one (automations, e-mail and SMS sending, the overdue-task digest). A switched-off object's automations are not evaluated, its automation-created messages stay queued until it is switched on again (a message is tied to a data object through its record), and the digest leaves out the tasks its automations created (`tasks.data_object_id`). A switch is read by the job itself: no server process is started or stopped.
+
+**Failures:** when an automation run gives up or an action fails, the platform administrators who asked for it get one e-mail per automation per hour (`FailureNotifier`).
 
 ```
 ```

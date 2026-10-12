@@ -2,7 +2,7 @@
 
 **Build. Connect. Automate.** A multi-tenant CRM: every company gets its own database, its own people and its own data model, and a platform area lets you run all of them from one place.
 
-OrvynCRM is a rewrite of Macanta (CodeIgniter 3 + Gatsby) on a modern stack, built to be fast on large datasets and to host many companies side by side.
+OrvynCRM is a rewrite of OldCRM (CodeIgniter 3 + Gatsby) on a modern stack, built to be fast on large datasets and to host many companies side by side.
 
 **Stack:** Laravel 13 (PHP 8.3) · Sanctum · Inertia 3 + Vue 3 · Tailwind 4 · Vite · MySQL / MariaDB (SQLite for tests) · Redis or database queues · stancl/tenancy (a database per company).
 
@@ -96,7 +96,7 @@ The browser suite starts its own app instance on port 8123 with a throw-away SQL
 
 | Doc | What |
 |---|---|
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Stack, why Macanta was slow, data model, code layout, open decisions |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Stack, why OldCRM was slow, data model, code layout, open decisions |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Local and production setup, workers, scaling, benchmarks |
 | [docs/SERVICES_MAP.md](docs/SERVICES_MAP.md) | The old `services/*` daemons mapped to the scheduler and queue jobs |
 | [docs/LEGACY_ENDPOINT_MAP.md](docs/LEGACY_ENDPOINT_MAP.md) | The old API methods mapped to routes and their status |
@@ -110,6 +110,6 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). In short: run `php artisan migrate
 ## Not built yet, and known gaps
 
 - Not built: telephony softphone, Nylas e-mail sync, drag-and-drop e-mail designer, two-factor sign-in screens, round-robin assignment, billing (the platform shows the price of additions, but nothing is charged yet).
-- `orvyn:import-macanta` is covered by tests against a legacy-shaped fixture but has **not been run against a real Macanta database**: try it on a copy first. E-mail and SMS history, automations, forms and widgets are not imported.
+- `orvyn:import-macanta` is covered by tests against a legacy-shaped fixture but has **not been run against a real OldCRM database**: try it on a copy first. E-mail and SMS history, automations, forms and widgets are not imported.
 - The Keap and Twilio clients and the SendGrid and Twilio webhook handlers follow the public APIs but have **not been exercised against live accounts**.
 - Queue details on the platform dashboard can list individual jobs only with the `database` queue driver.
