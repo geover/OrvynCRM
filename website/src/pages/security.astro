@@ -1,0 +1,62 @@
+---
+import Base from '../layouts/Base.astro';
+import SecurityBand from '../components/SecurityBand.astro';
+import CtaBand from '../components/CtaBand.astro';
+import Icon from '../components/Icon.astro';
+
+const glance = [
+    ['Where your data lives', 'In a database that belongs to your company alone, separate from every other company.'],
+    ['Passwords and secrets', 'Passwords are stored only as one-way hashes. Integration credentials and tokens are encrypted when stored.'],
+    ['Who can see what', 'Permission templates set what each user can see and do. Administrators add and remove people.'],
+    ['Support access', 'Our team can open a workspace in support mode to help with a problem, for support and security only.'],
+    ['Your data, your exit', 'Export your data any time. When an account ends, the workspace is deleted or anonymised as the Privacy Policy describes.'],
+    ['Messages', 'Bounces, spam reports and unsubscribes are recorded and respected, and sending is rate limited.'],
+];
+const shared = {
+    us: ['Keep each company in its own database', 'Encrypt stored secrets and hash passwords', 'Protect the service and its infrastructure', 'Record automation runs and message delivery', 'Respond to security questions and incidents'],
+    you: ['Give people the right permissions and remove leavers', 'Choose strong passwords and keep them private', 'Have permission to contact the people you message', 'Honour unsubscribe and opt-out requests', 'Keep your own integration accounts secure'],
+};
+---
+<Base title="Security" description="How OrvynCRM keeps each company's data apart, protected and under its own control.">
+    <header class="border-b border-stone-200 bg-stone-100/60">
+        <div class="container-page py-10 sm:py-14">
+            <nav aria-label="Breadcrumb" class="text-xs text-stone-500"><a href="/" class="hover:text-brand-700">Home</a> <span aria-hidden="true">/</span> <span class="text-stone-700">Security</span></nav>
+            <h1 class="mt-4 max-w-3xl text-3xl font-semibold sm:text-4xl">Security and privacy by design</h1>
+            <p class="mt-4 max-w-2xl text-lg leading-relaxed text-stone-600">A CRM holds the most personal part of a business: its customers. This is how OrvynCRM is built to keep that information apart, protected and in your hands.</p>
+        </div>
+    </header>
+
+    <SecurityBand all />
+
+    <section class="container-page py-20">
+        <div class="mx-auto max-w-2xl text-center">
+            <p class="eyebrow">At a glance</p>
+            <h2 class="mt-2 text-3xl font-semibold sm:text-4xl">Data handling in plain words</h2>
+        </div>
+        <dl class="mx-auto mt-12 grid max-w-4xl gap-px overflow-hidden rounded-2xl border border-stone-200 bg-stone-200 sm:grid-cols-2">
+            {glance.map(([t, d]) => <div class="bg-white p-6"><dt class="font-semibold text-ink">{t}</dt><dd class="mt-1.5 text-sm leading-relaxed text-stone-600">{d}</dd></div>)}
+        </dl>
+    </section>
+
+    <section class="bg-stone-100/70 py-20">
+        <div class="container-page">
+            <div class="mx-auto max-w-2xl text-center">
+                <p class="eyebrow">Shared responsibility</p>
+                <h2 class="mt-2 text-3xl font-semibold sm:text-4xl">What we do, and what you do</h2>
+                <p class="mt-4 text-stone-600">Good security is a partnership. Here is how we split it.</p>
+            </div>
+            <div class="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-2">
+                {[['We take care of', shared.us, 'shield'], ['You take care of', shared.you, 'users']].map(([title, items, icon]) => (
+                    <div class="rounded-2xl border border-stone-200 bg-white p-7 shadow-sm">
+                        <span class="grid size-11 place-items-center rounded-xl bg-brand-50 text-brand-600"><Icon name={icon as string} class="size-5" /></span>
+                        <h3 class="mt-4 text-lg font-semibold">{title}</h3>
+                        <ul class="mt-4 space-y-3 text-sm text-stone-700">{(items as string[]).map((i) => <li class="flex gap-2.5"><Icon name="check" class="mt-0.5 size-4 shrink-0 text-brand-600" /><span>{i}</span></li>)}</ul>
+                    </div>
+                ))}
+            </div>
+            <p class="mt-8 text-center text-sm text-stone-500">More detail in our <a href="/privacy" class="font-medium text-brand-700 underline underline-offset-2">Privacy Policy</a> and <a href="/terms" class="font-medium text-brand-700 underline underline-offset-2">Terms of Use</a>. Questions about security? <a href="/contact" class="font-medium text-brand-700 underline underline-offset-2">Ask us</a>.</p>
+        </div>
+    </section>
+
+    <CtaBand title="Have security questions for your team?" text="Tell us what you need to know and we will answer them." />
+</Base>

@@ -1,0 +1,35 @@
+---
+import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+import { site } from '../data/site';
+
+const mail = `mailto:${site.contactEmail}?subject=${encodeURIComponent('OrvynCRM demo request')}`;
+---
+<Base title="Request a demo" description="Tell us about your business and see how OrvynCRM would work for you.">
+    <section class="container-page grid gap-12 py-16 sm:py-20 lg:grid-cols-[1fr_1.1fr]">
+        <div>
+            <p class="eyebrow">Request a demo</p>
+            <h1 class="mt-2 text-4xl font-semibold sm:text-5xl">See it with your own business in mind</h1>
+            <p class="mt-5 text-lg text-stone-600">A short walkthrough, shaped around what you do. No pressure and no long forms.</p>
+            <ul class="mt-8 space-y-4 text-sm text-stone-700">
+                {['We look at how you work today', 'We show how your records and automations would look', 'You leave knowing if it fits, and what it would cost'].map((t) => (
+                    <li class="flex gap-3"><span class="grid size-6 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-600"><Icon name="check" class="size-3.5" /></span><span>{t}</span></li>
+                ))}
+            </ul>
+        </div>
+
+        <div class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8" data-testid="demo-box">
+            {site.demoFormUrl ? (
+                // The form is built in OrvynCRM itself (Admin settings > Form builder): answers arrive as contacts in your own CRM.
+                <script is:inline src={site.demoFormUrl}></script>
+            ) : (
+                <div class="text-center">
+                    <span class="mx-auto grid size-12 place-items-center rounded-full bg-brand-50 text-brand-600"><Icon name="mail" class="size-6" /></span>
+                    <h2 class="mt-4 text-lg font-semibold">Write to us</h2>
+                    <p class="mt-2 text-sm text-stone-600">Tell us a little about your company and what you would like to automate, and we will reply with a time.</p>
+                    <a href={mail} class="btn-primary mt-6">E-mail {site.contactEmail}</a>
+                </div>
+            )}
+        </div>
+    </section>
+</Base>

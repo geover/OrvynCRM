@@ -1,0 +1,5 @@
+---
+import Legal from '../layouts/Legal.astro';
+import { terms } from '../data/legal';
+---
+<Legal title="Terms of Use" description="The terms that apply when you visit the OrvynCRM website or use the OrvynCRM service." intro={terms.intro} sections={terms.sections} other={{ href: '/privacy', label: 'Privacy Policy' }} />

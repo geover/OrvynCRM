@@ -1,0 +1,92 @@
+---
+// Small drawn scenes for the feature cards. Same palette as the product: indigo, violet, amber, with green for "done".
+interface Props { name: string; class?: string }
+const { name, class: cls = 'w-full' } = Astro.props;
+const id = `g-${name}`;
+---
+<svg viewBox="0 0 320 180" class={cls} role="img" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id={`${id}-bg`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eef3f8" /><stop offset="1" stop-color="#faf4e6" /></linearGradient>
+        <linearGradient id={`${id}-ac`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5f86b0" /><stop offset="1" stop-color="#c9a45c" /></linearGradient>
+    </defs>
+    <rect width="320" height="180" rx="16" fill={`url(#${id}-bg)`} />
+    <circle cx="285" cy="22" r="40" fill="#c3d3e6" opacity=".35" /><circle cx="26" cy="168" r="34" fill="#efe0b8" opacity=".45" />
+
+    {name === 'users' && (<g>
+        <rect x="70" y="30" width="180" height="120" rx="12" fill="#fff" stroke="#e7e0d4" />
+        <circle cx="104" cy="66" r="19" fill={`url(#${id}-ac)`} /><circle cx="104" cy="62" r="6" fill="#fff" /><path d="M92 79a12 8 0 0 1 24 0" fill="#fff" />
+        <rect x="134" y="52" width="82" height="9" rx="4.5" fill="#1d2433" opacity=".85" /><rect x="134" y="68" width="58" height="7" rx="3.5" fill="#d6cdbd" />
+        <rect x="88" y="98" width="46" height="16" rx="8" fill="#dce6f1" /><rect x="140" y="98" width="38" height="16" rx="8" fill="#fef3c7" /><rect x="184" y="98" width="50" height="16" rx="8" fill="#d1fae5" />
+        <rect x="88" y="124" width="146" height="7" rx="3.5" fill="#e7e0d4" />
+        <circle cx="52" cy="62" r="13" fill="#9db8d6" /><circle cx="52" cy="58" r="4.5" fill="#fff" /><path d="M43 69a9 6 0 0 1 18 0" fill="#fff" />
+        <circle cx="270" cy="98" r="13" fill="#d9b96a" /><circle cx="270" cy="94" r="4.5" fill="#fff" /><path d="M261 105a9 6 0 0 1 18 0" fill="#fff" />
+        <path d="M65 66h-0M165 150v14" stroke="#c3d3e6" stroke-width="2" />
+    </g>)}
+
+    {name === 'boxes' && (<g>
+        <path d="M110 52l50-24 50 24-50 24z" fill="#9db8d6" /><path d="M110 52v44l50 24V76z" fill="#5f86b0" /><path d="M210 52v44l-50 24V76z" fill="#3b5a80" />
+        <rect x="30" y="112" width="74" height="38" rx="9" fill="#fff" stroke="#e7e0d4" /><rect x="40" y="123" width="40" height="6" rx="3" fill="#5f86b0" /><rect x="40" y="135" width="52" height="5" rx="2.5" fill="#d6cdbd" />
+        <rect x="216" y="112" width="74" height="38" rx="9" fill="#fff" stroke="#e7e0d4" /><rect x="226" y="123" width="40" height="6" rx="3" fill="#c9a45c" /><rect x="226" y="135" width="52" height="5" rx="2.5" fill="#d6cdbd" />
+        <path d="M104 131h18M216 131h-18" stroke="#7b9cc4" stroke-width="2" stroke-dasharray="4 3" />
+        <rect x="226" y="34" width="62" height="22" rx="11" fill="#fff" stroke="#e7e0d4" /><circle cx="239" cy="45" r="4" fill="#d9b96a" /><rect x="248" y="42" width="30" height="6" rx="3" fill="#d6cdbd" />
+        <rect x="30" y="38" width="62" height="22" rx="11" fill="#fff" stroke="#e7e0d4" /><circle cx="43" cy="49" r="4" fill="#10b981" /><rect x="52" y="46" width="30" height="6" rx="3" fill="#d6cdbd" />
+    </g>)}
+
+    {name === 'zap' && (<g>
+        <rect x="24" y="68" width="82" height="44" rx="10" fill="#fff" stroke="#e7e0d4" /><rect x="34" y="80" width="40" height="6" rx="3" fill="#1d2433" opacity=".8" /><rect x="34" y="92" width="58" height="5" rx="2.5" fill="#d6cdbd" />
+        <path d="M106 90h26" stroke="#7b9cc4" stroke-width="2" /><circle cx="119" cy="90" r="11" fill={`url(#${id}-ac)`} /><path d="M121 82l-6 9h5l-2 7 6-9h-5z" fill="#fff" />
+        <path d="M132 90c14 0 14-34 30-34M132 90h30M132 90c14 0 14 34 30 34" stroke="#c3d3e6" stroke-width="2" fill="none" />
+        <rect x="162" y="40" width="130" height="32" rx="9" fill="#fff" stroke="#e7e0d4" /><circle cx="180" cy="56" r="8" fill="#dce6f1" /><rect x="194" y="51" width="56" height="6" rx="3" fill="#57534e" /><circle cx="276" cy="56" r="8" fill="#10b981" /><path d="M272 56l3 3 5-6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+        <rect x="162" y="74" width="130" height="32" rx="9" fill="#fff" stroke="#e7e0d4" /><circle cx="180" cy="90" r="8" fill="#fef3c7" /><rect x="194" y="85" width="44" height="6" rx="3" fill="#57534e" /><circle cx="276" cy="90" r="8" fill="#10b981" /><path d="M272 90l3 3 5-6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+        <rect x="162" y="108" width="130" height="32" rx="9" fill="#fff" stroke="#e7e0d4" /><circle cx="180" cy="124" r="8" fill="#f3ead2" /><rect x="194" y="119" width="64" height="6" rx="3" fill="#57534e" /><circle cx="276" cy="124" r="8" fill="#10b981" /><path d="M272 124l3 3 5-6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+    </g>)}
+
+    {name === 'mail' && (<g>
+        <rect x="40" y="46" width="150" height="100" rx="12" fill="#fff" stroke="#e7e0d4" />
+        <path d="M40 58l75 52 75-52" fill="none" stroke="#9db8d6" stroke-width="3" stroke-linejoin="round" />
+        <rect x="56" y="118" width="60" height="7" rx="3.5" fill="#e7e0d4" />
+        <rect x="170" y="36" width="116" height="52" rx="14" fill={`url(#${id}-ac)`} /><path d="M196 88l-10 14v-14z" fill="#a9803a" />
+        <rect x="184" y="49" width="70" height="7" rx="3.5" fill="#fff" /><rect x="184" y="64" width="48" height="7" rx="3.5" fill="#fff" opacity=".7" />
+        <circle cx="262" cy="118" r="20" fill="#10b981" /><path d="M252 118l7 7 12-14" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+        <rect x="216" y="146" width="92" height="16" rx="8" fill="#d1fae5" /><rect x="226" y="152" width="48" height="4" rx="2" fill="#059669" />
+    </g>)}
+
+    {name === 'form' && (<g>
+        <rect x="34" y="26" width="130" height="130" rx="12" fill="#fff" stroke="#e7e0d4" />
+        <rect x="48" y="40" width="50" height="6" rx="3" fill="#1d2433" opacity=".8" />
+        <rect x="48" y="56" width="102" height="16" rx="6" fill="#f3efe7" stroke="#e7e0d4" /><rect x="48" y="80" width="102" height="16" rx="6" fill="#f3efe7" stroke="#e7e0d4" /><rect x="48" y="104" width="102" height="16" rx="6" fill="#f3efe7" stroke="#e7e0d4" />
+        <rect x="48" y="128" width="60" height="18" rx="9" fill={`url(#${id}-ac)`} />
+        <path d="M168 91h36" stroke="#7b9cc4" stroke-width="3" stroke-linecap="round" /><path d="M198 83l9 8-9 8" stroke="#7b9cc4" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+        <rect x="214" y="44" width="76" height="30" rx="8" fill="#fff" stroke="#e7e0d4" /><circle cx="228" cy="59" r="7" fill="#9db8d6" /><rect x="240" y="54" width="40" height="5" rx="2.5" fill="#57534e" /><rect x="240" y="63" width="28" height="4" rx="2" fill="#d6cdbd" />
+        <rect x="214" y="80" width="76" height="30" rx="8" fill="#fff" stroke="#e7e0d4" /><circle cx="228" cy="95" r="7" fill="#d9b96a" /><rect x="240" y="90" width="40" height="5" rx="2.5" fill="#57534e" /><rect x="240" y="99" width="28" height="4" rx="2" fill="#d6cdbd" />
+        <rect x="214" y="116" width="76" height="30" rx="8" fill="#ecfdf5" stroke="#a7f3d0" /><circle cx="228" cy="131" r="7" fill="#10b981" /><rect x="240" y="126" width="40" height="5" rx="2.5" fill="#047857" /><rect x="240" y="135" width="28" height="4" rx="2" fill="#6ee7b7" />
+    </g>)}
+
+    {name === 'calendar' && (<g>
+        <rect x="44" y="28" width="150" height="126" rx="12" fill="#fff" stroke="#e7e0d4" /><path d="M44 54h150v-14a12 12 0 0 0-12-12H56a12 12 0 0 0-12 12z" fill={`url(#${id}-ac)`} />
+        {[0, 1, 2, 3, 4].map((r) => [0, 1, 2, 3, 4, 5].map((c) => (
+            <rect x={56 + c * 22} y={66 + r * 17} width="14" height="10" rx="3" fill={(r === 1 && c === 2) || (r === 3 && c === 4) ? '#5f86b0' : (r === 2 && c === 1) ? '#d9b96a' : '#e7e0d4'} />
+        )))}
+        <rect x="208" y="40" width="82" height="34" rx="9" fill="#fff" stroke="#e7e0d4" /><rect x="218" y="50" width="12" height="12" rx="3" fill="#10b981" /><path d="M221 56l3 3 5-6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" /><rect x="236" y="51" width="44" height="5" rx="2.5" fill="#57534e" /><rect x="236" y="60" width="30" height="4" rx="2" fill="#d6cdbd" />
+        <rect x="208" y="82" width="82" height="34" rx="9" fill="#fff" stroke="#e7e0d4" /><rect x="218" y="92" width="12" height="12" rx="3" fill="#dce6f1" stroke="#9db8d6" /><rect x="236" y="93" width="44" height="5" rx="2.5" fill="#57534e" /><rect x="236" y="102" width="30" height="4" rx="2" fill="#d6cdbd" />
+        <rect x="208" y="124" width="82" height="30" rx="9" fill="#fff7ed" stroke="#fed7aa" /><circle cx="224" cy="139" r="6" fill="#d9b96a" /><rect x="236" y="135" width="42" height="5" rx="2.5" fill="#9a3412" opacity=".7" />
+    </g>)}
+
+    {name === 'shield' && (<g>
+        <path d="M110 28l52 18v42c0 30-22 50-52 62-30-12-52-32-52-62V46z" transform="translate(50 0)" fill={`url(#${id}-ac)`} />
+        <path d="M130 94l16 16 32-34" stroke="#fff" stroke-width="9" fill="none" stroke-linecap="round" stroke-linejoin="round" transform="translate(30 -4)" />
+        <rect x="224" y="40" width="68" height="26" rx="13" fill="#fff" stroke="#e7e0d4" /><circle cx="278" cy="53" r="9" fill="#10b981" /><rect x="234" y="50" width="26" height="6" rx="3" fill="#d6cdbd" />
+        <rect x="224" y="78" width="68" height="26" rx="13" fill="#fff" stroke="#e7e0d4" /><circle cx="238" cy="91" r="9" fill="#d6cdbd" /><rect x="254" y="88" width="26" height="6" rx="3" fill="#d6cdbd" />
+        <rect x="224" y="116" width="68" height="26" rx="13" fill="#fff" stroke="#e7e0d4" /><circle cx="278" cy="129" r="9" fill="#10b981" /><rect x="234" y="126" width="26" height="6" rx="3" fill="#d6cdbd" />
+        <circle cx="34" cy="60" r="10" fill="#9db8d6" /><circle cx="34" cy="100" r="10" fill="#d9b96a" /><circle cx="34" cy="140" r="10" fill="#6ee7b7" />
+    </g>)}
+
+    {name === 'link' && (<g>
+        <path d="M160 90L70 44M160 90L250 44M160 90L70 138M160 90L250 138" stroke="#c3d3e6" stroke-width="3" stroke-dasharray="5 4" />
+        <circle cx="160" cy="90" r="30" fill={`url(#${id}-ac)`} /><path d="M176 90a16 16 0 1 1-16-16" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" /><circle cx="158" cy="92" r="4" fill="#fff" />
+        <rect x="34" y="28" width="72" height="32" rx="10" fill="#fff" stroke="#e7e0d4" /><circle cx="50" cy="44" r="7" fill="#10b981" /><rect x="62" y="40" width="34" height="7" rx="3.5" fill="#57534e" />
+        <rect x="214" y="28" width="72" height="32" rx="10" fill="#fff" stroke="#e7e0d4" /><circle cx="230" cy="44" r="7" fill="#ef4444" /><rect x="242" y="40" width="34" height="7" rx="3.5" fill="#57534e" />
+        <rect x="34" y="122" width="72" height="32" rx="10" fill="#fff" stroke="#e7e0d4" /><circle cx="50" cy="138" r="7" fill="#5f86b0" /><rect x="62" y="134" width="34" height="7" rx="3.5" fill="#57534e" />
+        <rect x="214" y="122" width="72" height="32" rx="10" fill="#fff" stroke="#e7e0d4" /><circle cx="230" cy="138" r="7" fill="#d9b96a" /><rect x="242" y="134" width="34" height="7" rx="3.5" fill="#57534e" />
+    </g>)}
+</svg>

@@ -1,0 +1,16 @@
+# Read by Netlify and Cloudflare Pages. Other hosts: set the same headers in the server configuration.
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+  Cross-Origin-Opener-Policy: same-origin
+
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/brand/*
+  Cache-Control: public, max-age=86400
+
+/people/*
+  Cache-Control: public, max-age=604800

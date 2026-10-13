@@ -1,0 +1,38 @@
+---
+// Pictures of the good results the product is built for. The numbers are SAMPLE data, and the section says so.
+const bars = [38, 56, 44, 72, 64, 88];
+const stages = [['New', 82, 'bg-brand-400'], ['Talking', 61, 'bg-gold-300'], ['Proposal', 38, 'bg-gold-400'], ['Won', 24, 'bg-emerald-500']] as const;
+---
+<div class="grid gap-5 md:grid-cols-3">
+    <div class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+        <div class="flex items-center justify-between"><h3 class="text-sm font-semibold">Follow-ups on time</h3><span class="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">&#9650; steady</span></div>
+        <div class="mt-5 flex items-center gap-5">
+            <svg viewBox="0 0 120 120" class="size-28 shrink-0" aria-hidden="true">
+                <circle cx="60" cy="60" r="50" fill="none" stroke="#dce6f1" stroke-width="12" />
+                <circle cx="60" cy="60" r="50" fill="none" stroke="url(#ring)" stroke-width="12" stroke-linecap="round" stroke-dasharray="314" stroke-dashoffset="31" transform="rotate(-90 60 60)" />
+                <defs><linearGradient id="ring" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5f86b0" /><stop offset="1" stop-color="#10b981" /></linearGradient></defs>
+                <text x="60" y="68" text-anchor="middle" font-size="26" font-weight="700" fill="#1d2433">90%</text>
+            </svg>
+            <p class="text-sm leading-relaxed text-stone-600">Automations send the reminder, the e-mail or the text at the right moment, so nothing waits on someone remembering.</p>
+        </div>
+    </div>
+
+    <div class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+        <div class="flex items-center justify-between"><h3 class="text-sm font-semibold">Deals moving forward</h3><span class="rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-700">This quarter</span></div>
+        <div class="mt-5 flex h-28 items-end gap-2" aria-hidden="true">
+            {bars.map((b, i) => <div class:list={['flex-1 rounded-t-md', i === bars.length - 1 ? 'bg-gradient-to-t from-brand-600 to-gold-400' : 'bg-brand-100']} style={`height:${b}%`}></div>)}
+        </div>
+        <p class="mt-4 text-sm leading-relaxed text-stone-600">See where every record stands and which ones are about to close, on boards and dashboards you set up yourself.</p>
+    </div>
+
+    <div class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+        <div class="flex items-center justify-between"><h3 class="text-sm font-semibold">Happy customers</h3><span class="flex gap-0.5 text-gold-400" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</span></div>
+        <div class="mt-5 space-y-3" aria-hidden="true">
+            {stages.map(([name, v, color]) => (
+                <div><div class="mb-1 flex justify-between text-xs text-stone-500"><span>{name}</span><span class="tabular-nums">{v}</span></div><div class="h-2 overflow-hidden rounded-full bg-stone-100"><div class:list={['h-full rounded-full', color]} style={`width:${v}%`}></div></div></div>
+            ))}
+        </div>
+        <p class="mt-4 text-sm leading-relaxed text-stone-600">Quick answers and personal follow-ups turn first contacts into loyal customers.</p>
+    </div>
+</div>
+<p class="mt-4 text-center text-xs text-stone-500">Illustrations with sample data, not real customer results.</p>

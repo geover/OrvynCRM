@@ -1,0 +1,13 @@
+{
+  "name": "OrvynCRM",
+  "short_name": "OrvynCRM",
+  "description": "A CRM that adapts to how you work.",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#fbf9f5",
+  "theme_color": "#4a6f9a",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

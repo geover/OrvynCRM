@@ -1,0 +1,5 @@
+---
+import Legal from '../layouts/Legal.astro';
+import { privacy } from '../data/legal';
+---
+<Legal title="Privacy Policy" description="How OrvynCRM collects, uses, shares and protects personal information, and the choices and rights you have." intro={privacy.intro} sections={privacy.sections} other={{ href: '/terms', label: 'Terms of Use' }} />

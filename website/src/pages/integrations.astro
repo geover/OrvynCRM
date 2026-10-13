@@ -1,0 +1,50 @@
+---
+import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+import CtaBand from '../components/CtaBand.astro';
+import { integrations } from '../data/site';
+
+const steps = [
+    ['Connect', 'Add your key or account in the settings. Credentials are encrypted and never shown again.'],
+    ['Choose', 'Decide what flows where: which contacts sync, which number or server sends, which endpoint is called.'],
+    ['Let it run', 'Automations and messages use the connection by themselves, and you can see what happened.'],
+];
+---
+<Base title="Integrations" description="OrvynCRM works with Keap, Twilio, SendGrid, any SMTP server, webhooks and CSV, so it fits the tools you already use.">
+    <header class="border-b border-stone-200 bg-stone-100/60">
+        <div class="container-page py-10 sm:py-14">
+            <nav aria-label="Breadcrumb" class="text-xs text-stone-500"><a href="/" class="hover:text-brand-700">Home</a> <span aria-hidden="true">/</span> <span class="text-stone-700">Integrations</span></nav>
+            <h1 class="mt-4 max-w-3xl text-3xl font-semibold sm:text-4xl">Fits the tools you already use</h1>
+            <p class="mt-4 max-w-2xl text-lg leading-relaxed text-stone-600">Bring your contacts in, send through the providers you trust, and connect anything else with a webhook.</p>
+        </div>
+    </header>
+
+    <section class="container-page py-16">
+        <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {integrations.map((i) => (
+                <article class="flex flex-col rounded-2xl border border-stone-200 bg-white p-6 shadow-sm transition hover:border-brand-200 hover:shadow-md">
+                    <div class="flex items-center justify-between"><span class="grid size-11 place-items-center rounded-xl bg-brand-50 text-brand-600"><Icon name={i.icon} class="size-5" /></span><span class="rounded-full bg-stone-100 px-2.5 py-0.5 text-[11px] font-medium text-stone-600">{i.kind}</span></div>
+                    <h2 class="mt-4 text-lg font-semibold">{i.name}</h2>
+                    <p class="mt-2 text-sm leading-relaxed text-stone-600">{i.text}</p>
+                </article>
+            ))}
+        </div>
+        <p class="mt-6 text-center text-xs text-stone-500">Product and company names belong to their owners. Mentioning them does not imply a partnership or endorsement.</p>
+    </section>
+
+    <section class="bg-stone-100/70 py-20">
+        <div class="container-page">
+            <div class="mx-auto max-w-2xl text-center"><p class="eyebrow">How it works</p><h2 class="mt-2 text-3xl font-semibold sm:text-4xl">Three steps from setup to running</h2></div>
+            <ol class="mx-auto mt-12 grid max-w-5xl gap-6 md:grid-cols-3">
+                {steps.map(([t, d], i) => (
+                    <li class="relative rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+                        <span class="grid size-9 place-items-center rounded-full bg-brand-600 text-sm font-semibold text-white">{i + 1}</span>
+                        <h3 class="mt-4 text-base font-semibold">{t}</h3><p class="mt-2 text-sm leading-relaxed text-stone-600">{d}</p>
+                    </li>
+                ))}
+            </ol>
+        </div>
+    </section>
+
+    <CtaBand title="Need something that is not listed?" text="Webhooks let an automation call almost any system. Tell us what you use and we will show you how it connects." />
+</Base>

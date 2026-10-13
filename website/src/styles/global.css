@@ -1,0 +1,50 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+
+/* The palette is taken from the team photo on the home page: denim blue, sand and gold, warm greys and a dark ink. */
+@theme {
+    --font-sans: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    /* denim: the blue shirts and screens in the team photo */
+    /* a touch darker than the default so small grey text keeps a contrast of 4.5:1 or more on the tinted backgrounds */
+    --color-stone-500: #6b645e;
+    --color-brand-50: #eef3f8;
+    --color-brand-100: #dce6f1;
+    --color-brand-200: #c3d3e6;
+    --color-brand-400: #7b9cc4;
+    --color-brand-500: #5f86b0;
+    --color-brand-600: #4a6f9a;
+    --color-brand-700: #3b5a80;
+    --color-brand-900: #1d2a40;
+    /* sand and gold: the warm walls, the jacket and the gold stripe */
+    --color-gold-100: #f6ecd5;
+    --color-gold-200: #ecd9ab;
+    --color-gold-300: #e0c487;
+    --color-gold-400: #d0aa62;
+    --color-gold-500: #b8924f;
+    --color-gold-600: #86652d;
+    --color-accent: #d9b96a;
+    --color-ink: #1d2433;
+}
+
+/* In a layer, so utilities such as text-white still win over these defaults. */
+@layer base {
+    html { scroll-behavior: smooth; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    body { @apply bg-[#fbf9f5] text-stone-700 antialiased; }
+    h1, h2, h3 { @apply tracking-tight text-ink; }
+}
+
+/* fade-up on arrival; only hidden when scripting is on, so the page is always readable */
+.js .reveal { opacity: 0; transform: translateY(16px); transition: opacity 0.6s ease, transform 0.6s ease; }
+.js .reveal.in { opacity: 1; transform: none; }
+
+@utility btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50;
+}
+@utility btn-primary { @apply btn bg-brand-600 text-white shadow-sm hover:bg-brand-700; }
+@utility btn-light { @apply btn bg-white text-brand-700 shadow-sm hover:bg-brand-50; }
+@utility btn-outline { @apply btn border border-stone-300 bg-white text-stone-700 hover:bg-stone-50; }
+@utility btn-ghost-dark { @apply btn border border-white/25 text-white hover:bg-white/10; }
+@utility eyebrow { @apply text-xs font-semibold uppercase tracking-widest text-brand-600; }
+@utility container-page { @apply mx-auto w-full max-w-6xl px-5 sm:px-8; }
+@utility prose-lite { @apply space-y-4 leading-relaxed [&_h2]:mt-8 [&_h2]:text-xl [&_h2]:font-semibold [&_a]:text-brand-600 [&_a]:underline [&_ul]:list-disc [&_ul]:pl-5; }

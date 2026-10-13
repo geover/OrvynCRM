@@ -1,0 +1,35 @@
+---
+import { site } from '../data/site';
+import { legal } from '../data/legal';
+
+const year = new Date().getFullYear();
+const columns = [
+    { title: 'Product', links: [['Features', '/features'], ['Integrations', '/integrations'], ['Security', '/security'], ['Pricing', '/pricing']] },
+    { title: 'Company', links: [['Why OrvynCRM', '/why-orvyncrm'], ['Request a demo', '/demo'], ['Contact', '/contact'], ['Create an account', site.signupUrl], ['Sign in', `${site.appUrl}/login`]] },
+    { title: 'Legal', links: [['Privacy Policy', '/privacy'], ['Terms of Use', '/terms']] },
+];
+---
+<footer class="border-t border-stone-200 bg-stone-100/60">
+    <div class="container-page grid gap-10 py-14 lg:grid-cols-[1.6fr_repeat(3,1fr)]">
+        <div>
+            <img src="/brand/orvyn-logo-blend.svg" alt={site.name} class="h-8 w-auto" width="128" height="32" />
+            <p class="mt-4 max-w-xs text-sm leading-relaxed text-stone-500">{site.description}</p>
+            <p class="mt-4 text-sm"><a href={`mailto:${site.contactEmail}`} class="font-medium text-brand-700 hover:underline">{site.contactEmail}</a></p>
+            {legal.address && <p class="mt-2 max-w-xs whitespace-pre-line text-xs leading-relaxed text-stone-500">{legal.address}</p>}
+        </div>
+        {columns.map((c) => (
+            <nav aria-label={c.title}>
+                <h2 class="text-xs font-semibold uppercase tracking-wider text-stone-500">{c.title}</h2>
+                <ul class="mt-4 space-y-2.5 text-sm">
+                    {c.links.map(([label, href]) => <li><a href={href} class="text-stone-600 transition hover:text-brand-700">{label}</a></li>)}
+                </ul>
+            </nav>
+        ))}
+    </div>
+    <div class="border-t border-stone-200">
+        <div class="container-page flex flex-col items-center justify-between gap-2 py-5 text-xs text-stone-500 sm:flex-row">
+            <p>&copy; {year} {site.name}. All Rights Reserved.</p>
+            <p class="flex gap-4"><a href="/privacy" class="hover:text-stone-600">Privacy Policy</a><a href="/terms" class="hover:text-stone-600">Terms of Use</a></p>
+        </div>
+    </div>
+</footer>

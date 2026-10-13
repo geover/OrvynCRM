@@ -1,0 +1,13 @@
+---
+// "Works with": names as plain text, not partner logos.
+const names = ['Keap', 'Twilio', 'SendGrid', 'SMTP', 'Webhooks', 'CSV'];
+---
+<section class="border-y border-stone-200/70 bg-white/60" aria-label="Works with">
+    <div class="container-page flex flex-col items-center justify-between gap-4 py-6 sm:flex-row">
+        <p class="text-xs font-semibold uppercase tracking-wider text-stone-500">Works with the tools you use</p>
+        <ul class="flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-base font-semibold text-stone-500">
+            {names.map((n) => <li class="transition hover:text-stone-700">{n}</li>)}
+        </ul>
+        <a href="/integrations" class="text-sm font-semibold text-brand-700 hover:text-brand-900">All integrations &rarr;</a>
+    </div>
+</section>

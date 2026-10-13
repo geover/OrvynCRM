@@ -1,0 +1,22 @@
+---
+import { Image } from 'astro:assets';
+import teamPhoto from '../assets/team-celebrating.jpg';
+import { site } from '../data/site';
+
+interface Props { title?: string; text?: string }
+const { title = 'See OrvynCRM with your own data model', text = 'Tell us about your business and we will show you how it would work for you.' } = Astro.props;
+---
+<section class="container-page my-20">
+    <div class="relative isolate overflow-hidden rounded-3xl px-8 py-16 text-center shadow-xl sm:px-16">
+        <Image src={teamPhoto} alt="" widths={[800, 1280, 1600]} sizes="(min-width: 1152px) 1100px, 92vw" class="absolute inset-0 -z-20 size-full object-cover object-[55%_35%]" />
+        <div class="absolute inset-0 -z-10 bg-gradient-to-br from-brand-900/95 via-brand-700/85 to-brand-900/80" aria-hidden="true"></div>
+        <div class="absolute -right-16 -top-16 -z-10 size-64 rounded-full bg-gold-400/25 blur-3xl" aria-hidden="true"></div>
+        <h2 class="mx-auto max-w-2xl text-3xl font-semibold text-white sm:text-4xl">{title}</h2>
+        <p class="mx-auto mt-4 max-w-xl text-brand-100">{text}</p>
+        <div class="mt-8 flex flex-wrap justify-center gap-3">
+            <a href="/demo" class="btn-light">Request a demo</a>
+            <a href={site.signupUrl} class="btn-ghost-dark">Create an account</a>
+            <a href={`${site.appUrl}/login`} class="btn-ghost-dark">Sign in</a>
+        </div>
+    </div>
+</section>

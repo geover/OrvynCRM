@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 224 56" role="img" aria-label="OrvynCRM">
+  <defs>
+    <mask id="m">
+      <rect width="64" height="64" rx="16" fill="#fff"/>
+      <path d="M48 32a16 16 0 1 1-16-16" fill="none" stroke="#000" stroke-width="7" stroke-linecap="round"/>
+      <path d="M34 30L47 17M39 17h8v8" fill="none" stroke="#000" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="30" cy="34" r="4.5" fill="#000"/>
+    </mask>
+  </defs>
+  <g transform="scale(0.875)"><rect width="64" height="64" rx="16" fill="#1d2433" mask="url(#m)"/></g>
+  <text x="66" y="38" font-family="Inter, 'Segoe UI', system-ui, -apple-system, sans-serif" font-size="29" font-weight="700" letter-spacing="-0.5" fill="#1d2433">Orvyn<tspan font-weight="600" fill-opacity="0.7">CRM</tspan></text>
+</svg>

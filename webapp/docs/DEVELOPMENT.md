@@ -6,10 +6,10 @@ How to run OrvynCRM and its public website on a Windows machine with Laragon, an
 
 | Project | Folder | What it is | Local address (Laragon) |
 |---|---|---|---|
-| OrvynCRM | `D:\Work\OrvynCRM` | The product: Laravel, Inertia, Vue, Tailwind | `http://app.orvyncrm.test:8080` |
-| Website | `D:\Work\orvyncrm-website` | The public marketing site: Astro, static output | `http://orvyncrm.test:8080` |
+| OrvynCRM (`webapp`) | `D:\Work\OrvynCRM\webapp` | The product: Laravel, Inertia, Vue, Tailwind | `http://app.orvyncrm.test:8080` |
+| Website (`website`) | `D:\Work\OrvynCRM\website` | The public marketing site: Astro, static output | `http://orvyncrm.test:8080` |
 
-They are separate projects with separate repositories. In production the website is `www.<domain>` and the CRM is `app.<domain>`.
+They are two separate projects (each with its own `package.json`, dependencies and deploy) that live side by side in one repository, `D:\Work\OrvynCRM`. In production the website is `www.<domain>` and the CRM is `app.<domain>`.
 
 The `:8080` is there because Laragon's Apache listens on 8080 on this machine (something else holds port 80). If you free port 80 and set Apache to 80 in Laragon (Menu, Preferences, Services & Ports), drop `:8080` everywhere below.
 
@@ -19,11 +19,11 @@ The `:8080` is there because Laragon's Apache listens on 8080 on this machine (s
 2. **Make Laragon see both projects.** Laragon turns each folder in `D:\laragon\www` into `<folder>.test`, so link the projects in with junctions (run once, in a Windows command prompt):
 
 ```bash
-mklink /J D:\laragon\www\app.orvyncrm D:\Work\OrvynCRM
+mklink /J D:\laragon\www\app.orvyncrm D:\Work\OrvynCRM\webapp
 ```
 
 ```bash
-mklink /J D:\laragon\www\orvyncrm D:\Work\orvyncrm-website\dist
+mklink /J D:\laragon\www\orvyncrm D:\Work\OrvynCRM\website\dist
 ```
 
    Then Menu, Apache, Reload. Laragon serves the CRM from its `public` folder and the website from `dist`, and adds both names to the Windows hosts file.
@@ -47,7 +47,7 @@ SITE_URL=http://orvyncrm.test:8080
 
 ## A normal day
 
-**Start (once):** start Laragon (Apache and MySQL). The CRM also needs its background workers, or e-mail, SMS and automations will not run. In `D:\Work\OrvynCRM`, in two terminals:
+**Start (once):** start Laragon (Apache and MySQL). The CRM also needs its background workers, or e-mail, SMS and automations will not run. In `D:\Work\OrvynCRM\webapp`, in two terminals:
 
 ```bash
 php artisan queue:work --queue=ticks,automations,webhooks,messages,default
