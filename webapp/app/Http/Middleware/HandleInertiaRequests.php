@@ -7,7 +7,9 @@ use App\Models\AccountUser;
 use App\Models\Announcement;
 use App\Models\MessageThread;
 use App\Models\SeatRequest;
+use App\Models\SubscriptionRequest;
 use App\Models\Tenant;
+use App\Services\Tenancy\Plans;
 use App\Support\Tenancy\Company;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -25,7 +27,10 @@ class HandleInertiaRequests extends Middleware
      */
     private function branding(Request $request): array
     {
-        if (! Company::isOpen() || Company::isSignInPage($request) || Company::isPlatformArea($request)) {
+        if (Company::isPlatformArea($request)) {
+            return Company::platformAreaBranding();               // the platform area has a look of its own
+        }
+        if (! Company::isOpen() || Company::isSignInPage($request)) {
             return Company::platformBranding();
         }
 
@@ -50,6 +55,18 @@ class HandleInertiaRequests extends Middleware
     private function loginUpdates(): array
     {
         return Cache::remember('announcements:login', 60, fn () => Announcement::live()->where('show_on_login', true)->newestFirst()->limit(5)->get()->map->toReader()->values()->all());
+    }
+
+    /** @return array{state: string, days_left: int|null, billing_complete: bool, blocked: bool}|null only while a trial runs or has run out without billing details */
+    private function trial(): ?array
+    {
+        $company = tenant();
+        if (! $company || $company->trial_ends_at === null) {
+            return null;
+        }
+        $state = app(Plans::class)->state($company);
+
+        return in_array($state['state'], ['trial', 'expired'], true) && ! $state['ok'] ? array_intersect_key($state, array_flip(['state', 'days_left', 'billing_complete', 'payment_required', 'blocked'])) : null;
     }
 
     public function share(Request $request): array
@@ -79,7 +96,10 @@ class HandleInertiaRequests extends Middleware
             // requests for more users waiting for a platform administrator (the badge in the platform menu)
             // companies the daily check has flagged as abandoned: a badge on the platform's Companies menu until they are dealt with
             'inactiveCompanies' => fn () => Company::isPlatformArea($request) ? Tenant::active()->whereNotNull('inactive_since')->count() : 0,
-            'seatRequestsPending' => fn () => Company::isPlatformArea($request) ? SeatRequest::pending()->count() : 0,
+            // the free trial of the open company: a banner for its administrators while it runs out, and the page they are sent to once it has
+            'trial' => fn () => Company::isOpen() && ! Company::isSignInPage($request) && ! Company::isPlatformArea($request) && $request->user() && tenancy()->initialized
+                ? $this->trial() : null,
+            'seatRequestsPending' => fn () => Company::isPlatformArea($request) ? SeatRequest::pending()->count() + SubscriptionRequest::pending()->count() : 0,
             'platformMessagesUnread' => fn () => Company::isPlatformArea($request) ? MessageThread::unreadForPlatform()->count() : 0,
             // a company administrator: conversations with the platform that have a new reply
             'platformThreadsUnread' => fn () => Company::isOpen() && ! Company::isSignInPage($request) && ! Company::isPlatformArea($request) && $request->user()?->isAdmin() && tenancy()->initialized

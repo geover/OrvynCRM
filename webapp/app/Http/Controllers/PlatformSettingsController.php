@@ -10,10 +10,13 @@ use App\Services\Tenancy\CallSettings;
 use App\Services\Tenancy\CompanyServices;
 use App\Services\Tenancy\InactiveCompanies;
 use App\Services\Tenancy\MailSettings;
+use App\Services\Tenancy\PaymentSettings;
+use App\Services\Tenancy\Plans;
 use App\Services\Tenancy\Pricing;
 use App\Services\Tenancy\Recaptcha;
 use App\Services\Tenancy\SignupSettings;
 use App\Services\Tenancy\SmsSettings;
+use App\Services\Tenancy\Subscriptions;
 use App\Support\Tenancy\Company;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -37,11 +40,14 @@ class PlatformSettingsController extends Controller
 
         return Inertia::render('Platform/Settings', [
             'pricing' => $pricing->current(),
-            'sms' => ['enabled' => $sms->current()['enabled'], 'ready' => $sms->account() !== null, 'from' => $sms->current()['messaging_service_sid'] ? 'Messaging service' : $sms->current()['from_number']],
+            'sms' => ['enabled' => $sms->current()['enabled'], 'ready' => $sms->account() !== null, 'from' => $sms->current()['effective']['messaging_service_sid'] ? 'Messaging service' : $sms->current()['effective']['from_number']],
             'calls' => $calls->current(),
+            'payments' => ['enabled' => app(PaymentSettings::class)->enabled(), 'mode' => app(PaymentSettings::class)->mode(), 'ready' => app(Subscriptions::class)->available()],
+            'plans' => ['trial_months' => app(Plans::class)->trialMonths(), 'priced' => collect(app(Plans::class)->tiers())->whereNotNull('price')->count(), 'tiers' => count(config('plans.tiers')), 'trials_ending' => Tenant::whereNotNull('trial_ends_at')->where('trial_ends_at', '>', now())->count()],
             'inactivity' => ['enabled' => app(InactiveCompanies::class)->enabled(), 'days' => app(InactiveCompanies::class)->days(), 'flagged' => Tenant::active()->whereNotNull('inactive_since')->count()],
             'recaptcha' => ['active' => app(Recaptcha::class)->active(), 'enabled' => app(Recaptcha::class)->current()['enabled']],
             'signup' => ['mode' => app(SignupSettings::class)->mode(), 'waiting' => Signup::where('status', Signup::PENDING_APPROVAL)->count()],
+            'platform_look' => collect(Company::platformAreaBranding())->only(['name', 'color'])->all(),
             'branding' => collect(Company::platformBranding())->only(['name', 'color', 'theme', 'dark_style'])->all() + ['custom_logo' => ! Company::platformBranding()['logo_is_default'], 'custom_background' => (bool) Company::platformBranding()['background_url']],
             'notifications' => [
                 'administrators' => $admins->count(), 'requests' => $admins->where('notify_requests', true)->count(),
@@ -71,7 +77,7 @@ class PlatformSettingsController extends Controller
 
     public function mailPage(Request $request, MailSettings $mail): Response
     {
-        return Inertia::render('Platform/SettingsMail', ['sendgrid' => ['url' => $mail->sendgridUrl(), 'key_set' => $mail->sendgridVerificationKeySet()], 'mail' => $mail->current(), 'env' => $mail->envDefaults(), 'my_email' => $request->attributes->get('platform_identity')->email]);
+        return Inertia::render('Platform/SettingsMail', ['sendgrid' => ['url' => $mail->sendgridUrl(), 'key_set' => $mail->sendgridVerificationKeySet(), 'key_from_env' => $mail->sendgridKeyFromEnv()], 'mail' => $mail->current(), 'env' => $mail->envDefaults(), 'my_email' => $request->attributes->get('platform_identity')->email]);
     }
 
     public function notifications(Request $request): RedirectResponse
@@ -115,6 +121,15 @@ class PlatformSettingsController extends Controller
         $this->restartWorkers();
 
         return back()->with('success', $d['enabled'] ? 'Saved. E-mails now go through this server.' : 'Saved. E-mails use the server from the .env file.');
+    }
+
+    /** Back to the server in the .env file: the saved host, port, login, password and sender are all cleared. */
+    public function resetMail(MailSettings $mail): RedirectResponse
+    {
+        $mail->reset();
+        $this->restartWorkers();
+
+        return back()->with('success', 'Reset. E-mails use the server from the .env file again.');
     }
 
     /** SendGrid's verification key (optional): with it, event reports must be signed by SendGrid. */

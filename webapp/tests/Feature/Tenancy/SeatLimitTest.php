@@ -180,7 +180,7 @@ class SeatLimitTest extends TenantTestCase
         $this->post("/platform/companies/{$acme->id}/users", $this->person('2'))->assertSessionHasErrors('email');   // at the limit: raise it first
         $this->assertSame(2, app(Seats::class)->usedFor($acme));
 
-        $this->patch("/platform/companies/{$acme->id}", ['max_users' => 4])->assertRedirect();
+        $this->patch("/platform/companies/{$acme->id}", ['max_users' => 6])->assertRedirect();                 // Tier 1 includes 5: the limit may go above that
         $this->post("/platform/companies/{$acme->id}/users", $this->person('2'))->assertRedirect()->assertSessionHas('success');
         $this->assertSame(3, app(Seats::class)->usedFor($acme));
 

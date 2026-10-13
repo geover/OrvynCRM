@@ -20,11 +20,15 @@ use App\Http\Controllers\PlatformInactivityController;
 use App\Http\Controllers\PlatformIntegrationController;
 use App\Http\Controllers\PlatformMessageController;
 use App\Http\Controllers\PlatformObjectLimitController;
+use App\Http\Controllers\PlatformPaymentsController;
+use App\Http\Controllers\PlatformPlansController;
 use App\Http\Controllers\PlatformPricingController;
 use App\Http\Controllers\PlatformSeatRequestController;
 use App\Http\Controllers\PlatformServicesController;
 use App\Http\Controllers\PlatformSettingsController;
 use App\Http\Controllers\PlatformSignupController;
+use App\Http\Controllers\PlatformSubscriptionController;
+use App\Http\Controllers\PlatformUsageController;
 use App\Http\Controllers\PublicFormController;
 use App\Http\Controllers\SignupController;
 use App\Http\Controllers\ThreadAttachmentController;
@@ -47,6 +51,9 @@ Route::post('/choose-company', [WebAuthController::class, 'choose']);
 // Platform area: all companies (platform administrators only)
 Route::middleware('platform')->prefix('platform')->group(function () {
     Route::get('/', [PlatformController::class, 'index']);
+    Route::get('manual', fn () => Inertia::render('Platform/Manual'))->name('platform.manual');
+    Route::get('usage', [PlatformUsageController::class, 'index']);
+    Route::post('usage/refresh', [PlatformUsageController::class, 'refresh'])->middleware('throttle:6,1');
     Route::post('companies', [PlatformController::class, 'store']);
     Route::patch('companies/{tenant}', [PlatformController::class, 'update']);
     Route::post('companies/{tenant}/open', [PlatformController::class, 'open']);
@@ -99,6 +106,17 @@ Route::middleware('platform')->prefix('platform')->group(function () {
     Route::get('settings/notifications', [PlatformSettingsController::class, 'notificationsPage']);
     Route::patch('settings/notifications', [PlatformSettingsController::class, 'notifications']);
     Route::get('settings/mail', [PlatformSettingsController::class, 'mailPage']);
+    Route::post('companies/{tenant}/subscription/cancel', [PlatformSubscriptionController::class, 'cancel']);
+    Route::post('companies/{tenant}/subscription/resume', [PlatformSubscriptionController::class, 'resume']);
+    Route::post('companies/{tenant}/subscription/enable', [PlatformSubscriptionController::class, 'enable']);
+    Route::post('subscription-requests/{subscriptionRequest}/approve', [PlatformSubscriptionController::class, 'approve']);
+    Route::post('subscription-requests/{subscriptionRequest}/decline', [PlatformSubscriptionController::class, 'decline']);
+    Route::get('settings/payments', [PlatformPaymentsController::class, 'show']);
+    Route::patch('settings/payments', [PlatformPaymentsController::class, 'save']);
+    Route::post('settings/payments/test', [PlatformPaymentsController::class, 'test'])->middleware('throttle:10,1');
+    Route::post('settings/payments/prices', [PlatformPaymentsController::class, 'syncPrices'])->middleware('throttle:10,1');
+    Route::get('settings/plans', [PlatformPlansController::class, 'show']);
+    Route::patch('settings/plans', [PlatformPlansController::class, 'save']);
     Route::get('settings/inactive-companies', [PlatformInactivityController::class, 'show']);
     Route::patch('settings/inactive-companies', [PlatformInactivityController::class, 'save']);
     Route::post('settings/inactive-companies/scan', [PlatformInactivityController::class, 'scan'])->middleware('throttle:10,1');
@@ -118,6 +136,7 @@ Route::middleware('platform')->prefix('platform')->group(function () {
     Route::patch('settings/calls/numbers/{sid}', [PlatformIntegrationController::class, 'renameNumber']);
     Route::delete('settings/calls/numbers/{sid}', [PlatformIntegrationController::class, 'removeNumber']);
     Route::patch('settings/mail', [PlatformSettingsController::class, 'mail']);
+    Route::post('settings/mail/reset', [PlatformSettingsController::class, 'resetMail']);
     Route::post('settings/mail/test', [PlatformSettingsController::class, 'test'])->middleware('throttle:10,1');
     Route::patch('settings/mail/sendgrid', [PlatformSettingsController::class, 'sendgrid']);
     Route::post('settings/mail/sendgrid/rotate', [PlatformSettingsController::class, 'rotateSendgrid'])->middleware('throttle:10,1');
@@ -125,6 +144,12 @@ Route::middleware('platform')->prefix('platform')->group(function () {
     Route::get('services', [PlatformServicesController::class, 'index']);
     Route::patch('services', [PlatformServicesController::class, 'update']);
 
+    Route::get('look', [PlatformBrandingController::class, 'look']);
+    Route::patch('look', [PlatformBrandingController::class, 'updateLook']);
+    Route::post('look/logo', [PlatformBrandingController::class, 'uploadLookLogo']);
+    Route::delete('look/logo', [PlatformBrandingController::class, 'destroyLookLogo']);
+    Route::post('look/favicon', [PlatformBrandingController::class, 'uploadLookFavicon']);
+    Route::delete('look/favicon', [PlatformBrandingController::class, 'destroyLookFavicon']);
     Route::get('branding', [PlatformBrandingController::class, 'show']);
     Route::patch('branding', [PlatformBrandingController::class, 'update']);
     Route::post('branding/logo', [PlatformBrandingController::class, 'uploadLogo']);
@@ -144,7 +169,7 @@ Route::middleware('platform')->prefix('platform')->group(function () {
     Route::delete('administrators/{administrator}', [PlatformAdministratorController::class, 'destroy']);
 });
 
-Route::middleware('guest')->group(function () {
+Route::middleware(['guest', 'signed-out'])->group(function () {
     Route::get('/login', [WebAuthController::class, 'create'])->name('login');
     Route::post('/login', [WebAuthController::class, 'store']);   // brute-force protection is inside the controller (failures only)
     // Create your own workspace (offered only while the platform has sign-ups open; see Platform > Sign-ups)
@@ -154,6 +179,9 @@ Route::middleware('guest')->group(function () {
     Route::post('/signup/resend', [SignupController::class, 'resend'])->middleware('throttle:signup');
     Route::get('/signup/{token}', [SignupController::class, 'show'])->where('token', '[A-Za-z0-9]{48}');
     Route::post('/signup/{token}', [SignupController::class, 'complete'])->where('token', '[A-Za-z0-9]{48}')->middleware('throttle:signup-complete');
+});
+
+Route::middleware('guest')->group(function () {
     Route::get('/forgot-password', [PasswordResetController::class, 'request'])->name('password.request');
     Route::post('/forgot-password', [PasswordResetController::class, 'email'])->middleware('throttle:login')->name('password.email');
     Route::get('/reset-password/{token}', [PasswordResetController::class, 'reset'])->name('password.reset');
@@ -165,7 +193,9 @@ Route::post('/logout', [WebAuthController::class, 'destroy']);
 Route::get('/brand/logo', [PlatformBrandingController::class, 'logo']);
 Route::get('/brand/logo-light', [PlatformBrandingController::class, 'logoLight']);
 Route::get('/brand/background', [PlatformBrandingController::class, 'background']);
-Route::get('/brand/favicon', [PlatformBrandingController::class, 'favicon']);        // the sign-in logo: public, platform-owned
+Route::get('/brand/favicon', [PlatformBrandingController::class, 'favicon']);
+Route::get('/brand/platform-logo', [PlatformBrandingController::class, 'lookLogo']);
+Route::get('/brand/platform-favicon', [PlatformBrandingController::class, 'lookFavicon']);        // the sign-in logo: public, platform-owned
 
 Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/updates', [UpdatesController::class, 'index'])->name('updates');
@@ -196,6 +226,8 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/boards', fn () => Inertia::render('Boards/Index'))->name('boards.index');
     Route::get('/boards/{board}', fn (int $board) => Inertia::render('Boards/Show', ['boardId' => $board]))->whereNumber('board')->name('boards.show');
     Route::get('/user-settings', fn () => Inertia::render('UserSettings'))->name('user-settings');
+    Route::get('/manual', fn () => Inertia::render('Manual'))->name('manual');
+    Route::get('/billing', fn () => Inertia::render('Billing'))->name('billing');
 
     // ---- Admin settings (administrators only)
     Route::middleware('admin')->group(function () {

@@ -5,9 +5,13 @@ namespace App\Jobs;
 use App\Integrations\Twilio\TwilioClient;
 use App\Models\Activity;
 use App\Models\SmsMessage;
+use App\Models\Tenant;
 use App\Services\Tenancy\CompanyServices;
+use App\Services\Tenancy\Plans;
+use App\Services\Tenancy\UsageTracker;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Cache;
 
 class SendSmsMessage implements ShouldQueue
 {
@@ -22,7 +26,7 @@ class SendSmsMessage implements ShouldQueue
         $this->onQueue('messages');
     }
 
-    public function handle(TwilioClient $twilio, CompanyServices $services): void
+    public function handle(TwilioClient $twilio, CompanyServices $services, Plans $plans): void
     {
         // sending switched off for this company (Platform > Background services): whoever pressed Send, the message stays
         // queued and goes out on the first tick after it is switched on again
@@ -34,7 +38,26 @@ class SendSmsMessage implements ShouldQueue
             return;                                  // this data object's message sending is switched off: it stays queued
         }
 
-        if (! SmsMessage::whereKey($this->messageId)->where('status', 'queued')->update(['status' => 'sending'])) {
+        // Claim the text and check the month's limit as one step per company, so two texts sent at the same moment cannot both squeeze under
+        // the limit. The text being sent does not count against itself. Past the limit it is not sent (and not retried).
+        $company = Tenant::find(tenant('id'));
+        $overLimit = false;
+        $claimed = Cache::lock('sms-cap:'.tenant('id'), 10)->block(5, function () use ($plans, $company, &$overLimit) {
+            if (! SmsMessage::whereKey($this->messageId)->where('status', 'queued')->update(['status' => 'sending'])) {
+                return false;
+            }
+            if ($company && $plans->smsExhausted($company, $this->messageId)) {
+                SmsMessage::whereKey($this->messageId)->update(['status' => 'failed', 'error' => "This month's limit of {$plans->smsLimit($company)} texts for your plan is used up. It resets at the start of next month, or choose a bigger plan."]);
+                $overLimit = true;
+
+                return false;
+            }
+
+            return true;
+        });
+        if (! $claimed) {
+            $overLimit && $company && app(UsageTracker::class)->refresh($company);       // the company is told it has used up its texts
+
             return;
         }
 

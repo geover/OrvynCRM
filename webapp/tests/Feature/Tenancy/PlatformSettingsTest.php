@@ -125,6 +125,31 @@ class PlatformSettingsTest extends TenantTestCase
         $this->assertSame('env.example.test', config('mail.mailers.smtp.host'));
     }
 
+    public function test_resetting_the_mail_server_clears_everything_saved_but_keeps_the_sendgrid_event_settings(): void
+    {
+        $this->platformAdmin();
+        config(['mail.mailers.smtp.host' => 'env.example.test']);
+        $this->patch('/platform/settings/mail', ['enabled' => true, 'host' => 'smtp.custom.test', 'port' => 465, 'username' => 'mailer', 'password' => 'Sup3r-Secret', 'scheme' => 'smtps', 'from_address' => 'platform@custom.test', 'from_name' => 'Platform']);
+        app(MailSettings::class)->sendgridUrl();
+        $token = PlatformSetting::get('mail.sendgrid_token');
+
+        $this->post('/platform/settings/mail/reset')->assertRedirect()->assertSessionHas('success');
+
+        PlatformSetting::forgetCache();
+        $this->assertSame(
+            ['0', null, null, null, null, 'smtp', null, null],
+            array_map(fn ($key) => PlatformSetting::get("mail.{$key}"), ['enabled', 'host', 'port', 'username', 'password', 'scheme', 'from_address', 'from_name']),
+        );
+        $this->assertSame($token, PlatformSetting::get('mail.sendgrid_token'));
+        app(MailSettings::class)->apply();
+        $this->assertSame('env.example.test', config('mail.mailers.smtp.host'));
+    }
+
+    public function test_only_a_platform_administrator_can_reset_the_mail_server(): void
+    {
+        $this->post('/platform/settings/mail/reset')->assertRedirect('/login');
+    }
+
     public function test_a_host_is_required_when_the_override_is_on(): void
     {
         $this->platformAdmin();

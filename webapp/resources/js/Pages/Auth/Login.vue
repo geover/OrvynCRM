@@ -1,4 +1,5 @@
 <script setup>
+import PasswordField from '@/Components/PasswordField.vue';
 import { nextTick, ref } from 'vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import AuthShell from '@/Components/AuthShell.vue';
@@ -10,8 +11,7 @@ const page = usePage();
 // Two steps: who are you, then your password. The first step never asks the server anything (so it cannot reveal
 // which addresses have an account) and is where single sign-on will branch off later.
 const step = ref(1);
-const password = ref(null);
-const next = async () => { if (!form.email) return; step.value = 2; await nextTick(); password.value?.focus(); };
+const next = async () => { if (!form.email) return; step.value = 2; await nextTick(); document.getElementById('password')?.focus(); };
 const change = () => { step.value = 1; form.clearErrors(); };
 const submit = async () => {
     form.recaptcha_token = await recaptchaToken('login');
@@ -41,10 +41,10 @@ const submit = async () => {
                 <template v-if="step === 2">
                     <div>
                         <label class="label" for="password">Password</label>
-                        <input id="password" ref="password" v-model="form.password" type="password" class="input" autocomplete="current-password" required />
+                        <PasswordField id="password" v-model="form.password" autocomplete="current-password" required />
                         <p v-if="form.errors.email" class="mt-1 text-xs text-red-600" role="alert">{{ form.errors.email }}</p>
                     </div>
-                    <div class="flex items-center justify-between text-sm"><label class="flex items-center gap-2 text-slate-600"><input v-model="form.remember" type="checkbox" class="rounded" /> Remember me</label><Link href="/forgot-password" class="text-brand-700 hover:underline">Forgot password?</Link></div>
+                    <div class="flex items-center justify-between text-sm"><label class="flex items-center gap-2 text-slate-600"><input v-model="form.remember" type="checkbox" class="rounded" /> Remember me</label><Link :href="form.email ? `/forgot-password?email=${encodeURIComponent(form.email)}` : '/forgot-password'" class="text-brand-700 hover:underline" data-testid="forgot-link">Forgot password?</Link></div>
                 </template>
 
                 <button class="btn-primary w-full" :disabled="form.processing">{{ step === 1 ? 'Continue' : 'Sign in' }}</button>

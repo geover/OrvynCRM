@@ -7,7 +7,7 @@ import { submitSignIn, uniq } from './helpers.js';
  * Sign-up: closed until the platform opens it; then ask, confirm the e-mail (the e2e app writes its e-mails to the log), choose a
  * password and land in a brand-new workspace; in approval mode the platform decides first.
  */
-const PLATFORM = 'platform@orvyn.test';
+const PLATFORM = 'platform@orvyncrm.test';
 const PASSWORD = 'E2e-Passw0rd!x';
 const LOG = path.resolve(import.meta.dirname, '..', '..', 'storage', 'logs', 'laravel.log');
 test.describe.configure({ mode: 'serial' });

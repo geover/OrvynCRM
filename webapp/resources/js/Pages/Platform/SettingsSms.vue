@@ -31,16 +31,17 @@ const sendTest = () => test.post('/platform/settings/sms/test', { preserveScroll
 
             <fieldset :disabled="!form.enabled" :class="!form.enabled && 'opacity-50'" class="space-y-3">
                 <div class="grid gap-3 sm:grid-cols-2">
-                    <div><label class="label" for="sm-sid">Account SID</label><input id="sm-sid" v-model="form.account_sid" class="input font-mono text-xs" placeholder="AC…" autocomplete="off" data-testid="sms-sid" /><p v-if="form.errors.account_sid" class="mt-1 text-xs text-red-600">{{ form.errors.account_sid }}</p></div>
-                    <div><label class="label" for="sm-token">Auth token</label><PasswordField id="sm-token" v-model="form.auth_token" autocomplete="new-password" :placeholder="sms.token_set ? 'Saved. Type to replace it.' : ''" />
+                    <div><label class="label" for="sm-sid">Account SID</label><input id="sm-sid" v-model="form.account_sid" class="input font-mono text-xs" :placeholder="sms.env.account_sid ? `From .env: ${sms.env.account_sid}` : 'AC…'" autocomplete="off" data-testid="sms-sid" /><p v-if="form.errors.account_sid" class="mt-1 text-xs text-red-600">{{ form.errors.account_sid }}</p></div>
+                    <div><label class="label" for="sm-token">Auth token</label><PasswordField id="sm-token" v-model="form.auth_token" autocomplete="new-password" :placeholder="sms.token_set ? 'Saved. Type to replace it.' : sms.env.token_set ? 'From .env (TWILIO_AUTH_TOKEN). Type to replace it.' : ''" />
                         <label v-if="sms.token_set" class="mt-1 flex items-center gap-2 text-xs text-slate-500"><input v-model="form.clear_token" type="checkbox" class="accent-brand-600" /> Remove the saved token</label></div>
                 </div>
                 <div class="grid gap-3 sm:grid-cols-2">
-                    <div><label class="label" for="sm-from">Send from (number)</label><input id="sm-from" v-model="form.from_number" class="input" placeholder="+15551234567" data-testid="sms-from" /><p v-if="form.errors.from_number" class="mt-1 text-xs text-red-600">{{ form.errors.from_number }}</p></div>
+                    <div><label class="label" for="sm-from">Send from (number)</label><input id="sm-from" v-model="form.from_number" :placeholder="sms.env.from_number ? `From .env: ${sms.env.from_number}` : '+15551234567'" class="input" data-testid="sms-from" /><p v-if="form.errors.from_number" class="mt-1 text-xs text-red-600">{{ form.errors.from_number }}</p></div>
                     <div><label class="label" for="sm-service">or Messaging Service SID <span class="normal-case text-slate-400">(optional)</span></label><input id="sm-service" v-model="form.messaging_service_sid" class="input font-mono text-xs" placeholder="MG…" autocomplete="off" /></div>
                 </div>
                 <p class="text-xs text-slate-500">A number or a messaging service is needed. With a messaging service, Twilio picks the number and the number above is ignored.</p>
             </fieldset>
+            <p class="text-xs text-slate-500" data-testid="sms-env-note">Defaults come from the <code>.env</code> file (<code>TWILIO_ACCOUNT_SID</code>, <code>TWILIO_AUTH_TOKEN</code>, <code>TWILIO_FROM_NUMBER</code>, <code>TWILIO_MESSAGING_SERVICE_SID</code>): a field left empty here uses its value from there, and anything you save here replaces it. Not set in .env: {{ ['account_sid', 'token_set', 'from_number', 'messaging_service_sid'].filter((k) => !sms.env[k]).map((k) => ({ account_sid: 'account SID', token_set: 'auth token', from_number: 'number', messaging_service_sid: 'messaging service' })[k]).join(', ') || 'nothing, all four are set' }}.</p>
             <p class="text-xs text-slate-400">The token is stored encrypted and is never shown again. A company that sets up its own Twilio account (its own integration) keeps using that one.</p>
             <button class="btn-primary" :disabled="form.processing" data-testid="save-sms">Save SMS settings</button>
         </form>

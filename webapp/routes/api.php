@@ -20,6 +20,7 @@ Route::prefix('v1')->group(function () {
     Route::post('forms/{uuid}/submit', [PublicFormController::class, 'submit'])->where('uuid', '[0-9a-fA-F\-]{36}')->middleware(['tenant.public:form', 'throttle:public-forms']);
     Route::post('hooks/sendgrid', [V1\InboundWebhookController::class, 'sendgrid'])->middleware(['tenant.public:webhook', 'throttle:600,1']);
     Route::post('hooks/sendgrid/platform', [V1\InboundWebhookController::class, 'sendgridPlatform'])->middleware('throttle:600,1');
+    Route::post('hooks/stripe', [V1\StripeWebhookController::class, 'handle'])->middleware('throttle:600,1');
     Route::post('hooks/twilio', [V1\InboundWebhookController::class, 'twilio'])->middleware(['tenant.public:webhook', 'throttle:600,1']);
 
     // ---- Authenticated (Sanctum token OR SPA session) ----
@@ -170,6 +171,17 @@ Route::prefix('v1')->group(function () {
         Route::get('caller-ids/status', [V1\CallerIdController::class, 'status'])->middleware('throttle:60,1');
         Route::patch('caller-ids/{sid}', [V1\CallerIdController::class, 'update']);
         Route::delete('caller-ids/{sid}', [V1\CallerIdController::class, 'destroy']);
+        Route::get('billing', [V1\BillingController::class, 'show']);
+        Route::put('billing', [V1\BillingController::class, 'save']);
+        Route::post('billing/plan', [V1\BillingController::class, 'changePlan'])->middleware('throttle:20,1');
+        Route::post('billing/checkout', [V1\BillingController::class, 'checkout'])->middleware('throttle:20,1');
+        Route::post('billing/cancel', [V1\BillingController::class, 'cancel'])->middleware('throttle:10,1');
+        Route::post('billing/resume', [V1\BillingController::class, 'resume'])->middleware('throttle:10,1');
+        Route::post('billing/resubscribe', [V1\BillingController::class, 'resubscribe'])->middleware('throttle:10,1');
+        Route::post('billing/portal', [V1\BillingController::class, 'portal'])->middleware('throttle:20,1');
+        Route::get('sms-numbers', [V1\SmsNumbersController::class, 'options']);
+        Route::get('integrations/sms-numbers', [V1\SmsNumbersController::class, 'show']);
+        Route::put('integrations/sms-numbers', [V1\SmsNumbersController::class, 'save']);
         Route::get('integrations/twilio', [V1\TwilioIntegrationController::class, 'show']);
         Route::put('integrations/twilio', [V1\TwilioIntegrationController::class, 'save']);
         Route::delete('integrations/twilio', [V1\TwilioIntegrationController::class, 'destroy']);

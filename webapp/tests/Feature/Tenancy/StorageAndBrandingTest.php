@@ -2,9 +2,11 @@
 
 namespace Tests\Feature\Tenancy;
 
+use App\Http\Controllers\Api\V1\SettingsController;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Tests\TenantTestCase;
 
@@ -59,5 +61,22 @@ class StorageAndBrandingTest extends TenantTestCase
         });
 
         $this->get('/login')->assertOk()->assertDontSee('Alpha Secret Brand')->assertDontSee('Only for Alpha staff')->assertSee('Build. Connect. Automate.');
+    }
+
+    public function test_a_logo_whose_file_is_gone_falls_back_to_the_platforms_instead_of_a_broken_image(): void
+    {
+        $tenant = $this->company('Acme', 'owner@acme.test');
+
+        $tenant->run(function () {
+            Setting::put('app.logo_path', 'branding/lost.png');
+            Setting::put('app.favicon_path', 'branding/lost-icon.png');
+            Cache::forget('branding');
+
+            $brand = SettingsController::branding();
+
+            $this->assertTrue($brand['logo_is_default']);
+            $this->assertTrue($brand['favicon_is_default']);
+            $this->assertStringNotContainsString('/branding/logo', $brand['logo_url']);
+        });
     }
 }

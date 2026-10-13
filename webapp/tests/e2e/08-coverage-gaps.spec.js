@@ -353,7 +353,7 @@ test.describe('app shell', () => {
     test('user menu: name + email shown, links work, sign out ends the session', async ({ page }) => {
         await page.goto('/');
         await page.locator('header button:has(span.rounded-full)').last().click();
-        await expect(page.getByText('admin@orvyn.test')).toBeVisible();
+        await expect(page.getByText('admin@orvyncrm.test')).toBeVisible();
         await page.locator('header').getByRole('link', { name: 'User settings' }).click();
         await expect(page).toHaveURL(/\/user-settings$/);
         await page.locator('header button:has(span.rounded-full)').last().click();

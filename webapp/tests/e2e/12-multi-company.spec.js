@@ -3,8 +3,8 @@ import { api, confirm, field, fieldLike, login, modal, submitSignIn, toast, uniq
 
 /**
  * Many companies, one app: each company has its own database, users and settings; one sign-in page for everyone.
- * Fixtures (tests/e2e/serve.mjs): "Demo Company" (admin@orvyn.test, sample data), "Other Co" (owner@other.test),
- * multi@orvyn.test (a user in Demo, an administrator in Other) and platform@orvyn.test (platform administrator).
+ * Fixtures (tests/e2e/serve.mjs): "Demo Company" (admin@orvyncrm.test, sample data), "Other Co" (owner@other.test),
+ * multi@orvyncrm.test (a user in Demo, an administrator in Other) and platform@orvyncrm.test (platform administrator).
  */
 const PASSWORD = 'E2e-Passw0rd!x';
 const state = {};
@@ -28,22 +28,22 @@ test.describe('the sign-in page', () => {
         await page.getByRole('button', { name: 'Continue' }).click();                              // nothing typed: does not advance
         await expect(page.locator('#password')).toHaveCount(0);
 
-        await page.locator('#email').fill('admin@orvyn.test');
+        await page.locator('#email').fill('admin@orvyncrm.test');
         await page.keyboard.press('Enter');                                                        // Enter works like the button
         await expect(page.locator('#password')).toBeFocused();
-        await expect(page.locator('[data-testid="signin-email"]')).toHaveText('admin@orvyn.test');
+        await expect(page.locator('[data-testid="signin-email"]')).toHaveText('admin@orvyncrm.test');
         await expect(page.getByRole('button', { name: 'Continue' })).toHaveCount(0);
 
         await page.getByRole('button', { name: 'Change' }).click();
         await expect(page.locator('#password')).toHaveCount(0);
-        await expect(page.locator('#email')).toHaveValue('admin@orvyn.test');                     // nothing is lost
+        await expect(page.locator('#email')).toHaveValue('admin@orvyncrm.test');                     // nothing is lost
 
         await page.getByRole('button', { name: 'Continue' }).click();
         await page.locator('#password').fill('wrong-password-123');
         await page.keyboard.press('Enter');
         await expect(page.getByRole('alert').filter({ hasText: 'do not match our records' })).toBeVisible();
         await expect(page.locator('#password')).toBeVisible();                                     // still on the password step, email remembered
-        await expect(page.locator('[data-testid="signin-email"]')).toHaveText('admin@orvyn.test');
+        await expect(page.locator('[data-testid="signin-email"]')).toHaveText('admin@orvyncrm.test');
 
         // an address with no account gets exactly the same answer, and only after a password was typed
         await page.getByRole('button', { name: 'Change' }).click();
@@ -55,7 +55,7 @@ test.describe('the sign-in page', () => {
     });
 
     test('the company you used last is offered first and marked, next time you sign in', async ({ page }) => {
-        await signIn(page, 'multi@orvyn.test');
+        await signIn(page, 'multi@orvyncrm.test');
         const list = page.getByRole('list', { name: 'Your companies' });
         await expect(list.locator('button').first()).toHaveAttribute('data-company', 'demo');     // nothing used yet: alphabetical
         await expect(list.getByText('last used')).toHaveCount(0);
@@ -66,7 +66,7 @@ test.describe('the sign-in page', () => {
         await page.getByRole('button', { name: 'Sign out' }).click();
         await expect(page).toHaveURL(/login$/);
 
-        await signIn(page, 'multi@orvyn.test');
+        await signIn(page, 'multi@orvyncrm.test');
         const again = page.getByRole('list', { name: 'Your companies' });
         await expect(again.locator('button').first()).toHaveAttribute('data-company', 'other');   // used last: now on top
         await expect(again.locator('[data-company="other"]')).toContainText('last used');
@@ -76,7 +76,7 @@ test.describe('the sign-in page', () => {
 
 test.describe('sign-in and the company chooser', () => {
     test('a person in one company goes straight in and sees which company is open', async ({ page }) => {
-        await signIn(page, 'admin@orvyn.test');
+        await signIn(page, 'admin@orvyncrm.test');
         await expect(page).toHaveURL(/127\.0\.0\.1:8123\/$/);
         await userMenu(page).click();
         await expect(page.locator('[data-company]').filter({ hasText: 'Demo Company' })).toBeVisible();
@@ -85,7 +85,7 @@ test.describe('sign-in and the company chooser', () => {
     });
 
     test('a person in several companies chooses one; roles and data are per company; switching works', async ({ page }) => {
-        await signIn(page, 'multi@orvyn.test');
+        await signIn(page, 'multi@orvyncrm.test');
         await expect(page).toHaveURL(/\/choose-company$/);
         await expect(page.getByRole('heading', { name: 'Choose a company' })).toBeVisible();
         const list = page.getByRole('list', { name: 'Your companies' });
@@ -117,11 +117,11 @@ test.describe('sign-in and the company chooser', () => {
     });
 
     test('sign-in refuses a wrong password, and the chooser can be left by signing out', async ({ page }) => {
-        await signIn(page, 'multi@orvyn.test', 'wrong-password-123');
+        await signIn(page, 'multi@orvyncrm.test', 'wrong-password-123');
         await expect(page.getByText('These credentials do not match our records.')).toBeVisible();
         await expect(page).toHaveURL(/\/login$/);
 
-        await signIn(page, 'multi@orvyn.test');
+        await signIn(page, 'multi@orvyncrm.test');
         await expect(page).toHaveURL(/\/choose-company$/);
         await page.getByRole('button', { name: 'Sign out' }).click();
         await expect(page).toHaveURL(/\/login$/);
@@ -147,7 +147,7 @@ test.describe('companies are separate', () => {
         await expect(o.locator('aside')).not.toContainText('Demo tagline');
         await expect(o.locator('aside')).toContainText('Build. Connect. Automate.');
         expect((await api(o, 'GET', `/contacts?filter[q]=${state.contact}`)).json.data).toHaveLength(0);
-        expect((await api(o, 'GET', '/users')).json.data.map((u) => u.email)).toEqual(['owner@other.test', 'multi@orvyn.test'].sort((a, b) => a.localeCompare(b)).filter((e) => e === 'owner@other.test' || e === 'multi@orvyn.test'));
+        expect((await api(o, 'GET', '/users')).json.data.map((u) => u.email)).toEqual(['owner@other.test', 'multi@orvyncrm.test'].sort((a, b) => a.localeCompare(b)).filter((e) => e === 'owner@other.test' || e === 'multi@orvyncrm.test'));
         await ctx.close();
 
         // and the sign-in page never shows any company's branding
@@ -199,12 +199,12 @@ test.describe('platform area', () => {
         // a company administrator is turned away
         const plain = await browser.newContext();
         const pp = await plain.newPage();
-        await signIn(pp, 'admin@orvyn.test');
+        await signIn(pp, 'admin@orvyncrm.test');
         await expect(pp).toHaveURL(/127\.0\.0\.1:8123\/$/);
         expect((await pp.goto('/platform')).status()).toBe(403);
         await plain.close();
 
-        await signIn(page, 'platform@orvyn.test');
+        await signIn(page, 'platform@orvyncrm.test');
         await expect(page).toHaveURL(/\/platform$/);
         await expect(page.getByRole('heading', { name: 'Companies' })).toBeVisible();
         await expect(page.locator('tr[data-company="demo"]')).toContainText('Demo Company');
@@ -269,7 +269,7 @@ test.describe('platform area', () => {
     });
 
     test('a suspended company cannot use the API either, and a company administrator cannot call platform actions', async ({ page }) => {
-        await signIn(page, 'admin@orvyn.test');
+        await signIn(page, 'admin@orvyncrm.test');
         await expect(page).toHaveURL(/127\.0\.0\.1:8123\/$/);
         const r = await page.evaluate(async () => {
             const xs = decodeURIComponent((document.cookie.match(/XSRF-TOKEN=([^;]+)/) || [])[1] || '');

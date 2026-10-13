@@ -92,11 +92,36 @@ final class Company
         ];
     }
 
+    /**
+     * The platform area's own look: its name, colour, logo mark and favicon (Platform > Settings > Platform look). Whatever is not set
+     * there follows the sign-in page's, so a platform that never opens that page looks as it always did.
+     *
+     * @return array<string, mixed>
+     */
+    public static function platformAreaBranding(): array
+    {
+        $base = self::platformBranding();
+        $logo = PlatformSetting::get('platform.logo_path');
+        $favicon = PlatformSetting::get('platform.favicon_path');
+        $color = (string) PlatformSetting::get('platform.color');
+
+        return array_merge($base, [
+            'name' => trim((string) PlatformSetting::get('platform.name')) ?: $base['name'],
+            'color' => preg_match('/^#[0-9a-fA-F]{6}$/', $color) ? strtolower($color) : $base['color'],
+            'favicon_url' => $favicon ? url('/brand/platform-favicon').'?v='.substr(md5($favicon), 0, 8) : $base['favicon_url'],
+            // the small mark at the top of the platform menu
+            'mark_url' => $logo ? url('/brand/platform-logo').'?v='.substr(md5($logo), 0, 8) : url('/brand/orvyn-mark.svg'),
+        ]);
+    }
+
     /** The favicon for the page being rendered: the open company's own, else the platform's. */
     public static function pageFaviconUrl(Request $request): string
     {
         $platform = self::platformBranding()['favicon_url'];
-        if (! self::isOpen() || self::isSignInPage($request) || self::isPlatformArea($request)) {
+        if (self::isPlatformArea($request)) {
+            return self::platformAreaBranding()['favicon_url'];
+        }
+        if (! self::isOpen() || self::isSignInPage($request)) {
             return $platform;
         }
         $path = Setting::get('app.favicon_path');

@@ -16,6 +16,13 @@ const mailForm = useForm({
 });
 const saveMail = () => mailForm.transform((d) => ({ ...d, port: d.port === '' ? null : d.port })).patch('/platform/settings/mail', { preserveScroll: true, onSuccess: () => { mailForm.password = ''; mailForm.clear_password = false; done(); }, onError: (e) => failed(e, 'Could not save the e-mail server') });
 
+// Back to the .env file: clears the saved server, login, password and sender (the SendGrid event settings are not touched).
+const hasOverride = computed(() => props.mail.enabled || props.mail.password_set || !!(props.mail.host || props.mail.port || props.mail.username || props.mail.from_address || props.mail.from_name));
+const resetMail = async () => {
+    if (!(await confirmDialog({ title: 'Reset the e-mail server?', message: 'The saved server, login, password and sender are removed and every e-mail goes through the server in the .env file again.', confirmLabel: 'Reset' }))) return;
+    router.post('/platform/settings/mail/reset', {}, { preserveScroll: true, onSuccess: () => { mailForm.defaults({ enabled: false, host: '', port: '', username: '', password: '', clear_password: false, scheme: 'smtp', from_address: '', from_name: '' }); mailForm.reset(); mailForm.clearErrors(); done(); } });
+};
+
 const testForm = useForm({ to: props.my_email });
 const sendTest = () => testForm.post('/platform/settings/mail/test', { preserveScroll: true, onSuccess: done, onError: (e) => failed(e, 'The test e-mail could not be sent') });
 // SendGrid is an SMTP relay: the preset fills in what SendGrid always uses, so only the API key is left to paste.
@@ -66,7 +73,10 @@ const envSummary = computed(() => `${props.env.host ?? '(none)'}:${props.env.por
             </div>
         </fieldset>
         <p class="text-xs text-slate-400">Empty fields fall back to the .env value. The password is stored encrypted and is never shown again.</p>
-        <button class="btn-primary" :disabled="mailForm.processing" data-testid="save-mail">Save e-mail server</button>
+        <div class="flex flex-wrap items-center gap-2">
+            <button class="btn-primary" :disabled="mailForm.processing" data-testid="save-mail">Save e-mail server</button>
+            <button type="button" class="btn-ghost" :disabled="!hasOverride" :title="hasOverride ? 'Forget these settings and use the .env file again' : 'Nothing is saved: the .env file is already in use'" data-testid="reset-mail" @click="resetMail">Reset to .env</button>
+        </div>
     </form>
 
     <form class="card p-5" data-testid="mail-test" @submit.prevent="sendTest">
@@ -94,7 +104,7 @@ const envSummary = computed(() => `${props.env.host ?? '(none)'}:${props.env.por
                 <div class="flex flex-wrap gap-2"><input id="ms-sg-key" v-model="keyForm.verification_key" class="input min-w-64 flex-1 font-mono text-xs" autocomplete="off" :placeholder="sendgrid.key_set ? 'Saved. Paste a new key to replace it, or save empty to remove it.' : 'Paste it from SendGrid'" data-testid="sendgrid-key" />
                     <button class="btn-outline" :disabled="keyForm.processing" data-testid="sendgrid-key-save">Save key</button></div>
                 <p v-if="keyForm.errors.verification_key" class="text-xs text-red-600">{{ keyForm.errors.verification_key }}</p>
-                <p class="text-xs text-slate-400">Turn on "Signed Event Webhook" in SendGrid and paste its verification key here: reports that are not signed by SendGrid are then refused. Without it, the secret in the address is the only check. Status: <strong>{{ sendgrid.key_set ? 'signatures are required' : 'secret only' }}</strong>.</p>
+                <p class="text-xs text-slate-400">Turn on "Signed Event Webhook" in SendGrid and paste its verification key here: reports that are not signed by SendGrid are then refused. Without it, the secret in the address is the only check. Status: <strong>{{ sendgrid.key_set ? 'signatures are required' : 'secret only' }}</strong><span v-if="sendgrid.key_from_env"> (key from <code>SENDGRID_WEBHOOK_PUBLIC_KEY</code> in .env; a key saved here replaces it)</span>.</p>
             </form>
         </section>
     </div>

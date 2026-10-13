@@ -7,7 +7,7 @@ import PageHeader from '@/Components/PageHeader.vue';
 import { fmtMoney } from '@/lib/money';
 import { confirmDialog, fmtDate, fmtRelative, toast } from '@/lib/ui';
 
-const props = defineProps({ requests: Array });
+const props = defineProps({ requests: Array, subscription_requests: { type: Array, default: () => [] } });
 const page = usePage();
 
 const UNIT = { users: ['user', 'users'], data_objects: ['data object', 'data objects'], automations: ['automation', 'automations'] };
@@ -31,6 +31,17 @@ async function remove(r) {
     router.delete(`/platform/seat-requests/${r.id}`, { preserveScroll: true, onSuccess: () => toast('Deleted') });
 }
 
+// Companies that cancelled and ask to be allowed to subscribe again
+const subHandling = ref(null);    // { request, action: 'approve' | 'decline' }
+const subForm = useForm({ response: '' });
+const subPending = computed(() => props.subscription_requests.filter((r) => r.status === 'pending'));
+const subDone = computed(() => props.subscription_requests.filter((r) => r.status !== 'pending').slice(0, 5));
+const subHandle = (request, action) => { subHandling.value = { request, action }; subForm.response = ''; subForm.clearErrors(); };
+const subSubmit = () => {
+    const { request, action } = subHandling.value;
+    subForm.post(`/platform/subscription-requests/${request.id}/${action}`, { preserveScroll: true, onSuccess: () => { subHandling.value = null; toast(page.props.flash.success ?? 'Done'); } });
+};
+
 const handling = ref(null);       // { request, action }
 const form = useForm({ granted_limit: '', response: '' });
 
@@ -51,6 +62,32 @@ function submit() {
 <template>
     <Head title="Requests" />
     <PageHeader title="Requests" subtitle="Companies asking for more users, data objects or automations. Approving raises the limit right away." />
+
+    <section v-if="subPending.length || subDone.length" class="mb-6" aria-labelledby="sr-sub" data-testid="subscription-requests">
+        <h2 id="sr-sub" class="mb-2 text-sm font-semibold">Subscribing again <span v-if="subPending.length" class="ml-1 rounded-full bg-amber-100 px-1.5 text-[11px] font-medium text-amber-800">{{ subPending.length }} waiting</span></h2>
+        <div class="space-y-2">
+            <article v-for="r in [...subPending, ...subDone]" :key="r.id" class="card flex flex-wrap items-start gap-3 p-4" :data-sub-request="r.id" :data-status="r.status">
+                <div class="min-w-0 flex-1">
+                    <p class="text-sm"><Link :href="`/platform/companies/${r.company_id}`" class="font-semibold hover:underline">{{ r.company }}</Link> cancelled its subscription and wants to <strong>subscribe again</strong><span v-if="r.tier"> ({{ `Tier ${r.tier}` }})</span>.</p>
+                    <p class="text-xs text-slate-500">{{ r.requester_name }} ({{ r.requester_email }}) · {{ fmtRelative(r.created_at) }}</p>
+                    <p v-if="r.message" class="mt-1 whitespace-pre-line text-sm text-slate-700">{{ r.message }}</p>
+                    <p v-if="r.status !== 'pending'" class="mt-1 text-xs" :class="r.status === 'approved' ? 'text-emerald-700' : 'text-slate-500'">{{ r.status === 'approved' ? 'Enabled' : 'Declined' }} {{ fmtRelative(r.handled_at) }}<span v-if="r.response"> · {{ r.response }}</span></p>
+                </div>
+                <div v-if="r.status === 'pending'" class="flex gap-2">
+                    <button class="btn-primary !py-1.5" data-testid="enable-resubscribe" @click="subHandle(r, 'approve')"><Check class="size-4" /> Enable</button>
+                    <button class="btn-ghost !py-1.5" @click="subHandle(r, 'decline')"><X class="size-4" /> Decline</button>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <Modal v-if="subHandling" :title="subHandling.action === 'approve' ? `Let ${subHandling.request.company} subscribe again?` : `Decline ${subHandling.request.company}?`" @close="subHandling = null">
+        <form id="sub-form" class="space-y-3" @submit.prevent="subSubmit">
+            <p class="text-sm text-slate-600">{{ subHandling.action === 'approve' ? 'The Subscribe buttons come back on its Billing & plan page and its administrators are told.' : 'Its administrators are told that you cannot enable it now.' }}</p>
+            <div><label class="label" for="sub-resp">A note for them <span class="normal-case text-slate-400">(optional)</span></label><textarea id="sub-resp" v-model="subForm.response" rows="3" maxlength="1000" class="input" /></div>
+        </form>
+        <template #footer><button class="btn-ghost" @click="subHandling = null">Cancel</button><button class="btn-primary" form="sub-form" :disabled="subForm.processing" data-testid="sub-confirm">{{ subHandling.action === 'approve' ? 'Enable' : 'Decline' }}</button></template>
+    </Modal>
 
     <div class="mb-4 flex w-fit rounded-lg bg-slate-100 p-0.5 text-sm" role="tablist" aria-label="Requests">
         <button type="button" role="tab" :aria-selected="tab === 'active'" data-tab="active" :class="tab === 'active' ? 'bg-white font-medium shadow-sm' : 'text-slate-500'" class="rounded-md px-4 py-1.5" @click="tab = 'active'">Requests ({{ activeList.length }})</button>

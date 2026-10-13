@@ -22,14 +22,29 @@ return [
         'key' => env('RESEND_API_KEY'),
     ],
 
-    'sendgrid' => ['webhook_token' => env('SENDGRID_WEBHOOK_TOKEN')],
+    // SendGrid: the SMTP login lives in the MAIL_* settings. `public_key` is the verification key of its signed Event Webhook. Both are
+    // defaults: Platform > Settings > E-mail server replaces them.
+    'sendgrid' => ['webhook_token' => env('SENDGRID_WEBHOOK_TOKEN'), 'public_key' => env('SENDGRID_WEBHOOK_PUBLIC_KEY')],
 
-    'twilio' => ['webhook_token' => env('TWILIO_WEBHOOK_TOKEN')],
+    // Twilio: the platform's own account for texts, used by every company that has not set up its own. Defaults: Platform > Settings > SMS replaces them.
+    'twilio' => [
+        'webhook_token' => env('TWILIO_WEBHOOK_TOKEN'),
+        'account_sid' => env('TWILIO_ACCOUNT_SID'),
+        'auth_token' => env('TWILIO_AUTH_TOKEN'),
+        'from_number' => env('TWILIO_FROM_NUMBER'),
+        'messaging_service_sid' => env('TWILIO_MESSAGING_SERVICE_SID'),
+    ],
 
     'ses' => [
         'key' => env('AWS_ACCESS_KEY_ID'),
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
+    ],
+
+    // Stripe (company subscriptions). Normally set under Platform > Settings > Payments; these are the fallback.
+    'stripe' => [
+        'secret' => env('STRIPE_SECRET'),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
     ],
 
     'slack' => [

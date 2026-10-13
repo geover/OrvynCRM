@@ -143,7 +143,7 @@ class Signups
         abort_unless($claimed, 409, 'This link has already been used.');
 
         try {
-            $tenant = $this->provisioner->createCompany($signup->company_name, $this->slugFor($signup->company_name), ['name' => $signup->fullName(), 'email' => $signup->email, 'password' => $password]);
+            $tenant = $this->provisioner->createCompany($signup->company_name, $this->slugFor($signup->company_name), ['name' => $signup->fullName(), 'email' => $signup->email, 'password' => $password], trial: true);
             AccountUser::where('email', $signup->email)->first()?->forceFill(['email_verified_at' => now()])->save();       // they proved the address by opening the link
             $signup->timezone && $tenant->run(fn () => Setting::put('app.timezone', $signup->timezone));
             $signup->update(['status' => Signup::COMPLETED, 'tenant_id' => $tenant->getTenantKey(), 'completed_at' => now()]);

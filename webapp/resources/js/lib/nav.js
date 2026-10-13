@@ -1,4 +1,4 @@
-import { AlarmClock, Boxes, MessageSquare, CalendarDays, CheckSquare, Columns3, ConciergeBell, Database, FileText, FormInput, Kanban, LayoutDashboard, Mail, MailCheck, Map as MapIcon, Palette, Phone, PlugZap, Rows3, Search, Settings2, Tag, Users, Workflow, Zap } from 'lucide-vue-next';
+import { AlarmClock, CreditCard, Boxes, MessageSquare, CalendarDays, CheckSquare, Columns3, ConciergeBell, Database, FileText, FormInput, Kanban, LayoutDashboard, Mail, MailCheck, Map as MapIcon, Palette, Phone, PlugZap, Rows3, Search, Settings2, Tag, Users, Workflow, Zap } from 'lucide-vue-next';
 
 /** Main sidebar entries (the Admin entry is added for administrators by the layout). */
 export const MAIN_NAV = [
@@ -15,6 +15,7 @@ export const ADMIN_GROUPS = [
     { title: 'General', items: [
         { href: '/admin/app-details', icon: Settings2, title: 'App details', text: 'Timezone, generated email format and API access.' },
         { href: '/admin/look-and-feel', icon: Palette, title: 'Look & feel', text: 'Brand logo and theme colour tailored to your company.' },
+        { href: '/billing', icon: CreditCard, title: 'Billing & plan', text: 'Your plan, free trial, usage and billing information.' },
         { href: '/admin/users', icon: Users, title: 'User management', text: 'Manage user accounts and permission templates.' },
         { href: '/admin/phone', icon: Phone, title: 'Phone call', text: 'Configure users with caller IDs.' },
         { href: '/admin/platform-messages', icon: MessageSquare, title: 'Message the platform', text: 'Write directly to the platform administrators and see what you sent.' },

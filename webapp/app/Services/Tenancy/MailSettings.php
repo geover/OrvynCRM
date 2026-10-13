@@ -59,6 +59,12 @@ class MailSettings
         }
     }
 
+    /** Forget the platform's own server and sender: e-mail goes back to the .env file. The SendGrid event settings are separate and stay. */
+    public function reset(): void
+    {
+        $this->save(['enabled' => false, 'scheme' => 'smtp', 'clear_password' => true]);
+    }
+
     /**
      * The address and name e-mails are sent from. The platform's override is applied first: a message queued in a web request
      * reads the sender before any mailer exists, and would otherwise record the .env address.
@@ -92,7 +98,7 @@ class MailSettings
 
     public function sendgridVerificationKeySet(): bool
     {
-        return (bool) PlatformSetting::get('mail.sendgrid_public_key');
+        return $this->sendgridPublicKey() !== '';
     }
 
     /**
@@ -101,7 +107,7 @@ class MailSettings
      */
     public function validSendgridSignature(string $payload, ?string $signature, ?string $timestamp): bool
     {
-        $key = (string) PlatformSetting::get('mail.sendgrid_public_key');
+        $key = $this->sendgridPublicKey();
         if ($key === '') {
             return true;
         }
@@ -111,6 +117,18 @@ class MailSettings
         $pem = "-----BEGIN PUBLIC KEY-----\n".chunk_split($key, 64, "\n")."-----END PUBLIC KEY-----\n";
 
         return openssl_verify($timestamp.$payload, base64_decode($signature, true) ?: '', $pem, OPENSSL_ALGO_SHA256) === 1;
+    }
+
+    /** The verification key of SendGrid's signed Event Webhook: the one saved on the Settings page, else SENDGRID_WEBHOOK_PUBLIC_KEY from .env. */
+    public function sendgridPublicKey(): string
+    {
+        return (string) (PlatformSetting::get('mail.sendgrid_public_key') ?: preg_replace('/\s+/', '', (string) config('services.sendgrid.public_key')));
+    }
+
+    /** True when the verification key comes from .env (none saved on the Settings page). */
+    public function sendgridKeyFromEnv(): bool
+    {
+        return ! PlatformSetting::get('mail.sendgrid_public_key') && $this->sendgridPublicKey() !== '';
     }
 
     /** The secret in the address SendGrid reports events to (one address for the whole platform). */

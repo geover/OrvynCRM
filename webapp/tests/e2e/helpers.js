@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
 
-export const ADMIN = { email: 'admin@orvyn.test', password: 'E2e-Passw0rd!x' };
+export const ADMIN = { email: 'admin@orvyncrm.test', password: 'E2e-Passw0rd!x' };
 
 /** The sign-in page has two steps: your email (Continue), then your password (Sign in). */
 export async function submitSignIn(page, email, password) {

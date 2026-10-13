@@ -7,9 +7,12 @@ use App\Models\Task;
 use App\Services\DataObjects\RecordIndexer;
 use App\Services\Tenancy\JobMetrics;
 use App\Services\Tenancy\MailSettings;
+use App\Support\Tenancy\Company;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
@@ -36,6 +39,18 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // The password reset e-mail (also the invitation to choose a first password): the platform's name, one button, how long the link lasts.
+        ResetPassword::toMailUsing(function (object $notifiable, string $token) {
+            $url = url(route('password.reset', ['token' => $token, 'email' => $notifiable->getEmailForPasswordReset()], false));
+            $minutes = (int) config('auth.passwords.'.config('auth.defaults.passwords').'.expire', 60);
+            $brand = Company::platformBranding()['name'];
+
+            return (new MailMessage)->subject("Choose a new password for {$brand}")->view(['html' => 'mail.notice', 'text' => 'mail.notice-text'], [
+                'title' => 'Choose a new password', 'brand' => $brand, 'button' => ['Choose a new password', $url],
+                'lines' => ['Hi '.($notifiable->name ?? '').',', 'Use the button below to choose a new password for your account. The link works once and expires in '.$minutes.' minutes.', 'If you did not ask for this, you can ignore this e-mail: your password stays as it is.'],
+            ]);
+        });
+
         // API tokens live in the central database and remember their company (see App\Models\PersonalAccessToken).
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
 

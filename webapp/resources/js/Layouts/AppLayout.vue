@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { ArrowLeftRight, Bell, Building2, ChevronDown, LifeBuoy, Megaphone, Shield, SlidersHorizontal, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Plus, Search, Settings, UserCog } from 'lucide-vue-next';
+import { ArrowLeftRight, BookOpen, Bell, Building2, ChevronDown, LifeBuoy, Megaphone, Shield, SlidersHorizontal, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Plus, Search, Settings, UserCog } from 'lucide-vue-next';
 import Hosts from '@/Components/Hosts.vue';
 import { useFavicon } from '@/lib/favicon';
 import Modal from '@/Components/Modal.vue';
@@ -35,7 +35,17 @@ const logoSrc = computed(() => (sidebarLight.value && brand.value.logo_is_defaul
 const nav = computed(() => [
     ...MAIN_NAV.map((n) => ({ ...n, match: n.href === '/' ? (u) => u === '/' || u.startsWith('/?') : (u) => u.startsWith(n.href) })),
     ...(user.value.is_admin ? [{ href: '/admin', label: 'Admin Settings', icon: Settings, badge: (liveCounts.platformThreads ?? page.props.platformThreadsUnread) || 0, match: (u) => u.startsWith('/admin') || u.startsWith('/automations') }] : []),
+    { href: '/manual', label: 'Manual', icon: BookOpen, match: (u) => u.startsWith('/manual') },
 ]);
+// The free trial: a reminder for administrators over the last month, and the notice everybody sees once it has ended without billing details.
+const onBilling = computed(() => page.url.startsWith('/billing'));
+const trialNotice = computed(() => {
+    const t = page.props.trial;
+    if (!t || page.props.platform) return null;
+    if (t.blocked) return { blocked: true, text: user.value.is_admin ? 'Your free trial has ended. Enter your billing information to carry on.' : 'Your free trial has ended. Ask your administrator to enter the billing information.' };
+    if (user.value.is_admin && t.days_left !== null && t.days_left <= 30 && !onBilling.value) return { blocked: false, text: `Your free trial ends in ${t.days_left} ${t.days_left === 1 ? 'day' : 'days'}. Add your billing information any time.` };
+    return null;
+});
 const collapsed = useStored('sidebar:collapsed', false);
 const palette = ref(false);
 const onGlobalKey = (e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); palette.value = !palette.value; } };
@@ -173,6 +183,7 @@ const logout = () => router.post('/logout');
                         <Link v-if="(page.props.companies ?? []).length > 1" href="/choose-company" class="flex items-center gap-2 px-4 py-2 hover:bg-slate-50"><ArrowLeftRight class="size-4" /> Switch company</Link>
                         <Link v-if="page.props.platform" href="/platform" class="flex items-center gap-2 px-4 py-2 hover:bg-slate-50"><Shield class="size-4" /> Platform</Link>
                         <Link href="/user-settings" class="flex items-center gap-2 px-4 py-2 hover:bg-slate-50"><UserCog class="size-4" /> User settings</Link>
+                        <Link href="/manual" class="flex items-center gap-2 px-4 py-2 hover:bg-slate-50" data-testid="user-menu-manual"><BookOpen class="size-4" /> Manual</Link>
                         <div class="flex items-center justify-between gap-2 border-t border-slate-100 px-4 py-2" role="group" aria-label="Theme" @click.stop>
                             <span class="text-xs text-slate-500">Theme</span>
                             <div class="flex rounded-lg bg-slate-100 p-0.5 text-xs">
@@ -186,6 +197,10 @@ const logout = () => router.post('/logout');
                     </div>
                 </div>
             </header>
+            <div v-if="trialNotice" class="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-2 text-sm lg:px-8" :class="trialNotice.blocked ? 'border-red-200 bg-red-50 text-red-900' : 'border-sky-200 bg-sky-50 text-sky-900'" role="status" data-testid="trial-banner">
+                <span>{{ trialNotice.text }}</span>
+                <Link v-if="user.is_admin && !onBilling" href="/billing" class="font-medium underline">Billing &amp; plan</Link>
+            </div>
             <main id="main" tabindex="-1" class="p-4 outline-none lg:p-8"><slot /></main>
         </div>
     </div>

@@ -100,7 +100,7 @@ async function removeLogo() {
 
 <template>
     <Head title="Sign-in page" />
-    <SettingsShell title="Sign-in page" subtitle="One look for everybody: the login, company chooser and password pages. Companies cannot change it; their own look & feel applies only after sign-in.">
+    <SettingsShell title="Sign-in page" subtitle="One look for everybody: the login, sign-up, company chooser and password pages. Companies cannot change it; their own look & feel applies only after sign-in. This platform area has its own look under Platform look.">
 
     <div class="space-y-6">
         <form class="card space-y-5 p-5" @submit.prevent="save">

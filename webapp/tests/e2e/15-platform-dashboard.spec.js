@@ -10,7 +10,7 @@ async function signIn(page, email) {
 }
 
 test('platform dashboard: numbers, charts and the impact table for every company; period switch; refresh', async ({ page }) => {
-    await signIn(page, 'platform@orvyn.test');
+    await signIn(page, 'platform@orvyncrm.test');
     await expect(page).toHaveURL(/\/platform$/);
 
     const nav = page.getByRole('navigation', { name: 'Platform', exact: true });
@@ -55,13 +55,13 @@ test('platform dashboard: numbers, charts and the impact table for every company
 });
 
 test('a company administrator cannot open the platform dashboard', async ({ page }) => {
-    await signIn(page, 'admin@orvyn.test');
+    await signIn(page, 'admin@orvyncrm.test');
     await expect(page).toHaveURL(/127\.0\.0\.1:8123\/$/);
     expect((await page.goto('/platform/dashboard')).status()).toBe(403);
 });
 
 test('each company has an overview with its contacts, data objects, records and more', async ({ page }) => {
-    await signIn(page, 'platform@orvyn.test');
+    await signIn(page, 'platform@orvyncrm.test');
     await expect(page).toHaveURL(/\/platform$/);
     await page.goto('/platform/dashboard');
     await page.getByTestId('refresh-metrics').click();                                              // count every company now
@@ -89,7 +89,7 @@ test('each company has an overview with its contacts, data objects, records and 
 });
 
 test('dashboard and company page cards can be moved, hidden, shown again and reset', async ({ page }) => {
-    await signIn(page, 'platform@orvyn.test');
+    await signIn(page, 'platform@orvyncrm.test');
     await expect(page).toHaveURL(/\/platform$/);
     await page.goto('/platform/dashboard');
 

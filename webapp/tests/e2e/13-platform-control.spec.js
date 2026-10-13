@@ -16,7 +16,7 @@ const toggle = (page, company, service) => page.locator(`tr[data-company="${comp
 
 test.describe('background services', () => {
     test('every company lists every service; switches persist; pause all and resume all; run now', async ({ page }) => {
-        await signIn(page, 'platform@orvyn.test');
+        await signIn(page, 'platform@orvyncrm.test');
         await expect(page).toHaveURL(/\/platform$/);
         await page.getByRole('navigation', { name: 'Platform', exact: true }).getByRole('link', { name: 'Settings' }).click();      // Settings > Background services
         await expect(page).toHaveURL(/\/platform\/settings$/);
@@ -57,12 +57,12 @@ test.describe('background services', () => {
 
 test.describe('platform administrators', () => {
     test('add, edit and demote a platform administrator; you cannot demote yourself', async ({ page }) => {
-        const email = `${uniq('padmin')}@orvyn.test`;
-        await signIn(page, 'platform@orvyn.test');
+        const email = `${uniq('padmin')}@orvyncrm.test`;
+        await signIn(page, 'platform@orvyncrm.test');
         await expect(page).toHaveURL(/\/platform$/);
         await page.goto('/platform/administrators');
         await expect(page.getByRole('heading', { name: 'Platform administrators' })).toBeVisible();
-        await expect(page.locator('tr[data-admin="platform@orvyn.test"]').getByRole('button', { name: 'Demote' })).toBeDisabled();
+        await expect(page.locator('tr[data-admin="platform@orvyncrm.test"]').getByRole('button', { name: 'Demote' })).toBeDisabled();
 
         await page.getByRole('button', { name: 'Add administrator' }).click();
         const dialog = page.getByRole('dialog');
@@ -96,7 +96,7 @@ test.describe('platform administrators', () => {
 
 test.describe('company user management', () => {
     test('platform administrators are not in a company\'s user list; a company admin sees only their own people', async ({ page }) => {
-        await signIn(page, 'platform@orvyn.test');
+        await signIn(page, 'platform@orvyncrm.test');
         await expect(page).toHaveURL(/\/platform$/);
         await page.locator('tr[data-company="other"]').getByRole('button', { name: 'Open' }).click();      // creates the support profile
         await expect(page).toHaveURL(/127\.0\.0\.1:8123\/$/);
@@ -106,7 +106,7 @@ test.describe('company user management', () => {
             return (await res.json()).data.map((u) => u.email);
         }));
         const asSupport = await ownList(page);
-        expect(asSupport).not.toContain('platform@orvyn.test');                                            // even to the support session itself
+        expect(asSupport).not.toContain('platform@orvyncrm.test');                                            // even to the support session itself
         expect(asSupport).toContain('owner@other.test');
 
         const ctx = await page.context().browser().newContext();
@@ -115,15 +115,15 @@ test.describe('company user management', () => {
         await expect(owner).toHaveURL(/127\.0\.0\.1:8123\/$/);
         await owner.goto('/admin/users');
         await expect(owner.getByText('owner@other.test').first()).toBeVisible();
-        await expect(owner.getByText('platform@orvyn.test')).toHaveCount(0);
+        await expect(owner.getByText('platform@orvyncrm.test')).toHaveCount(0);
         await expect(owner.getByText('(platform support)')).toHaveCount(0);
         const ids = await owner.evaluate(async () => (await (await fetch('/api/v1/users', { credentials: 'same-origin', headers: { Accept: 'application/json' } })).json()).data.map((u) => u.email));
-        expect(ids).toEqual(expect.not.arrayContaining(['platform@orvyn.test', 'admin@orvyn.test']));      // nobody from another company either
+        expect(ids).toEqual(expect.not.arrayContaining(['platform@orvyncrm.test', 'admin@orvyncrm.test']));      // nobody from another company either
         await ctx.close();
     });
 
     test('a regular user sees no admin settings anywhere and is refused the admin pages', async ({ page }) => {
-        await signIn(page, 'multi@orvyn.test');                                                              // a regular user in Demo, an administrator in Other
+        await signIn(page, 'multi@orvyncrm.test');                                                              // a regular user in Demo, an administrator in Other
         await page.locator('[data-company="demo"]').click();
         await expect(page).toHaveURL(/127\.0\.0\.1:8123\/$/);
         await expect(page.locator('aside')).not.toContainText('Admin Settings');
@@ -147,7 +147,7 @@ test.describe('the sign-in page look', () => {
     const brandColor = (page) => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--color-brand-600').trim().toLowerCase());
 
     test('only the platform sets it; a company\'s own look never reaches it, even right after signing out', async ({ page, browser }) => {
-        await signIn(page, 'platform@orvyn.test');
+        await signIn(page, 'platform@orvyncrm.test');
         await expect(page).toHaveURL(/\/platform$/);
         await page.getByRole('navigation', { name: 'Platform', exact: true }).getByRole('link', { name: 'Settings' }).click();      // Settings > Sign-in page
         await page.getByTestId('settings-nav').getByRole('link', { name: 'Sign-in page' }).click();
@@ -169,7 +169,7 @@ test.describe('the sign-in page look', () => {
         // a company with its own look: it applies inside the app, not on the sign-in page
         const ctx = await browser.newContext();
         const c = await ctx.newPage();
-        await signIn(c, 'admin@orvyn.test');
+        await signIn(c, 'admin@orvyncrm.test');
         await expect(c).toHaveURL(/127\.0\.0\.1:8123\/$/);
         const set = await c.evaluate(async () => {
             const xs = decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)[1]);
@@ -194,7 +194,7 @@ test.describe('the sign-in page look', () => {
         expect(await brandColor(c)).toBe('#0891b2');
 
         // tidy up: the demo company's look and the platform defaults
-        await signIn(c, 'admin@orvyn.test');
+        await signIn(c, 'admin@orvyncrm.test');
         await expect(c).toHaveURL(/127\.0\.0\.1:8123\/$/);
         await c.evaluate(async () => {
             const xs = decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)[1]);
@@ -208,7 +208,7 @@ test.describe('the sign-in page look', () => {
     });
 
     test('the logo: built-in by default for every company; a platform upload replaces it everywhere; removing restores it', async ({ page, browser }) => {
-        await signIn(page, 'platform@orvyn.test');
+        await signIn(page, 'platform@orvyncrm.test');
         await expect(page).toHaveURL(/\/platform$/);
         await page.goto('/platform/branding');
         await expect(page.locator('img[alt="Logo for dark backgrounds"]')).toHaveAttribute('src', /\/brand\/logo\?v=default/);
@@ -222,7 +222,7 @@ test.describe('the sign-in page look', () => {
         // a company without a logo of its own shows the platform logo in its sidebar
         const ctx = await browser.newContext();
         const c = await ctx.newPage();
-        await signIn(c, 'admin@orvyn.test');
+        await signIn(c, 'admin@orvyncrm.test');
         await expect(c).toHaveURL(/127\.0\.0\.1:8123\/$/);
         await expect(c.locator('aside img')).toHaveAttribute('src', /\/brand\/logo\?v=default/);
 
@@ -248,7 +248,7 @@ test.describe('the sign-in page look', () => {
     });
 
     test('the favicon: built-in by default; the platform can replace it for everyone', async ({ page, browser }) => {
-        await signIn(page, 'platform@orvyn.test');
+        await signIn(page, 'platform@orvyncrm.test');
         await expect(page).toHaveURL(/\/platform$/);
         await page.goto('/platform/branding');
         await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', /\/favicon\.svg$/);
@@ -271,7 +271,7 @@ test.describe('the sign-in page look', () => {
     });
 
     test('the background: the built-in illustration by default; an uploaded image replaces it and can be removed', async ({ page, browser }) => {
-        await signIn(page, 'platform@orvyn.test');
+        await signIn(page, 'platform@orvyncrm.test');
         await expect(page).toHaveURL(/\/platform$/);
         await page.goto('/platform/branding');
         const guest = await browser.newContext();
@@ -303,14 +303,14 @@ test.describe('platform area layout and theme', () => {
     const userMenu = (page) => page.locator('header button:has(span.rounded-full)').last();
 
     test('navigation is grouped; the platform has its own light/dark choice, independent of a company\'s', async ({ page }) => {
-        await signIn(page, 'platform@orvyn.test');
+        await signIn(page, 'platform@orvyncrm.test');
         await expect(page).toHaveURL(/\/platform$/);
 
         const nav = page.getByRole('navigation', { name: 'Platform', exact: true });
         for (const group of ['Manage', 'Operations']) await expect(nav).toContainText(group);
         for (const link of ['Companies', 'Administrators', 'Settings']) await expect(nav.getByRole('link', { name: link })).toBeVisible();
         await expect(nav.getByRole('link', { name: 'Companies' })).toHaveAttribute('aria-current', 'page');
-        await expect(page.locator('aside')).toContainText('platform@orvyn.test');
+        await expect(page.locator('aside')).toContainText('platform@orvyncrm.test');
 
         await page.locator('aside [data-theme="dark"]').click();
         await expect.poll(() => isDark(page)).toBe(true);
@@ -345,7 +345,7 @@ test.describe('platform area layout and theme', () => {
 
     test('on a phone the platform menu opens from a button', async ({ page }) => {
         await page.setViewportSize({ width: 390, height: 800 });
-        await signIn(page, 'platform@orvyn.test');
+        await signIn(page, 'platform@orvyncrm.test');
         await expect(page).toHaveURL(/\/platform$/);
         await expect(page.getByRole('navigation', { name: 'Platform', exact: true })).not.toBeInViewport();
         await page.getByRole('button', { name: 'Open menu' }).click();
@@ -358,7 +358,7 @@ test.describe('platform area layout and theme', () => {
 
 test.describe('company favicon', () => {
     test('a company can set its own favicon; without one it uses the platform\'s; sign-in pages never take it', async ({ page, browser }) => {
-        await signIn(page, 'admin@orvyn.test');
+        await signIn(page, 'admin@orvyncrm.test');
         await expect(page).toHaveURL(/127\.0\.0\.1:8123\/$/);
         await page.goto('/admin/look-and-feel');
         await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', /\/favicon\.svg$/);               // the platform's (built-in) icon
@@ -392,7 +392,7 @@ test.describe('company favicon', () => {
 
 test.describe('platform independence', () => {
     test('saving a company\'s app details (name, tagline, colour, timezone) does not touch the platform pages', async ({ page }) => {
-        await signIn(page, 'platform@orvyn.test');
+        await signIn(page, 'platform@orvyncrm.test');
         await expect(page).toHaveURL(/\/platform$/);
         const color = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--color-brand-600').trim().toLowerCase());
         const before = await color();
@@ -437,7 +437,7 @@ test.describe('platform independence', () => {
 
 test.describe('company sidebar colour', () => {
     test('a company can customise its sidebar colour with a checkbox; unticking goes back to the theme colour', async ({ page }) => {
-        await signIn(page, 'admin@orvyn.test');
+        await signIn(page, 'admin@orvyncrm.test');
         await expect(page).toHaveURL(/127\.0\.0\.1:8123\/$/);
         const sidebarBg = () => page.locator('aside[data-sidebar]').evaluate((e) => getComputedStyle(e).backgroundColor);
         const followingTheme = await sidebarBg();

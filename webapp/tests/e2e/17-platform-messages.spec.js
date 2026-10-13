@@ -18,7 +18,7 @@ const bubbles = (page) => page.getByTestId('thread-messages').locator('[data-fro
 
 test('a company administrator starts a thread with a new message', async ({ page }) => {
     state.subject = `Question ${uniq('q')}`.replace(/[^A-Za-z0-9 ]/g, '');
-    await signIn(page, 'admin@orvyn.test');
+    await signIn(page, 'admin@orvyncrm.test');
     await expect(page).toHaveURL(/127\.0\.0\.1:8123\/$/);
     await page.goto('/admin/platform-messages');
     await expect(page.getByRole('heading', { name: 'Message the platform', level: 1 })).toBeVisible();
@@ -37,7 +37,7 @@ test('a company administrator starts a thread with a new message', async ({ page
 });
 
 test('only administrators can reach it: a regular user gets no page and no API', async ({ page }) => {
-    await signIn(page, 'multi@orvyn.test');                                                          // a regular user in Demo
+    await signIn(page, 'multi@orvyncrm.test');                                                          // a regular user in Demo
     await page.locator('[data-company="demo"]').click();
     await expect(page).toHaveURL(/127\.0\.0\.1:8123\/$/);
     expect((await page.goto('/admin/platform-messages')).status()).toBe(403);
@@ -46,7 +46,7 @@ test('only administrators can reach it: a regular user gets no page and no API',
 });
 
 test('the platform sees the thread, reads it, and replies directly in the same thread', async ({ page }) => {
-    await signIn(page, 'platform@orvyn.test');
+    await signIn(page, 'platform@orvyncrm.test');
     await expect(page).toHaveURL(/\/platform$/);
     await expect(page.getByTestId('badge-platformMessagesUnread')).toBeVisible();                    // the menu badge
 
@@ -72,7 +72,7 @@ test('the platform sees the thread, reads it, and replies directly in the same t
 });
 
 test('the company sees the reply in the same thread, answers it, and a second message is a new thread', async ({ page }) => {
-    await signIn(page, 'admin@orvyn.test');
+    await signIn(page, 'admin@orvyncrm.test');
     await expect(page).toHaveURL(/127\.0\.0\.1:8123\/$/);
     await page.goto('/admin/platform-messages');
     await expect(page.getByTestId('subnav-unread-badge')).toBeVisible();                             // a new reply is waiting
@@ -110,7 +110,7 @@ test('the company sees the reply in the same thread, answers it, and a second me
 });
 
 test('the platform archives, restores and deletes the conversations', async ({ page }) => {
-    await signIn(page, 'platform@orvyn.test');
+    await signIn(page, 'platform@orvyncrm.test');
     await expect(page).toHaveURL(/\/platform$/);
     await page.goto('/platform/messages');
     for (const subject of [state.subject, state.second]) {
@@ -147,7 +147,7 @@ test('messages arrive on both sides without a refresh, and the view can be compa
     const platform = await platformCtx.newPage();
     const row = (page) => page.locator(`[data-thread="${subject}"]`);
 
-    await signIn(tenant, 'admin@orvyn.test');
+    await signIn(tenant, 'admin@orvyncrm.test');
     await expect(tenant).toHaveURL(/127\.0\.0\.1:8123\/$/);
     await tenant.goto('/admin/platform-messages');
     await tenant.getByTestId('new-thread').click();
@@ -156,7 +156,7 @@ test('messages arrive on both sides without a refresh, and the view can be compa
     await tenant.getByRole('button', { name: 'Send message' }).click();
     await expect(bubbles(tenant)).toHaveCount(1);
 
-    await signIn(platform, 'platform@orvyn.test');
+    await signIn(platform, 'platform@orvyncrm.test');
     await expect(platform).toHaveURL(/\/platform/);
     await platform.goto('/platform/messages');
     await expect(row(platform)).toBeVisible();                                                       // a thread started while this page was open appears on its own

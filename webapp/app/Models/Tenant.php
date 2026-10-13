@@ -18,6 +18,8 @@ use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
  * @property string $status active | suspended | closed
  * @property Carbon|null $last_active_at
  * @property Carbon|null $inactive_since
+ * @property int $tier licence tier 1 to 5 (config/plans.php)
+ * @property Carbon|null $trial_ends_at null: no trial (never forced to give billing details)
  */
 class Tenant extends BaseTenant implements TenantWithDatabase
 {
@@ -26,12 +28,12 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     /** Real columns on the central `tenants` table; anything else goes to the JSON `data` column. */
     public static function getCustomColumns(): array
     {
-        return ['id', 'name', 'slug', 'status', 'plan', 'max_users', 'max_data_objects', 'max_automations_per_object', 'last_active_at', 'inactive_since', 'closed_at', 'status_note'];
+        return ['id', 'name', 'slug', 'status', 'plan', 'max_users', 'max_data_objects', 'max_automations_per_object', 'last_active_at', 'inactive_since', 'closed_at', 'status_note', 'tier', 'trial_ends_at', 'trial_notice_stage'];
     }
 
     protected function casts(): array
     {
-        return ['last_active_at' => 'datetime', 'inactive_since' => 'datetime', 'closed_at' => 'datetime'];
+        return ['last_active_at' => 'datetime', 'inactive_since' => 'datetime', 'closed_at' => 'datetime', 'trial_ends_at' => 'datetime'];
     }
 
     public function scopeActive(Builder $query): Builder

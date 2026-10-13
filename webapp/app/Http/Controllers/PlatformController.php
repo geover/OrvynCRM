@@ -3,11 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\CollectCompanyMetrics;
+use App\Models\CompanyBilling;
+use App\Models\CompanySubscription;
+use App\Models\CompanyUsage;
 use App\Models\SeatRequest;
 use App\Models\Tenant;
 use App\Models\TenantStat;
 use App\Services\Tenancy\CompanySession;
 use App\Services\Tenancy\InactiveCompanies;
+use App\Services\Tenancy\Plans;
 use App\Services\Tenancy\Seats;
 use App\Services\Tenancy\TenantProvisioner;
 use Illuminate\Http\RedirectResponse;
@@ -22,11 +26,15 @@ use Inertia\Response;
 /** The platform area: create, suspend and open companies. Only platform administrators reach it (EnsurePlatformAdmin). */
 class PlatformController extends Controller
 {
-    public function index(Request $request, CompanySession $session, Seats $seats, InactiveCompanies $inactive): Response
+    public function index(Request $request, CompanySession $session, Seats $seats, InactiveCompanies $inactive, Plans $plans): Response
     {
         $session->leaveCurrentCompany($request);        // arriving from "support mode": close the company we were looking at
         $stats = TenantStat::pluck('users', 'tenant_id');
         $overview = TenantStat::all()->keyBy('tenant_id');
+        $billed = CompanyBilling::whereNotNull('completed_at')->pluck('tenant_id')->flip();
+        $paying = CompanySubscription::whereIn('status', CompanySubscription::GOOD)->pluck('tenant_id')->flip();
+        $subs = CompanySubscription::pluck('status', 'tenant_id');
+        $usage = CompanyUsage::whereIn('period', [now()->format('Y-m'), now()->subMonth()->format('Y-m')])->orderBy('period')->get()->keyBy('tenant_id');
         $pending = SeatRequest::pending()->selectRaw('tenant_id, count(*) as n')->groupBy('tenant_id')->pluck('n', 'tenant_id');
 
         return Inertia::render('Platform/Companies', [
@@ -36,6 +44,8 @@ class PlatformController extends Controller
                 'users' => (int) ($stats[$t->getTenantKey()] ?? $seats->usedFor($t)), 'max_users' => (int) $t->max_users,
                 'max_data_objects' => (int) $t->max_data_objects, 'max_automations_per_object' => (int) $t->max_automations_per_object,
                 'pending_requests' => (int) ($pending[$t->getTenantKey()] ?? 0),
+                // the licence tier and where the free trial stands
+                'tier' => (int) $t->tier, 'trial' => $plans->state($t, $billed->has($t->getTenantKey()), $paying->has($t->getTenantKey())), 'subscription' => $subs[$t->getTenantKey()] ?? null, 'usage_level' => ($usage[$t->getTenantKey()] ?? null)?->level() ?? 'ok',
                 // when somebody last used it, and whether the daily check has flagged it as abandoned
                 'last_active_at' => ($t->last_active_at ?? $t->created_at)?->toIso8601String(), 'idle_days' => $t->isActive() ? $inactive->daysIdle($t) : null,
                 'inactive' => $t->isActive() && $t->inactive_since !== null, 'status_note' => $t->status_note, 'closed_at' => $t->closed_at?->toIso8601String(),
@@ -43,6 +53,7 @@ class PlatformController extends Controller
             ])->values(),
             'email' => $request->attributes->get('platform_identity')->email,
             'inactivity' => ['enabled' => $inactive->enabled(), 'days' => $inactive->days()],
+            'tiers' => $plans->tiers(), 'trial_months' => $plans->trialMonths(),
         ]);
     }
 
@@ -76,7 +87,7 @@ class PlatformController extends Controller
         ]);
     }
 
-    public function store(Request $request, TenantProvisioner $provisioner): RedirectResponse
+    public function store(Request $request, TenantProvisioner $provisioner, Plans $plans): RedirectResponse
     {
         $d = $request->validate([
             'name' => ['required', 'string', 'max:120'],
@@ -84,14 +95,16 @@ class PlatformController extends Controller
             'owner_name' => ['required', 'string', 'max:255'],
             'owner_email' => ['required', 'email'],
             'owner_password' => ['nullable', Password::min(10)->mixedCase()->numbers()],
-            'max_users' => ['nullable', 'integer', 'min:1', 'max:100000'],
+            'max_users' => ['nullable', 'integer', 'min:'.$plans->seatsFor((int) ($request->input('tier') ?: config('plans.trial_tier'))), 'max:1000000'],
             'max_data_objects' => ['nullable', 'integer', 'min:1', 'max:100000'],
             'max_automations_per_object' => ['nullable', 'integer', 'min:1', 'max:100000'],
-        ]);
+            'tier' => ['nullable', 'integer', 'between:1,'.count(config('plans.tiers'))],
+            'trial' => ['sometimes', 'boolean'],
+        ], ['max_users.min' => 'This tier includes at least :min users. You can raise the limit above that, but not set it lower.']);
 
         $tenant = $provisioner->createCompany($d['name'], $d['slug'] ?? null, [
             'name' => $d['owner_name'], 'email' => $d['owner_email'], 'password' => $d['owner_password'] ?? null,
-        ], maxUsers: $d['max_users'] ?? null, maxDataObjects: $d['max_data_objects'] ?? null, maxAutomationsPerObject: $d['max_automations_per_object'] ?? null);
+        ], maxUsers: $d['max_users'] ?? null, maxDataObjects: $d['max_data_objects'] ?? null, maxAutomationsPerObject: $d['max_automations_per_object'] ?? null, tier: $d['tier'] ?? null, trial: (bool) ($d['trial'] ?? false));
         if (empty($d['owner_password'])) {
             \Illuminate\Support\Facades\Password::sendResetLink(['email' => $d['owner_email']]);      // the owner sets their own password
         }
@@ -99,16 +112,25 @@ class PlatformController extends Controller
         return back()->with('success', "{$tenant->name} was created.");
     }
 
-    public function update(Request $request, Tenant $tenant): RedirectResponse
+    public function update(Request $request, Tenant $tenant, Plans $plans): RedirectResponse
     {
         $d = $request->validate([
             'status' => ['sometimes', Rule::in(['active', 'suspended', 'closed'])],
             'name' => ['sometimes', 'string', 'max:120'],
+            'slug' => ['sometimes', 'string', 'max:63', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::notIn(TenantProvisioner::RESERVED), Rule::unique('tenants', 'slug')->ignore($tenant->getTenantKey(), 'id')],
             'plan' => ['sometimes', 'nullable', 'string', 'max:40'],
-            'max_users' => ['sometimes', 'integer', 'min:1', 'max:100000'],
+            'max_users' => ['sometimes', 'integer', 'min:'.$plans->seatsFor((int) ($request->input('tier') ?: $tenant->tier)), 'max:1000000'],
             'max_data_objects' => ['sometimes', 'integer', 'min:1', 'max:100000'],
             'max_automations_per_object' => ['sometimes', 'integer', 'min:1', 'max:100000'],
-        ]);
+            'tier' => ['sometimes', 'integer', 'between:1,'.count(config('plans.tiers'))],
+            'trial_ends_at' => ['sometimes', 'nullable', 'date'],
+        ], ['max_users.min' => 'This tier includes at least :min users. You can raise the limit above that, but not set it lower.', 'slug.unique' => 'That slug is already taken.', 'slug.not_in' => 'That slug is reserved.', 'slug.regex' => 'Use lowercase letters, numbers and single hyphens.']);
+        // a new tier brings its user limit (an explicit limit sent with it wins, but never below the tier's); a trial end of null takes the trial away
+        $newTier = $d['tier'] ?? null;
+        unset($d['tier']);
+        if (array_key_exists('trial_ends_at', $d)) {
+            $d += ['trial_notice_stage' => 0];
+        }
         // brought back (or never left): a fresh clock, so the daily check does not flag it again at once
         if (($d['status'] ?? null) === 'active') {
             $d += ['last_active_at' => now(), 'inactive_since' => null, 'closed_at' => null, 'status_note' => null];
@@ -118,6 +140,10 @@ class PlatformController extends Controller
             $d += ['inactive_since' => null];
         }
         $tenant->update($d);
+        if ($newTier !== null) {
+            $plans->applyTier($tenant, (int) $newTier);
+            isset($d['max_users']) && $tenant->update(['max_users' => $d['max_users']]);
+        }
 
         return back()->with('success', 'Saved.');
     }

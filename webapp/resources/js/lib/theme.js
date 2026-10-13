@@ -25,7 +25,7 @@ export const darkStyle = useStored('dark-style', 'navy');
 export const platformDarkStyle = useStored('platform-dark-style', 'navy');
 
 const media = typeof window !== 'undefined' ? window.matchMedia?.('(prefers-color-scheme: dark)') : null;
-const SIGN_IN_PATHS = ['/login', '/forgot-password', '/reset-password', '/choose-company'];
+const SIGN_IN_PATHS = ['/login', '/forgot-password', '/reset-password', '/choose-company', '/signup'];
 let area = 'app';
 if (typeof location !== 'undefined') {
     if (location.pathname.startsWith('/platform')) area = 'platform';

@@ -55,7 +55,7 @@ const priceOf = (item) => form[item.key];
             <section class="card p-5" aria-labelledby="pr-notes">
                 <h2 id="pr-notes" class="text-sm font-semibold">Note</h2>
                 <label class="label mt-2" for="pr-note">Shown with every price <span class="normal-case text-slate-400">(optional)</span></label><input id="pr-note" v-model="form.note" class="input" maxlength="200" placeholder="e.g. Billed with your plan. Taxes may apply." /><p v-if="form.errors.note" class="mt-1 text-xs text-red-600">{{ form.errors.note }}</p>
-                <p class="mt-3 text-xs text-slate-500">Billing itself is added later; for now this is the quote a company sees.</p>
+                <p class="mt-3 text-xs text-slate-500">This is the quote a company sees when it asks for more. The price of each licence tier, and online payment, are set under Plans & trial and Payments.</p>
             </section>
 
             <button class="btn-primary" :disabled="form.processing">Save pricing</button>

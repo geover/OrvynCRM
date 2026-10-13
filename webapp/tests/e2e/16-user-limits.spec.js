@@ -5,7 +5,7 @@ import { submitSignIn, toast, uniq } from './helpers.js';
  * User limits: shown as "1 of 2", the platform adds people within the limit, a company at its limit asks for more, the
  * platform is told (menu badge) and approves, and the company can add people again.
  */
-const PLATFORM = 'platform@orvyn.test';
+const PLATFORM = 'platform@orvyncrm.test';
 const PASSWORD = 'E2e-Passw0rd!x';
 const OWNER_PASSWORD = 'Seat-Passw0rd-12';
 test.describe.configure({ mode: 'serial' });

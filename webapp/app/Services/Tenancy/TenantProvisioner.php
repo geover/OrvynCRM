@@ -25,7 +25,8 @@ use Illuminate\Validation\ValidationException;
 class TenantProvisioner
 {
     /** Slugs that would collide with routes or read as infrastructure. */
-    private const RESERVED = ['www', 'app', 'api', 'admin', 'platform', 'login', 'logout', 'static', 'assets', 'mail', 'support'];
+    /** Company addresses nobody may take. */
+    public const RESERVED = ['www', 'app', 'api', 'admin', 'platform', 'login', 'logout', 'static', 'assets', 'mail', 'support'];
 
     /**
      * New company: creates its database, migrates it and seeds the defaults (the TenantCreated pipeline in
@@ -33,16 +34,27 @@ class TenantProvisioner
      *
      * @param  array{name: string, email: string, password?: ?string}|null  $owner
      */
-    public function createCompany(string $name, ?string $slug = null, ?array $owner = null, bool $demo = false, ?int $maxUsers = null, ?int $maxDataObjects = null, ?int $maxAutomationsPerObject = null): Tenant
+    public function createCompany(string $name, ?string $slug = null, ?array $owner = null, bool $demo = false, ?int $maxUsers = null, ?int $maxDataObjects = null, ?int $maxAutomationsPerObject = null, ?int $tier = null, bool $trial = false): Tenant
     {
         $slug = Str::slug($slug ?: $name);
         if ($slug === '' || in_array($slug, self::RESERVED, true) || Tenant::where('slug', $slug)->exists()) {
-            throw ValidationException::withMessages(['slug' => 'That company address is not available.']);
+            throw ValidationException::withMessages(['slug' => 'That slug is not available.']);
         }
 
         $tenant = Tenant::create(['name' => $name, 'slug' => $slug, 'status' => 'active', 'max_users' => $maxUsers ?? (int) config('tenancy.default_max_users', 5),
             'max_data_objects' => $maxDataObjects ?? (int) config('tenancy.default_max_data_objects', 10),
             'max_automations_per_object' => $maxAutomationsPerObject ?? (int) config('tenancy.default_max_automations_per_object', 5)]);
+
+        // a sign-up starts a trial on the first tier; a company made by hand may be put on any tier (an explicit user limit still wins)
+        $plans = app(Plans::class);
+        if ($trial) {
+            $plans->startTrial($tenant);
+        } elseif ($tier !== null) {
+            $plans->applyTier($tenant, $tier);
+        }
+        if (($trial || $tier !== null) && $maxUsers !== null) {
+            $tenant->update(['max_users' => $maxUsers]);
+        }
 
         if ($owner) {
             $identity = $this->identity($owner['name'], $owner['email'], $owner['password'] ?? null);

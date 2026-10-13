@@ -13,7 +13,7 @@ async function signIn(page, email) {
 
 test('write, publish, read on the sign-in page and inside a company, then unpublish', async ({ page, browser }) => {
     state.title = uniq('Update').replace(/[^A-Za-z0-9 -]/g, '');
-    await signIn(page, 'platform@orvyn.test');
+    await signIn(page, 'platform@orvyncrm.test');
     await expect(page).toHaveURL(/\/platform$/);
     await page.getByRole('link', { name: 'Updates & news' }).first().click();
     await expect(page.getByRole('heading', { name: 'Updates & news' })).toBeVisible();
@@ -43,7 +43,7 @@ test('write, publish, read on the sign-in page and inside a company, then unpubl
     // inside a company: a badge in the header, the page lists it, reading clears the badge
     const ctx = await browser.newContext();
     const c = await ctx.newPage();
-    await signIn(c, 'admin@orvyn.test');
+    await signIn(c, 'admin@orvyncrm.test');
     await expect(c).toHaveURL(/127\.0\.0\.1:8123\/$/);
     await expect(c.getByTestId('whats-new-badge')).toBeVisible();
     await c.getByTestId('whats-new-link').click();

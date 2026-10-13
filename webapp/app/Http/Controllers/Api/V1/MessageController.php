@@ -10,8 +10,11 @@ use App\Models\Contact;
 use App\Models\EmailMessage;
 use App\Models\EmailSuppression;
 use App\Models\SmsMessage;
+use App\Models\Tenant;
 use App\Services\Messaging\MessageComposer;
 use App\Services\Messaging\MessagingReadiness;
+use App\Services\Tenancy\Plans;
+use App\Services\Tenancy\SmsNumbers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -98,14 +101,17 @@ class MessageController extends Controller
         return response()->json(['data' => $message->only(['id', 'status', 'scheduled_at'])], 202);
     }
 
-    public function sms(Request $request, Contact $contact, MessageComposer $composer, TwilioClient $twilio): JsonResponse
+    public function sms(Request $request, Contact $contact, MessageComposer $composer, TwilioClient $twilio, Plans $plans, SmsNumbers $numbers): JsonResponse
     {
-        $spec = $request->validate(['body' => ['required', 'string', 'max:1600'], 'delay_minutes' => ['nullable', 'integer', 'min:0']]);
+        $spec = $request->validate(['body' => ['required', 'string', 'max:1600'], 'delay_minutes' => ['nullable', 'integer', 'min:0'], 'from_number' => ['nullable', 'string', 'max:30']]);
         abort_unless($twilio->available(), 422, 'Text messages are not set up. Ask your platform administrator to switch them on.');
+        $company = Tenant::find(tenant('id'));
+        abort_if($company && $plans->smsExhausted($company), 422, "This month's limit of {$plans->smsLimit($company)} texts for your plan is used up. It resets at the start of next month, or choose a bigger plan.");
+        $from = $numbers->assertUsableForText($spec['from_number'] ?? null);
 
         $message = $composer->queueSms($contact, $spec);
         abort_if(! $message, 422, 'Contact has no phone number.');
-        $message->update(['user_id' => $request->user()->id]);
+        $message->update(['user_id' => $request->user()->id, 'from_number' => $from]);
 
         if (! $message->scheduled_at) {
             SendSmsMessage::dispatch($message->id);

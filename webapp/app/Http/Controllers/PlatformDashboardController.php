@@ -8,6 +8,7 @@ use App\Models\SeatRequest;
 use App\Models\Tenant;
 use App\Models\TenantMetric;
 use App\Models\TenantStat;
+use App\Services\Tenancy\Plans;
 use App\Services\Tenancy\QueueSnapshot;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -76,7 +77,7 @@ class PlatformDashboardController extends Controller
             'series' => $series,
             'kpis' => [
                 'companies' => $tenants->count(), 'companies_active' => $tenants->where('status', 'active')->count(),
-                'contacts' => (int) $stats->sum('contacts'), 'users' => (int) $stats->sum('users'), 'seats' => (int) $tenants->sum('max_users'),
+                'contacts' => (int) $stats->sum('contacts'), 'users' => (int) $stats->sum('users'), 'seats' => (int) $tenants->filter(fn (Tenant $t) => ! Plans::isUnlimitedSeats((int) $t->max_users))->sum('max_users'),
                 'seat_requests' => SeatRequest::pending()->count(),
                 'messages_unread' => MessageThread::unreadForPlatform()->count(),
                 'companies_full' => $tenants->filter(fn (Tenant $t) => ($stats[$t->getTenantKey()]->users ?? 0) >= $t->max_users)->count(),

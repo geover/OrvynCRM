@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { Building2, Inbox, MessageSquare, LayoutDashboard, LogOut, Megaphone, Menu, Moon, Settings, Sun, SunMoon, UserCog, X } from 'lucide-vue-next';
+import { BookOpen, Building2, Gauge, Inbox, MessageSquare, LayoutDashboard, LogOut, Megaphone, Menu, Moon, Settings, Sun, SunMoon, UserCog, X } from 'lucide-vue-next';
 import Hosts from '@/Components/Hosts.vue';
 import { useFavicon } from '@/lib/favicon';
 import { applyBrandColor } from '@/lib/brand';
@@ -32,6 +32,7 @@ const groups = [
     ] },
     { title: 'Manage', items: [
         { href: '/platform', label: 'Companies', icon: Building2, badge: 'inactiveCompanies' },
+        { href: '/platform/usage', label: 'Usage', icon: Gauge },
         { href: '/platform/administrators', label: 'Administrators', icon: UserCog },
         { href: '/platform/seat-requests', label: 'Requests', icon: Inbox, badge: 'seatRequestsPending' },
     ] },
@@ -40,7 +41,8 @@ const groups = [
         { href: '/platform/announcements', label: 'Updates & news', icon: Megaphone },
     ] },
     { title: 'Operations', items: [
-        { href: '/platform/settings', label: 'Settings', icon: Settings, also: ['/platform/services', '/platform/pricing', '/platform/branding'] },
+        { href: '/platform/settings', label: 'Settings', icon: Settings, also: ['/platform/services', '/platform/pricing', '/platform/branding', '/platform/look'] },
+        { href: '/platform/manual', label: 'Manual', icon: BookOpen },
     ] },
 ];
 const here = (href, also = []) => (href === '/platform' ? page.url === '/platform' || page.url.startsWith('/platform?') : [href, ...also].some((h) => page.url.startsWith(h)));
@@ -54,7 +56,7 @@ const themes = [['system', 'System', SunMoon], ['light', 'Light', Sun], ['dark',
         <div v-if="open" class="fixed inset-0 z-20 bg-slate-900/40 lg:hidden" @click="open = false" />
         <aside :class="open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'" class="fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-slate-200 bg-white transition-transform lg:sticky lg:top-0 lg:h-screen">
             <div class="flex items-center justify-between px-5 py-5">
-                <Link href="/platform" class="flex items-center gap-2 font-semibold" @click="open = false"><img src="/brand/orvyn-mark.svg" alt="" class="size-8" /><span class="leading-tight">{{ brand.name }}<span class="block text-[11px] font-medium uppercase tracking-wide text-slate-400">Platform</span></span></Link>
+                <Link href="/platform" class="flex items-center gap-2 font-semibold" @click="open = false"><img :src="brand.mark_url ?? '/brand/orvyn-mark.svg'" alt="" class="size-8" /><span class="leading-tight">{{ brand.name }}<span class="block text-[11px] font-medium uppercase tracking-wide text-slate-400">Platform</span></span></Link>
                 <button class="btn-ghost !p-1.5 lg:hidden" aria-label="Close menu" @click="open = false"><X class="size-4" /></button>
             </div>
             <nav class="flex-1 space-y-5 overflow-y-auto px-3 pb-4" aria-label="Platform">
@@ -82,7 +84,7 @@ const themes = [['system', 'System', SunMoon], ['light', 'Light', Sun], ['dark',
         <div class="min-w-0 flex-1">
             <header class="sticky top-0 z-10 flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 lg:hidden">
                 <button class="btn-ghost !p-1.5" aria-label="Open menu" @click="open = true"><Menu class="size-5" /></button>
-                <img src="/brand/orvyn-mark.svg" alt="" class="size-6" /><span class="font-semibold">Platform</span>
+                <img :src="brand.mark_url ?? '/brand/orvyn-mark.svg'" alt="" class="size-6" /><span class="font-semibold">Platform</span>
             </header>
             <main id="main" tabindex="-1" class="w-full p-4 outline-none sm:p-6 lg:p-8 2xl:px-12"><slot /></main>
         </div>

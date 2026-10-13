@@ -3,6 +3,7 @@
 namespace App\Integrations\Twilio;
 
 use App\Models\Integration;
+use App\Services\Tenancy\SmsNumbers;
 use App\Services\Tenancy\SmsSettings;
 use App\Services\Tenancy\WebhookToken;
 use Illuminate\Support\Facades\Http;
@@ -23,13 +24,23 @@ class TwilioClient
         if ($own = Integration::for('twilio')) {
             $c = (array) $own->credentials;
 
-            return ['sid' => (string) ($c['account_sid'] ?? ''), 'token' => (string) ($c['auth_token'] ?? ''), 'from' => $own->settings['from_number'] ?? null,
+            return ['sid' => (string) ($c['account_sid'] ?? ''), 'token' => (string) ($c['auth_token'] ?? ''), 'from' => $this->defaultNumber() ?? $own->settings['from_number'] ?? null,
                 'service' => $own->settings['messaging_service_sid'] ?? null, 'source' => 'company'];
         }
 
         $platform = app(SmsSettings::class)->account();
 
+        if ($platform && ($number = $this->defaultNumber())) {
+            $platform['from'] = $number;                 // the number this company chose among the ones its plan allows
+        }
+
         return $platform ? $platform + ['source' => 'platform'] : null;
+    }
+
+    /** The company's chosen default texting number, if it has chosen any. */
+    private function defaultNumber(): ?string
+    {
+        return tenancy()->initialized ? app(SmsNumbers::class)->default() : null;
     }
 
     /** Can this company send text messages at all (its own account, or the platform's)? */

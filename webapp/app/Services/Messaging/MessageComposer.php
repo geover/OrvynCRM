@@ -44,6 +44,7 @@ class MessageComposer
 
         return SmsMessage::create([
             'contact_id' => $contact->id,
+            'data_object_record_id' => $record?->id,
             'to_number' => $contact->phone,
             'body' => $this->merge($spec['body'] ?? '', $this->context($contact, $record), escape: false),   // SMS is plain text: no HTML escaping
             'scheduled_at' => isset($spec['delay_minutes']) ? now()->addMinutes((int) $spec['delay_minutes']) : null,

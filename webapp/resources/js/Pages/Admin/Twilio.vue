@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import AdminPage from '@/Components/AdminPage.vue';
 import PasswordField from '@/Components/PasswordField.vue';
 import { api } from '@/lib/api';
@@ -33,6 +33,24 @@ async function remove() {
     await run(async () => { twilio.value = (await api.delete('/integrations/twilio')).data; fill(); }, 'Twilio details removed');
 }
 const test = () => run(() => api.post('/integrations/twilio/test'), 'Twilio accepted the account');
+
+// The numbers texts go out from: as many as the plan allows. The first is the default; people can pick another when they text.
+const nums = ref(null);          // { chosen, max, usable, suggestions: [{number, label}], source, error }
+const picked = ref([]);
+const typed = ref('');
+const numErrors = ref('');
+const loadNumbers = async () => { nums.value = (await api.get('/integrations/sms-numbers')).data; picked.value = [...nums.value.chosen]; };
+onMounted(loadNumbers);
+const addNumber = (n) => { const v = (n ?? typed.value).trim(); if (!v || picked.value.includes(v)) { typed.value = ''; return; } picked.value.push(v); typed.value = ''; };
+const makeDefault = (n) => { picked.value = [n, ...picked.value.filter((x) => x !== n)]; };
+const dropNumber = (n) => { picked.value = picked.value.filter((x) => x !== n); };
+const canAdd = computed(() => nums.value && picked.value.length < nums.value.max);
+const free = computed(() => (nums.value?.suggestions ?? []).filter((s) => !picked.value.includes(s.number)));
+async function saveNumbers() {
+    numErrors.value = '';
+    try { nums.value = (await api.put('/integrations/sms-numbers', { numbers: picked.value })).data; picked.value = [...nums.value.chosen]; run(async () => {}, 'Texting numbers saved'); }
+    catch (e) { numErrors.value = e.errors?.numbers?.[0] ?? e.message; }
+}
 </script>
 
 <template>
@@ -64,6 +82,26 @@ const test = () => run(() => api.post('/integrations/twilio/test'), 'Twilio acce
                 <p class="text-xs text-slate-400">Find the SID and token on the front page of the Twilio console. They are stored encrypted and the token is never shown again. Delivery reports come to the callback address on App details.</p>
                 <button class="btn-primary" :disabled="busy" data-testid="twilio-save">{{ twilio.configured ? 'Save changes' : 'Save Twilio details' }}</button>
             </form>
+
+            <section v-if="nums" class="card space-y-3 p-5" aria-labelledby="tw-numbers" data-testid="sms-numbers">
+                <div class="flex flex-wrap items-baseline justify-between gap-2"><h2 id="tw-numbers" class="text-sm font-semibold">Texting numbers</h2><span class="text-xs text-slate-500" data-testid="sms-numbers-count">{{ picked.length }} of {{ nums.max }} allowed by your plan</span></div>
+                <p class="text-xs text-slate-500">The numbers your texts are sent from. The first one is the default; whoever writes a text can choose another. With none chosen, texts go out from the number saved with your account, or the platform's.</p>
+                <ul v-if="picked.length" class="space-y-1.5">
+                    <li v-for="(n, i) in picked" :key="n" class="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm" :data-number="n">
+                        <span class="font-mono">{{ n }}</span><span v-if="i === 0" class="badge !bg-brand-50 !text-brand-700">Default</span>
+                        <span class="ml-auto flex gap-1"><button v-if="i > 0" type="button" class="btn-ghost !px-2 !py-1 text-xs" @click="makeDefault(n)">Make default</button><button type="button" class="btn-ghost !px-2 !py-1 text-xs text-red-600" :aria-label="`Remove ${n}`" @click="dropNumber(n)">Remove</button></span>
+                    </li>
+                </ul>
+                <p v-else class="text-sm text-slate-400">No number chosen.</p>
+                <div v-if="canAdd" class="space-y-2">
+                    <div v-if="free.length" class="flex flex-wrap gap-1.5"><button v-for="s in free" :key="s.number" type="button" class="btn-outline !px-2.5 !py-1 text-xs" @click="addNumber(s.number)">+ {{ s.number }}<span v-if="s.label" class="ml-1 text-slate-400">{{ s.label }}</span></button></div>
+                    <form class="flex gap-2" @submit.prevent="addNumber()"><input v-model="typed" class="input !w-56" placeholder="+15551234567" aria-label="Add a number" data-testid="sms-number-input" /><button class="btn-outline" data-testid="sms-number-add">Add</button></form>
+                </div>
+                <p v-else class="text-xs text-amber-700">Your plan allows no more numbers. Choose a bigger plan under Billing &amp; plan.</p>
+                <p v-if="nums.error" class="text-xs text-amber-700">Twilio did not list your numbers: {{ nums.error }}</p>
+                <p v-if="numErrors" class="text-xs text-red-600" role="alert" data-testid="sms-numbers-error">{{ numErrors }}</p>
+                <button class="btn-primary" data-testid="sms-numbers-save" @click="saveNumbers">Save texting numbers</button>
+            </section>
         </div>
         <p v-else class="text-sm text-slate-500">Loading…</p>
     </AdminPage>

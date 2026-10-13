@@ -4,6 +4,7 @@ use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\RedirectSignedInPlatformAdmin;
 use App\Http\Middleware\ResolvePublicTenant;
 use App\Http\Middleware\ResolveTenant;
 use App\Support\UploadLimit;
@@ -34,6 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => EnsureAdmin::class,
             'tenant.public' => ResolvePublicTenant::class,
             'platform' => EnsurePlatformAdmin::class,
+            'signed-out' => RedirectSignedInPlatformAdmin::class,
         ]);
         $middleware->trustProxies(at: '*');
     })

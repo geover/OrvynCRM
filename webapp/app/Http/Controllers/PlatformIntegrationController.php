@@ -25,7 +25,7 @@ class PlatformIntegrationController extends Controller
     {
         $d = $request->validate([
             'enabled' => ['required', 'boolean'],
-            'account_sid' => ['nullable', 'required_if:enabled,true', 'string', 'max:80'],
+            'account_sid' => ['nullable', 'string', 'max:80'],
             'auth_token' => ['nullable', 'string', 'max:200'],
             'clear_token' => ['sometimes', 'boolean'],
             'from_number' => ['nullable', 'string', 'max:30', 'regex:/^\+?[0-9 ()\-]{6,20}$/'],

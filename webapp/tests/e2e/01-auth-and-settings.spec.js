@@ -33,24 +33,24 @@ test.describe('sign in & password flows', () => {
             await page.goto('/forgot-password');
             await page.locator('#e').fill(email);
             await page.getByRole('button', { name: 'Email me a reset link' }).click();
-            await expect(page.getByText('If that address has an account')).toBeVisible();
+            await expect(page.getByTestId('reset-sent')).toContainText('has an account, a link');        // the same page for a known and an unknown address
         }
     });
 
     test('reset password end to end: request link, open it from the mail, weak password refused, new password works', async ({ page }) => {
         await login(page);
-        expect((await api(page, 'POST', '/users', { name: 'Reset Me', email: 'reset.me@orvyn.test', role: 'user', password: 'Old-Passw0rd!x' })).status).toBe(201);
+        expect((await api(page, 'POST', '/users', { name: 'Reset Me', email: 'reset.me@orvyncrm.test', role: 'user', password: 'Old-Passw0rd!x' })).status).toBe(201);
         await page.context().clearCookies();
 
         await page.goto('/forgot-password');
-        await page.locator('#e').fill('reset.me@orvyn.test');
+        await page.locator('#e').fill('reset.me@orvyncrm.test');
         await page.getByRole('button', { name: 'Email me a reset link' }).click();
-        await expect(page.getByText('If that address has an account')).toBeVisible();
+        await expect(page.getByTestId('reset-sent')).toBeVisible();
 
         // the e2e server uses the "log" mailer: read the link out of what was "sent"
-        const link = await latestResetLink('reset.me@orvyn.test');
+        const link = await latestResetLink('reset.me@orvyncrm.test');
         await page.goto(link);
-        await expect(page.locator('h1')).toContainText('Choose a new password');
+        await expect(page.getByRole('heading', { name: 'Choose a new password' })).toBeVisible();
 
         const pw = page.locator('input[type=password]');
         await pw.nth(0).fill('weak');
@@ -63,7 +63,7 @@ test.describe('sign in & password flows', () => {
         await page.getByRole('button', { name: 'Reset password' }).click();
         await expect(page).toHaveURL(/\/login/);
         await expect(page.getByText('Password updated')).toBeVisible();
-        await login(page, { email: 'reset.me@orvyn.test', password: 'Brand-New-Passw0rd' });
+        await login(page, { email: 'reset.me@orvyncrm.test', password: 'Brand-New-Passw0rd' });
 
         // old link is single-use
         await expect(page.getByText('Your day at a glance').or(page.getByText(/Good (morning|afternoon|evening)/))).toBeVisible();

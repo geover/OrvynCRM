@@ -161,6 +161,81 @@ class PlatformBrandingController extends Controller
         return back()->with('success', 'Favicon removed.');
     }
 
+    // ---- the platform area's own look (Platform > Settings > Platform look) -------------------------------------------------------
+
+    public function look(): Response
+    {
+        $sign = Company::platformBranding();
+        $area = Company::platformAreaBranding();
+
+        return Inertia::render('Platform/Look', [
+            'look' => [
+                'name' => (string) PlatformSetting::get('platform.name'), 'color' => (string) PlatformSetting::get('platform.color'),
+                'name_effective' => $area['name'], 'color_effective' => $area['color'],
+                'name_default' => $sign['name'], 'color_default' => $sign['color'],
+                'mark_url' => $area['mark_url'], 'mark_custom' => (bool) PlatformSetting::get('platform.logo_path'),
+                'favicon_url' => $area['favicon_url'], 'favicon_custom' => (bool) PlatformSetting::get('platform.favicon_path'),
+            ],
+            'upload_limit' => UploadLimit::bytes(),
+        ]);
+    }
+
+    /** Empty fields follow the sign-in page's name and colour. */
+    public function updateLook(Request $request): RedirectResponse
+    {
+        $d = $request->validate(['name' => ['nullable', 'string', 'max:60'], 'color' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/']]);
+        PlatformSetting::put('platform.name', trim((string) ($d['name'] ?? '')) ?: null);
+        PlatformSetting::put('platform.color', ! empty($d['color']) ? strtolower($d['color']) : null);
+
+        return back()->with('success', 'Platform look saved.');
+    }
+
+    public function uploadLookLogo(Request $request): RedirectResponse
+    {
+        $path = $this->storeUpload($request, 'logo', ['png', 'jpg', 'jpeg', 'webp'], 2048, image: true);
+        $this->deleteFile('platform.logo_path');
+        PlatformSetting::put('platform.logo_path', $path);
+
+        return back()->with('success', 'Logo updated.');
+    }
+
+    public function destroyLookLogo(): RedirectResponse
+    {
+        $this->deleteFile('platform.logo_path');
+        PlatformSetting::put('platform.logo_path', null);
+
+        return back()->with('success', 'Back to the built-in logo.');
+    }
+
+    public function uploadLookFavicon(Request $request): RedirectResponse
+    {
+        $path = $this->storeUpload($request, 'favicon', ['png', 'ico', 'webp'], 512, image: false);
+        $this->deleteFile('platform.favicon_path');
+        PlatformSetting::put('platform.favicon_path', $path);
+
+        return back()->with('success', 'Favicon updated.');
+    }
+
+    public function destroyLookFavicon(): RedirectResponse
+    {
+        $this->deleteFile('platform.favicon_path');
+        PlatformSetting::put('platform.favicon_path', null);
+
+        return back()->with('success', 'Back to the sign-in page favicon.');
+    }
+
+    /** The platform area's own logo mark, else the built-in one. */
+    public function lookLogo(): HttpResponse
+    {
+        return $this->serve('platform.logo_path', 'brand/orvyn-mark.svg');
+    }
+
+    /** The platform area's own favicon, else the sign-in page's. */
+    public function lookFavicon(): HttpResponse
+    {
+        return PlatformSetting::get('platform.favicon_path') ? $this->serve('platform.favicon_path') : $this->favicon();
+    }
+
     /** The uploaded file, else the built-in one (under public/) when there is one, else 404. */
     private function serve(string $key, ?string $builtIn = null): HttpResponse
     {

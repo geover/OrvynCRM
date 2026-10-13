@@ -4,14 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Jobs\CollectCompanyMetrics;
 use App\Models\Automation;
+use App\Models\CompanyUsage;
 use App\Models\DataObject;
 use App\Models\Tenant;
 use App\Models\TenantMetric;
 use App\Models\TenantStat;
 use App\Services\Tenancy\CompanyServices;
 use App\Services\Tenancy\Limits;
+use App\Services\Tenancy\Plans;
 use App\Services\Tenancy\QueueSnapshot;
 use App\Services\Tenancy\Seats;
+use App\Services\Tenancy\Subscriptions;
+use App\Services\Tenancy\UsageTracker;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
@@ -43,6 +47,7 @@ class PlatformCompanyOverviewController extends Controller
                 'objects' => $tenant->isActive() ? $tenant->run(fn () => $this->objectSwitches($services, $tenant)) : [],
             ],
             'limits' => $tenant->isActive() ? $tenant->run(fn () => ['data_objects' => $limits->dataObjects(), 'objects' => $limits->objects()]) : null,
+            'plan' => $this->plan($tenant),
             'users' => $stat?->users ?? $seats->usedFor($tenant),
             'collected_at' => $stat?->collected_at?->toIso8601String(),
             'counts' => ($stat?->counts ?? []) + ['contacts' => $stat?->contacts ?? 0, 'records' => $stat?->records ?? 0],
@@ -86,5 +91,18 @@ class PlatformCompanyOverviewController extends Controller
         });
 
         return back()->with('success', "Collecting {$tenant->name}'s numbers. It takes a moment.");
+    }
+
+    /** @return array<string, mixed> the company's tier, trial, usage against the tier, and the billing details it gave */
+    private function plan(Tenant $tenant): array
+    {
+        $plans = app(Plans::class);
+        $billing = $plans->billing($tenant);
+
+        return $plans->summary($tenant) + [
+            'billing' => $billing?->only(['legal_name', 'contact_name', 'contact_email', 'phone', 'address_line1', 'address_line2', 'city', 'region', 'postal_code', 'country', 'tax_id', 'po_reference']),
+            'billing_complete' => (bool) $billing?->isComplete(), 'subscription' => app(Subscriptions::class)->summary($tenant),
+            'usage_history' => app(UsageTracker::class)->history($tenant)->map(fn (CompanyUsage $u) => $u->only(['period', 'tier', 'users', 'users_limit', 'sms', 'sms_limit', 'numbers', 'numbers_limit']))->values()->all(),
+        ];
     }
 }

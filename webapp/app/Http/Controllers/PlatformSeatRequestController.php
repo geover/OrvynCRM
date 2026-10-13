@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SeatRequest;
+use App\Models\SubscriptionRequest;
 use App\Models\Tenant;
 use App\Services\Tenancy\LimitRequests;
 use Illuminate\Http\RedirectResponse;
@@ -20,6 +21,11 @@ class PlatformSeatRequestController extends Controller
         $companies = Tenant::pluck('name', 'id');
 
         return Inertia::render('Platform/SeatRequests', [
+            'subscription_requests' => SubscriptionRequest::orderByRaw("case status when 'pending' then 0 else 1 end")->orderByDesc('id')->limit(30)->get()->map(fn (SubscriptionRequest $r) => [
+                'id' => $r->id, 'company_id' => $r->tenant_id, 'company' => $companies[$r->tenant_id] ?? 'Deleted company', 'requester_name' => $r->requester_name, 'requester_email' => $r->requester_email,
+                'tier' => $r->tier, 'message' => $r->message, 'status' => $r->status, 'response' => $r->response,
+                'created_at' => $r->created_at?->toIso8601String(), 'handled_at' => $r->handled_at?->toIso8601String(),
+            ])->values(),
             'requests' => SeatRequest::orderByRaw("case status when 'pending' then 0 else 1 end")->orderByDesc('id')->limit(200)->get()->map(fn (SeatRequest $r) => [
                 'id' => $r->id, 'company_id' => $r->tenant_id, 'company' => $companies[$r->tenant_id] ?? 'Deleted company',
                 'requester_name' => $r->requester_name, 'requester_email' => $r->requester_email,

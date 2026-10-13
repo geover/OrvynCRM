@@ -14,16 +14,67 @@ use Throwable;
  */
 class SmsSettings
 {
-    /** @return array{enabled: bool, account_sid: string, token_set: bool, from_number: string, messaging_service_sid: string} never the token itself */
+    /**
+     * What is saved on the Settings page (the form's values) and what .env gives as the default. A field left empty here falls
+     * back to its TWILIO_* value in .env; `effective` is what is really used. Never the token itself.
+     *
+     * @return array{enabled: bool, account_sid: string, token_set: bool, from_number: string, messaging_service_sid: string, env: array{account_sid: string, token_set: bool, from_number: string, messaging_service_sid: string}, effective: array{account_sid: string, from_number: string, messaging_service_sid: string}}
+     */
     public function current(): array
     {
         return [
-            'enabled' => PlatformSetting::get('sms.enabled') === '1',
+            'enabled' => $this->enabled(),
             'account_sid' => (string) PlatformSetting::get('sms.account_sid'),
             'token_set' => (bool) PlatformSetting::get('sms.auth_token'),
             'from_number' => (string) PlatformSetting::get('sms.from_number'),
             'messaging_service_sid' => (string) PlatformSetting::get('sms.messaging_service_sid'),
+            'env' => [
+                'account_sid' => $this->env('account_sid'), 'token_set' => $this->env('auth_token') !== '',
+                'from_number' => $this->env('from_number'), 'messaging_service_sid' => $this->env('messaging_service_sid'),
+            ],
+            'effective' => [
+                'account_sid' => $this->value('account_sid'), 'from_number' => $this->value('from_number'), 'messaging_service_sid' => $this->value('messaging_service_sid'),
+            ],
         ];
+    }
+
+    /** Saved on the Settings page; until it has been saved once, on when .env holds a complete account. */
+    public function enabled(): bool
+    {
+        $saved = PlatformSetting::get('sms.enabled');
+
+        return $saved === null ? $this->envComplete() : $saved === '1';
+    }
+
+    private function env(string $key): string
+    {
+        return trim((string) config("services.twilio.{$key}"));
+    }
+
+    /** The saved value, else the one from .env. */
+    private function value(string $key): string
+    {
+        return trim((string) PlatformSetting::get("sms.{$key}")) ?: $this->env($key);
+    }
+
+    private function envComplete(): bool
+    {
+        return $this->env('account_sid') !== '' && $this->env('auth_token') !== '' && ($this->env('from_number') !== '' || $this->env('messaging_service_sid') !== '');
+    }
+
+    /** The auth token: the saved (encrypted) one, else the one in .env. */
+    private function token(): ?string
+    {
+        $saved = PlatformSetting::get('sms.auth_token');
+        if ($saved) {
+            try {
+                return Crypt::decryptString($saved);
+            } catch (Throwable) {
+                return null;                                   // saved under another APP_KEY: treated as not set
+            }
+        }
+
+        return $this->env('auth_token') ?: null;
     }
 
     /**
@@ -53,17 +104,15 @@ class SmsSettings
      */
     public function account(): ?array
     {
-        $c = $this->current();
-        $token = PlatformSetting::get('sms.auth_token');
-        if (! $c['enabled'] || $c['account_sid'] === '' || ! $token || ($c['from_number'] === '' && $c['messaging_service_sid'] === '')) {
+        $sid = $this->value('account_sid');
+        $token = $this->token();
+        $from = $this->value('from_number');
+        $service = $this->value('messaging_service_sid');
+        if (! $this->enabled() || $sid === '' || ! $token || ($from === '' && $service === '')) {
             return null;
         }
 
-        try {
-            return ['sid' => $c['account_sid'], 'token' => Crypt::decryptString($token), 'from' => $c['from_number'] ?: null, 'service' => $c['messaging_service_sid'] ?: null];
-        } catch (Throwable) {
-            return null;                                       // saved under another APP_KEY: treated as not set up
-        }
+        return ['sid' => $sid, 'token' => $token, 'from' => $from ?: null, 'service' => $service ?: null];
     }
 
     /** Send a text through the saved account, to prove it works. Returns Twilio's message id; throws with Twilio's own error. */

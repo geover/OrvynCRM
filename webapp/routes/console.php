@@ -23,6 +23,12 @@ Schedule::call(function () {
 // Companies nobody has used for a while (the number of days is a platform setting): flag them and tell the people concerned
 Schedule::command('orvyn:scan-inactive')->dailyAt('04:00')->name('companies:inactivity')->withoutOverlapping(30);
 
+// How much of its plan each company uses (users, texts, texting numbers): a record per month, and a warning at 80 and 100 percent
+Schedule::command('orvyn:track-usage')->hourlyAt(20)->name('companies:usage')->withoutOverlapping(30);
+
+// Free trials running out: remind the administrators 14, 7 and 1 days before, and once when it has ended
+Schedule::command('orvyn:trial-reminders')->dailyAt('04:30')->name('companies:trial-reminders')->withoutOverlapping(30);
+
 // Central housekeeping (tables that are shared by every company)
 Schedule::command('queue:prune-batches --hours=48')->daily();
 Schedule::command('queue:prune-failed --hours=168')->daily();

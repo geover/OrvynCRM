@@ -21,8 +21,9 @@ class SettingsController extends Controller
             return Company::platformBranding();         // sign-in page, company chooser, platform area
         }
 
-        $logo = Setting::get('app.logo_path');
-        $favicon = Setting::get('app.favicon_path');
+        // a picture whose file is gone (moved or lost storage) counts as none: the platform's is shown instead of a broken image
+        $logo = self::existingFile(Setting::get('app.logo_path'));
+        $favicon = self::existingFile(Setting::get('app.favicon_path'));
 
         return [
             'name' => Setting::get('app.name', config('app.name')),
@@ -35,6 +36,11 @@ class SettingsController extends Controller
             'favicon_is_default' => ! $favicon,
             'timezone' => Setting::get('app.timezone', config('app.timezone')),
         ];
+    }
+
+    private static function existingFile(?string $path): ?string
+    {
+        return $path && Storage::disk('public')->exists($path) ? $path : null;
     }
 
     public function show(Request $request): JsonResponse

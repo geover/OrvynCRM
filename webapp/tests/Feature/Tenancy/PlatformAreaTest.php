@@ -119,4 +119,39 @@ class PlatformAreaTest extends TenantTestCase
             $this->assertFalse(tenancy()->initialized);
         }
     }
+
+    public function test_a_signed_in_platform_administrator_is_sent_back_from_the_sign_in_and_sign_up_pages(): void
+    {
+        $this->platformAdmin();
+        $this->get('/login')->assertOk();                                                                    // signed out: the page shows
+
+        $this->post('/login', ['email' => 'platform@x.test', 'password' => 'Platform-Passw0rd-1'])->assertRedirect('/platform');
+
+        $this->get('/login')->assertRedirect('/platform');
+        $this->get('/signup')->assertRedirect('/platform');
+        $this->get('/forgot-password')->assertOk();                                                          // a reset link keeps working
+
+        $this->post('/logout');
+        $this->get('/login')->assertOk();
+    }
+
+    public function test_a_platform_administrator_changes_the_address_of_a_company_without_touching_its_data(): void
+    {
+        $acme = $this->company('Acme', 'owner@acme.test');
+        $beta = $this->company('Beta', 'owner@beta.test');
+        $this->platformAdmin();
+        $this->post('/login', ['email' => 'platform@x.test', 'password' => 'Platform-Passw0rd-1']);
+        $databaseBefore = $acme->fresh()->database()->getName();
+        $url = "/platform/companies/{$acme->getTenantKey()}";
+
+        $this->patch($url, ['slug' => 'acme-bakery'])->assertSessionHasNoErrors();
+        $this->assertSame('acme-bakery', $acme->fresh()->slug);
+        $this->assertSame($databaseBefore, $acme->fresh()->database()->getName());
+
+        $this->patch($url, ['slug' => $beta->slug])->assertSessionHasErrors('slug');                 // taken
+        $this->patch($url, ['slug' => 'admin'])->assertSessionHasErrors('slug');                     // reserved
+        $this->patch($url, ['slug' => 'Not Valid!'])->assertSessionHasErrors('slug');
+        $this->patch($url, ['slug' => 'acme-bakery', 'name' => 'Acme Bakery'])->assertSessionHasNoErrors();   // its own address is not "taken"
+        $this->assertSame('acme-bakery', $acme->fresh()->slug);
+    }
 }
