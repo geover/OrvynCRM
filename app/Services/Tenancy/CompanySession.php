@@ -62,6 +62,7 @@ class CompanySession
         }
 
         Auth::guard('web')->login($profile, $remember);
+        $identity->is_platform_admin || app(CompanyActivity::class)->touch($tenant);          // a person signed in (a platform visit is not use)
         $request->session()->put('tenant_id', $tenant->getTenantKey());
         Cookie::queue(self::COOKIE, $tenant->getTenantKey(), $remember ? 60 * 24 * 30 : 0);
         Cookie::queue(self::LAST_COOKIE, $tenant->getTenantKey(), 60 * 24 * 365);

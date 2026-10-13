@@ -15,6 +15,7 @@ OrvynCRM is a rewrite of OldCRM (CodeIgniter 3 + Gatsby) on a modern stack, buil
 - **Automations:** conditions and actions per data object (e-mail, SMS, tags, tasks, field updates, webhooks), with run history and per-action results.
 - **Communication:** e-mail and SMS composer, templates, forms (hosted and embeddable), webhooks, tracking pixels.
 - **Planning:** tasks, schedules calendar, dashboard widgets, notifications, tours.
+- **Sign-up:** anyone can create their own workspace (`/signup`) once the platform opens it: confirm your e-mail, choose a password, and you are signed in as the new company's administrator. The platform can open it to everyone or approve each request first.
 - **Administration:** users and permission templates, a limit on active users, look and feel (logo, favicon, colours, sidebar), time zone, and direct messages to the platform administrators (threaded, with images).
 - **Limits:** the platform sets how many users, data objects and automations per data object a company may have. Administrators see "3 of 5" meters and can request more, with the price shown.
 

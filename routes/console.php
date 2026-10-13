@@ -20,6 +20,9 @@ Schedule::call(function () {
     Tenant::active()->select('id')->chunkById(500, fn ($companies) => $companies->each(fn ($c) => TenantTick::dispatch($c->getTenantKey(), $at)));
 })->everyMinute()->name('companies:tick')->withoutOverlapping(2);
 
+// Companies nobody has used for a while (the number of days is a platform setting): flag them and tell the people concerned
+Schedule::command('orvyn:scan-inactive')->dailyAt('04:00')->name('companies:inactivity')->withoutOverlapping(30);
+
 // Central housekeeping (tables that are shared by every company)
 Schedule::command('queue:prune-batches --hours=48')->daily();
 Schedule::command('queue:prune-failed --hours=168')->daily();

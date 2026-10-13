@@ -139,7 +139,7 @@ class CompanyServices
     {
         abort_unless(isset(self::CATALOG[$service]), 422, 'Unknown service.');
         $id = $this->idOf($company);
-        abort_if($on && ! $this->ready($service, $id), 422, self::NEEDS_DETAILS[$service]);
+        abort_if($on && ! $this->ready($service, $id), 422, self::NEEDS_DETAILS[$service] ?? 'This service cannot be switched on yet.');       // the message is built before the check: a service without details must not warn
         TenantService::updateOrCreate(['tenant_id' => $id, 'service' => $service], ['enabled' => $on, 'changed_at' => now()]);
         unset($this->loaded[$id]);
     }

@@ -32,7 +32,9 @@ class DispatchDueMessages implements ShouldQueue
         $held = fn ($q) => (tenant('id') && ($paused = $services->pausedObjects(tenant('id'), 'messages'))) ? $q->where(fn ($w) => $w->whereNull('data_object_record_id')
             ->orWhereNotIn('data_object_record_id', DataObjectRecord::whereIn('data_object_id', $paused)->select('id'))) : $q;
 
-        $held(EmailMessage::due())->select('id')->chunkById(500, fn ($rows) => $rows->each(fn ($m) => SendEmailMessage::dispatch($m->id)));
-        $held(SmsMessage::due())->select('id')->chunkById(500, fn ($rows) => $rows->each(fn ($m) => SendSmsMessage::dispatch($m->id)));
+        // at most one minute's allowance per company and channel, oldest first: a backlog cannot flood the queue other companies share
+        $cap = max(1, (int) config('queue.messages_per_tick', 600));
+        $held(EmailMessage::due())->orderBy('id')->limit($cap)->pluck('id')->each(fn ($id) => SendEmailMessage::dispatch($id));
+        $held(SmsMessage::due())->orderBy('id')->limit($cap)->pluck('id')->each(fn ($id) => SendSmsMessage::dispatch($id));
     }
 }

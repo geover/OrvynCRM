@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Carbon;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDatabase;
 use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
@@ -14,7 +15,9 @@ use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
  * @property string $id
  * @property string $name
  * @property string $slug
- * @property string $status active | suspended
+ * @property string $status active | suspended | closed
+ * @property Carbon|null $last_active_at
+ * @property Carbon|null $inactive_since
  */
 class Tenant extends BaseTenant implements TenantWithDatabase
 {
@@ -23,7 +26,12 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     /** Real columns on the central `tenants` table; anything else goes to the JSON `data` column. */
     public static function getCustomColumns(): array
     {
-        return ['id', 'name', 'slug', 'status', 'plan', 'max_users', 'max_data_objects', 'max_automations_per_object'];
+        return ['id', 'name', 'slug', 'status', 'plan', 'max_users', 'max_data_objects', 'max_automations_per_object', 'last_active_at', 'inactive_since', 'closed_at', 'status_note'];
+    }
+
+    protected function casts(): array
+    {
+        return ['last_active_at' => 'datetime', 'inactive_since' => 'datetime', 'closed_at' => 'datetime'];
     }
 
     public function scopeActive(Builder $query): Builder

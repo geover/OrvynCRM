@@ -10,11 +10,13 @@ use App\Http\Controllers\BrandingController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PlatformAdministratorController;
 use App\Http\Controllers\PlatformAnnouncementController;
+use App\Http\Controllers\PlatformBotProtectionController;
 use App\Http\Controllers\PlatformBrandingController;
 use App\Http\Controllers\PlatformCompanyOverviewController;
 use App\Http\Controllers\PlatformCompanyUsersController;
 use App\Http\Controllers\PlatformController;
 use App\Http\Controllers\PlatformDashboardController;
+use App\Http\Controllers\PlatformInactivityController;
 use App\Http\Controllers\PlatformIntegrationController;
 use App\Http\Controllers\PlatformMessageController;
 use App\Http\Controllers\PlatformObjectLimitController;
@@ -22,7 +24,9 @@ use App\Http\Controllers\PlatformPricingController;
 use App\Http\Controllers\PlatformSeatRequestController;
 use App\Http\Controllers\PlatformServicesController;
 use App\Http\Controllers\PlatformSettingsController;
+use App\Http\Controllers\PlatformSignupController;
 use App\Http\Controllers\PublicFormController;
+use App\Http\Controllers\SignupController;
 use App\Http\Controllers\ThreadAttachmentController;
 use App\Http\Controllers\TrackingController;
 use App\Http\Controllers\UpdatesController;
@@ -64,6 +68,11 @@ Route::middleware('platform')->prefix('platform')->group(function () {
     Route::post('messages/{thread}/unarchive', [PlatformMessageController::class, 'unarchive']);
     Route::delete('messages/{thread}', [PlatformMessageController::class, 'destroy']);
 
+    Route::get('signups', [PlatformSignupController::class, 'index']);
+    Route::patch('signups/mode', [PlatformSignupController::class, 'mode']);
+    Route::post('signups/{signup}/approve', [PlatformSignupController::class, 'approve'])->whereNumber('signup');
+    Route::post('signups/{signup}/reject', [PlatformSignupController::class, 'reject'])->whereNumber('signup');
+
     Route::get('pricing', [PlatformPricingController::class, 'show']);
     Route::patch('pricing', [PlatformPricingController::class, 'update']);
 
@@ -90,6 +99,14 @@ Route::middleware('platform')->prefix('platform')->group(function () {
     Route::get('settings/notifications', [PlatformSettingsController::class, 'notificationsPage']);
     Route::patch('settings/notifications', [PlatformSettingsController::class, 'notifications']);
     Route::get('settings/mail', [PlatformSettingsController::class, 'mailPage']);
+    Route::get('settings/inactive-companies', [PlatformInactivityController::class, 'show']);
+    Route::patch('settings/inactive-companies', [PlatformInactivityController::class, 'save']);
+    Route::post('settings/inactive-companies/scan', [PlatformInactivityController::class, 'scan'])->middleware('throttle:10,1');
+    Route::post('companies/{tenant}/inactive/keep', [PlatformInactivityController::class, 'keep']);
+    Route::post('companies/{tenant}/inactive/suspend', [PlatformInactivityController::class, 'suspend']);
+    Route::post('companies/{tenant}/inactive/close', [PlatformInactivityController::class, 'close']);
+    Route::get('settings/bot-protection', [PlatformBotProtectionController::class, 'show']);
+    Route::patch('settings/bot-protection', [PlatformBotProtectionController::class, 'save']);
     Route::get('settings/sms', [PlatformIntegrationController::class, 'sms']);
     Route::patch('settings/sms', [PlatformIntegrationController::class, 'saveSms']);
     Route::post('settings/sms/test', [PlatformIntegrationController::class, 'testSms'])->middleware('throttle:10,1');
@@ -130,6 +147,13 @@ Route::middleware('platform')->prefix('platform')->group(function () {
 Route::middleware('guest')->group(function () {
     Route::get('/login', [WebAuthController::class, 'create'])->name('login');
     Route::post('/login', [WebAuthController::class, 'store']);   // brute-force protection is inside the controller (failures only)
+    // Create your own workspace (offered only while the platform has sign-ups open; see Platform > Sign-ups)
+    Route::get('/signup', [SignupController::class, 'create'])->name('signup');
+    Route::post('/signup', [SignupController::class, 'store'])->middleware('throttle:signup');
+    Route::get('/signup/sent', [SignupController::class, 'sent']);
+    Route::post('/signup/resend', [SignupController::class, 'resend'])->middleware('throttle:signup');
+    Route::get('/signup/{token}', [SignupController::class, 'show'])->where('token', '[A-Za-z0-9]{48}');
+    Route::post('/signup/{token}', [SignupController::class, 'complete'])->where('token', '[A-Za-z0-9]{48}')->middleware('throttle:signup-complete');
     Route::get('/forgot-password', [PasswordResetController::class, 'request'])->name('password.request');
     Route::post('/forgot-password', [PasswordResetController::class, 'email'])->middleware('throttle:login')->name('password.email');
     Route::get('/reset-password/{token}', [PasswordResetController::class, 'reset'])->name('password.reset');

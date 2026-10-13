@@ -10,6 +10,7 @@ use App\Models\DataObject;
 use App\Models\EmailMessage;
 use App\Models\Form;
 use App\Services\DataObjects\RecordService;
+use App\Services\Tenancy\CompanyActivity;
 use App\Services\Tenancy\MailSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -55,6 +56,7 @@ JS;
         if ($request->filled('_hp')) {
             return response()->json(['ok' => true], 201);
         }
+        app(CompanyActivity::class)->touch();                      // somebody is using the company's form: it is not abandoned
 
         $fields = collect($form->schema['fields'] ?? []);
         $rules = $fields->mapWithKeys(fn ($f) => [$f['key'] => array_filter([($f['required'] ?? false) ? 'required' : 'nullable', match ($f['type'] ?? 'text') {

@@ -7,6 +7,7 @@ use App\Models\AccountUser;
 use App\Models\Announcement;
 use App\Models\MessageThread;
 use App\Models\SeatRequest;
+use App\Models\Tenant;
 use App\Support\Tenancy\Company;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -76,6 +77,8 @@ class HandleInertiaRequests extends Middleware
                 ? ['ids' => Announcement::live()->where('show_in_app', true)->orderByDesc('id')->limit(100)->pluck('id')->all()]
                 : null,
             // requests for more users waiting for a platform administrator (the badge in the platform menu)
+            // companies the daily check has flagged as abandoned: a badge on the platform's Companies menu until they are dealt with
+            'inactiveCompanies' => fn () => Company::isPlatformArea($request) ? Tenant::active()->whereNotNull('inactive_since')->count() : 0,
             'seatRequestsPending' => fn () => Company::isPlatformArea($request) ? SeatRequest::pending()->count() : 0,
             'platformMessagesUnread' => fn () => Company::isPlatformArea($request) ? MessageThread::unreadForPlatform()->count() : 0,
             // a company administrator: conversations with the platform that have a new reply

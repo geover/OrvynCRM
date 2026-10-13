@@ -19,8 +19,10 @@ class PlatformNotifier
 
     public const AUTOMATION_FAILURES = 'automation_failures';
 
+    public const INACTIVE_COMPANIES = 'inactive_companies';
+
     /**
-     * @param  self::REQUESTS|self::MESSAGES|self::AUTOMATION_FAILURES  $topic
+     * @param  self::REQUESTS|self::MESSAGES|self::AUTOMATION_FAILURES|self::INACTIVE_COMPANIES  $topic
      * @return list<string> distinct addresses
      */
     public function recipients(string $topic): array
@@ -28,6 +30,7 @@ class PlatformNotifier
         $column = match ($topic) {
             self::MESSAGES => 'notify_messages',
             self::AUTOMATION_FAILURES => 'notify_automation_failures',
+            self::INACTIVE_COMPANIES => 'notify_inactive_companies',
             default => 'notify_requests',
         };
 
@@ -40,7 +43,7 @@ class PlatformNotifier
      * E-mail everybody who wants to hear about `$topic`. The app's own pages (inbox, badges, Requests) are the real
      * notification, so a mail problem never throws: it must not break what triggered it.
      *
-     * @param  self::REQUESTS|self::MESSAGES|self::AUTOMATION_FAILURES  $topic
+     * @param  self::REQUESTS|self::MESSAGES|self::AUTOMATION_FAILURES|self::INACTIVE_COMPANIES  $topic
      * @param  array{0: string, 1: string}|null  $replyTo  [address, name]
      */
     public function mail(string $topic, string $subject, string $text, ?array $replyTo = null): void

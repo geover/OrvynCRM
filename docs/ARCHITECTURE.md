@@ -134,6 +134,16 @@ A company has a maximum number of **active users**, **data objects**, and **auto
 
 The platform's settings for what every company can use live under Platform -> Settings -> Integrations. **E-mail:** `MailSettings` (the `.env` server or an override). **SMS:** `SmsSettings` holds the platform's Twilio account (token encrypted); `TwilioClient::account()` picks the company's own `integrations` row if it has one, otherwise the platform's, and passes the company's own callback URL so delivery reports reach the right message. **Calls:** `CallSettings` (a default caller ID, and whether companies may set caller IDs; the company API and Phone page follow it).
 
+### Sign-up (`/signup`)
+
+Anyone can create a workspace themselves while the platform has sign-ups open (Platform > Sign-ups: closed, open, or open with approval; closed until switched on). OldCRM had an installer wizard for this (about you, connect Infusionsoft, hosted or do-it-yourself with FTP and database details, caller ID validation, card, install); none of that applies to a hosted multi-company app, so the new flow is three steps: ask (company, name, e-mail, terms), confirm the e-mail, choose a password. The company is created at that last step by `TenantProvisioner::createCompany`, with the person as administrator and signed straight in.
+
+Rules that matter: nothing is created and no password is stored before the e-mail is confirmed (`signups` is one central row, the link carries a random token and only its hash is kept, links expire after 3 days); the form never says whether an address already has an account (that person is e-mailed instead); the routes are throttled, there is a honeypot field and throw-away e-mail domains are refused; in approval mode the platform's "requests" e-mail topic is told and an administrator approves or declines under Platform > Sign-ups (an approval sends a new link, valid 7 days). New companies start with the default limits (`DEFAULT_MAX_*`). Code: `SignupController`, `PlatformSignupController`, `Services/Tenancy/Signups.php` and `SignupSettings.php`, `Models/Signup.php`, the pages `Auth/Signup*.vue` and `Platform/Signups.vue`.
+
+### Bot protection (reCAPTCHA v3)
+
+`Services/Tenancy/Recaptcha.php` guards `POST /login` (action `login`) and `POST /signup` (action `signup`). The site key travels to the pages as `app.recaptcha_site_key` (null while off, so no script is loaded); `lib/recaptcha.js` gets a token on submit and the server verifies it with Google (secret encrypted in `platform_settings`, minimum score 0.1 to 0.9, default 0.5). A refused check is not counted as a wrong password. A Google outage lets people through (logged). Keys and strictness: Platform > Settings > Bot protection.
+
 ### Messaging and "live" pages
 
 Company administrators and platform administrators talk in threads. The pages stay current by **polling**, not websockets: `ThreadPoll` computes a cheap fingerprint of what a viewer can see, a page asks every few seconds with the last fingerprint it saw, and the server answers "unchanged" in one query or returns the new list and messages. On the client, `lib/live.js` pauses polling while the tab is hidden, backs off on errors, stops when the session ends, and drops an answer that was overtaken by something the person did (`useEpoch`).
@@ -141,6 +151,10 @@ Company administrators and platform administrators talk in threads. The pages st
 ### Background services
 
 `CompanyScheduler` runs once a minute per company (`TenantTick`) and queues what is due. `CompanyServices` holds the platform's on/off switches per company, and for automations, e-mail and SMS sending, and the overdue-task digest also per data object. A switch is read by the job itself, so it never stops a server process; see `docs/SERVICES_MAP.md`.
+
+### Inactive companies
+
+`CompanyActivity` stamps `tenants.last_active_at` (at most every 10 minutes per company) when someone actually uses the app: `EnsureUserIsActive` for page loads and writes (not JSON polling, not platform support), `CompanySession::enter` for people signing in, and public form submissions. `InactiveCompanies::scan()` (daily, `orvyn:scan-inactive`) flags active companies idle past the chosen number of days (`inactive_since`), tells their administrators and the platform once, and clears the flag when the company is used again. `keep`, `suspend` and `close` are always a platform administrator's decision; status `closed` blocks sign-in and the scheduler exactly like `suspended`, and Activate resets the clock.
 
 ### Front-end patterns
 

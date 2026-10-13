@@ -49,7 +49,7 @@ class ResolveTenant
 
     private function suspended(Request $request): Response
     {
-        $message = 'This company account is suspended.';
+        $message = tenant('status') === 'closed' ? 'This company account is closed.' : 'This company account is suspended.';
         if ($request->expectsJson() || $request->is('api/*')) {
             return response()->json(['message' => $message], 403);
         }

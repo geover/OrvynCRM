@@ -24,6 +24,12 @@ class SendSmsMessage implements ShouldQueue
 
     public function handle(TwilioClient $twilio, CompanyServices $services): void
     {
+        // sending switched off for this company (Platform > Background services): whoever pressed Send, the message stays
+        // queued and goes out on the first tick after it is switched on again
+        if (! $services->enabled('messages')) {
+            return;
+        }
+
         if ($services->holdsMessage(SmsMessage::whereKey($this->messageId)->value('data_object_record_id'))) {
             return;                                  // this data object's message sending is switched off: it stays queued
         }

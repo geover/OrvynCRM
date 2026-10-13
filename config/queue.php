@@ -3,6 +3,13 @@
 return [
 
     /*
+    | The most due e-mails (and, separately, texts) one company hands to the queue in one scheduler minute: as many as it is
+    | allowed to send per minute. A company with a huge backlog then adds the same small amount every minute instead of
+    | flooding the shared queue and delaying everybody else. The rest simply waits for the next minute.
+    */
+    'messages_per_tick' => (int) env('MAIL_RATE_PER_MINUTE', 600),
+
+    /*
     |--------------------------------------------------------------------------
     | Default Queue Connection Name
     |--------------------------------------------------------------------------

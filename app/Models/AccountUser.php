@@ -17,7 +17,7 @@ class AccountUser extends Authenticatable
 
     protected $table = 'account_users';
 
-    protected $fillable = ['name', 'email', 'password', 'is_platform_admin', 'status', 'notify_requests', 'notify_messages', 'notify_automation_failures', 'notify_email'];
+    protected $fillable = ['name', 'email', 'password', 'is_platform_admin', 'status', 'notify_requests', 'notify_messages', 'notify_automation_failures', 'notify_inactive_companies', 'notify_email'];
 
     protected $hidden = ['password'];
 
@@ -25,7 +25,7 @@ class AccountUser extends Authenticatable
 
     protected function casts(): array
     {
-        return ['password' => 'hashed', 'email_verified_at' => 'datetime', 'is_platform_admin' => 'boolean', 'notify_requests' => 'boolean', 'notify_messages' => 'boolean', 'notify_automation_failures' => 'boolean'];
+        return ['password' => 'hashed', 'email_verified_at' => 'datetime', 'is_platform_admin' => 'boolean', 'notify_requests' => 'boolean', 'notify_messages' => 'boolean', 'notify_automation_failures' => 'boolean', 'notify_inactive_companies' => 'boolean'];
     }
 
     public function tenants(): BelongsToMany

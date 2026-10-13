@@ -31,7 +31,7 @@ const groups = [
         { href: '/platform/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     ] },
     { title: 'Manage', items: [
-        { href: '/platform', label: 'Companies', icon: Building2 },
+        { href: '/platform', label: 'Companies', icon: Building2, badge: 'inactiveCompanies' },
         { href: '/platform/administrators', label: 'Administrators', icon: UserCog },
         { href: '/platform/seat-requests', label: 'Requests', icon: Inbox, badge: 'seatRequestsPending' },
     ] },

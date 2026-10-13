@@ -1,69 +1,27 @@
 <script setup>
-import { useSignInLook } from '@/lib/favicon';
-import { computed, nextTick, ref, watch } from 'vue';
+import { nextTick, ref } from 'vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-import LoginArt from '@/Components/LoginArt.vue';
-import LoginBackground from '@/Components/LoginBackground.vue';
-import LoginProgress from '@/Components/LoginProgress.vue';
-import { Boxes, Mail, Zap } from 'lucide-vue-next';
-import WhatsNew from '@/Components/WhatsNew.vue';
-import { applyBrandColor } from '@/lib/brand';
+import AuthShell from '@/Components/AuthShell.vue';
+import { useRecaptcha } from '@/lib/recaptcha';
 
-const form = useForm({ email: '', password: '', remember: false });
-// the platform's legal links: only the ones it has filled in
-const footerLinks = computed(() => [['Privacy', 'privacy_url'], ['Legal Policies', 'legal_url'], ['Terms of Use', 'terms_url'], ['Contact', 'contact_url']]
-    .map(([label, key]) => ({ label, href: page.props.app.footer?.[key] })).filter((l) => l.href));
-// three plain facts under the form, to fill the space with something true
-const points = [[Boxes, 'Your own data model'], [Zap, 'Automations that run'], [Mail, 'E-mail and SMS']];
+const form = useForm({ email: '', password: '', remember: false, recaptcha_token: '' });
+const { active: protectedByRecaptcha, token: recaptchaToken } = useRecaptcha();
 const page = usePage();
-useSignInLook();
-watch(() => page.props.app.color, applyBrandColor, { immediate: true });
 // Two steps: who are you, then your password. The first step never asks the server anything (so it cannot reveal
 // which addresses have an account) and is where single sign-on will branch off later.
 const step = ref(1);
 const password = ref(null);
 const next = async () => { if (!form.email) return; step.value = 2; await nextTick(); password.value?.focus(); };
 const change = () => { step.value = 1; form.clearErrors(); };
-const submit = () => form.post('/login', { onFinish: () => form.reset('password') });
+const submit = async () => {
+    form.recaptcha_token = await recaptchaToken('login');
+    form.post('/login', { onFinish: () => form.reset('password', 'recaptcha_token') });
+};
 </script>
 
 <template>
     <Head title="Sign in" />
-    <div class="grid min-h-screen lg:grid-cols-2">
-        <div class="relative hidden overflow-hidden bg-brand-900 text-white lg:block">
-            <LoginBackground v-if="page.props.app.background_url" :url="page.props.app.background_url" :type="page.props.app.background_type" />
-            <LoginArt v-else />
-            <div class="absolute inset-x-0 top-0 h-[46%] bg-gradient-to-b from-brand-900/90 via-brand-900/50 to-transparent" />
-            <div class="absolute inset-x-0 bottom-0 h-[42%] bg-gradient-to-t from-brand-900/95 via-brand-900/65 to-transparent" />
-            <div class="relative z-10 flex h-full flex-col p-12">
-                <div v-if="page.props.app.logo_url" :class="page.props.app.logo_plate && !page.props.app.logo_is_default && 'w-fit rounded-xl bg-[#fffffff2] px-4 py-2.5 shadow-lg ring-1 ring-black/5'"><img :src="page.props.app.logo_url" :alt="page.props.app.name" class="max-h-12 w-fit object-contain" /></div>
-                <div v-else class="page-title">{{ page.props.app.name }}</div>
-                <div class="mt-14">
-                    <h1 v-if="page.props.app.tagline" class="text-4xl font-semibold leading-tight text-balance">{{ page.props.app.tagline }}</h1>
-                    <p class="mt-4 max-w-md text-white/75">Contacts, custom data and automation in one place.</p>
-                </div>
-                <footer class="mt-auto space-y-2 text-xs text-white/75" data-testid="signin-footer">
-                    <p>© {{ new Date().getFullYear() }} {{ page.props.app.name }}. All Rights Reserved.</p>
-                    <nav v-if="footerLinks.length" aria-label="Legal" class="flex flex-wrap gap-x-4 gap-y-1">
-                        <a v-for="l in footerLinks" :key="l.label" :href="l.href" class="underline-offset-2 hover:text-white hover:underline" :target="l.href.startsWith('http') ? '_blank' : undefined" rel="noopener noreferrer">{{ l.label }}</a>
-                    </nav>
-                    <address v-if="page.props.app.footer?.address" class="whitespace-pre-line not-italic leading-relaxed text-white/65">{{ page.props.app.footer.address }}</address>
-                </footer>
-            </div>
-        </div>
-        <div class="relative flex flex-col items-center justify-center gap-8 overflow-hidden p-6">
-            <!-- a quiet backdrop: a soft dotted grid and two glows in the brand colour, so the form does not float in empty space -->
-            <div class="pointer-events-none absolute inset-0" aria-hidden="true">
-                <div class="absolute inset-0 opacity-70 [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_72%)] [background-size:24px_24px]" style="background-image: radial-gradient(circle, color-mix(in srgb, var(--color-brand-500) 28%, transparent) 1.2px, transparent 1.2px)"></div>
-                <LoginProgress />
-                <div class="absolute -right-24 -top-24 size-80 rounded-full bg-brand-500/10 blur-3xl"></div>
-                <div class="absolute -bottom-28 -left-20 size-80 rounded-full bg-brand-500/10 blur-3xl"></div>
-            </div>
-            <!-- the left panel is hidden on small screens, so the logo goes here instead -->
-            <div v-if="page.props.app.logo_light_url" class="relative lg:hidden">
-                <img :src="page.props.app.logo_light_url" :alt="page.props.app.name" class="logo-on-light h-10 w-auto object-contain" />
-                <img :src="page.props.app.logo_url" alt="" class="logo-on-dark h-10 w-auto object-contain" />
-            </div>
+    <AuthShell updates>
             <form class="relative w-full max-w-sm space-y-5 rounded-2xl border border-slate-200/80 bg-white p-7 shadow-xl shadow-brand-900/5 ring-1 ring-black/[0.03] sm:p-8" @submit.prevent="step === 1 ? next() : submit()">
                 <div>
                     <h2 class="page-title">Welcome back</h2>
@@ -91,11 +49,8 @@ const submit = () => form.post('/login', { onFinish: () => form.reset('password'
 
                 <button class="btn-primary w-full" :disabled="form.processing">{{ step === 1 ? 'Continue' : 'Sign in' }}</button>
                 <p class="text-center text-xs text-slate-400">Can't sign in? Your company administrator adds people to your workspace.</p>
+                <p v-if="protectedByRecaptcha" class="text-center text-[11px] leading-relaxed text-slate-400" data-testid="recaptcha-note">Protected by reCAPTCHA. Google's <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" class="underline">Privacy Policy</a> and <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer" class="underline">Terms of Service</a> apply.</p>
+                <p v-if="page.props.app.signup && page.props.app.signup !== 'closed'" class="border-t border-slate-100 pt-4 text-center text-sm text-slate-600" data-testid="signup-link">New here? <Link href="/signup" class="font-medium text-brand-700 hover:underline">Create an account</Link></p>
             </form>
-            <ul class="relative grid w-full max-w-sm gap-3 text-xs text-slate-500 sm:grid-cols-3 sm:gap-2" data-testid="signin-points">
-                <li v-for="[icon, text] in points" :key="text" class="flex items-center gap-2 sm:flex-col sm:text-center"><span class="grid size-8 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-600"><component :is="icon" class="size-4" /></span>{{ text }}</li>
-            </ul>
-            <WhatsNew class="relative" :items="page.props.signInUpdates ?? []" />
-        </div>
-    </div>
+    </AuthShell>
 </template>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AccountUser;
 use App\Models\Tenant;
 use App\Services\Tenancy\CompanySession;
+use App\Services\Tenancy\Recaptcha;
 use App\Support\LoginThrottle;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,10 +24,15 @@ class WebAuthController extends Controller
         return Inertia::render('Auth/Login');
     }
 
-    public function store(Request $request, CompanySession $companies): RedirectResponse
+    public function store(Request $request, CompanySession $companies, Recaptcha $recaptcha): RedirectResponse
     {
         $credentials = $request->validate(['email' => ['required', 'email'], 'password' => ['required']]);
         LoginThrottle::ensureNotLocked($request);
+
+        // bot protection (when the platform has switched it on): a failed check is not a wrong password, so it never counts toward a lockout
+        if (! $recaptcha->passes($request, 'login')) {
+            return back()->withErrors(['email' => 'We could not confirm that you are a person. Please try again.'])->onlyInput('email');
+        }
 
         $identity = AccountUser::where('email', mb_strtolower(trim($credentials['email'])))->first();
         if (! $identity || ! $identity->isActive() || ! Hash::check($credentials['password'], $identity->password)) {

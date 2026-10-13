@@ -67,6 +67,8 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(WorkerStopping::class, fn (WorkerStopping $e) => $this->app->make(JobMetrics::class)->stopping($e));
 
         RateLimiter::for('login', fn (Request $r) => Limit::perMinute(5)->by(strtolower((string) $r->input('email')).'|'.$r->ip()));
+        RateLimiter::for('signup', fn (Request $r) => Limit::perHour(10)->by($r->ip()));
+        RateLimiter::for('signup-complete', fn (Request $r) => Limit::perMinute(10)->by($r->ip().'|'.$r->route('token')));
         RateLimiter::for('public-forms', fn (Request $r) => Limit::perMinute(20)->by($r->ip()));
         // a user id is only unique inside one company: key by company too, or person #1 of every company shares one bucket
         RateLimiter::for('api', fn (Request $r) => Limit::perMinute((int) env('API_RATE_PER_MINUTE', 300))->by(tenant('id').'|'.($r->user()?->id ?: $r->ip())));

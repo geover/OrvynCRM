@@ -4,11 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\AccountUser;
 use App\Models\PlatformSetting;
+use App\Models\Signup;
 use App\Models\Tenant;
 use App\Services\Tenancy\CallSettings;
 use App\Services\Tenancy\CompanyServices;
+use App\Services\Tenancy\InactiveCompanies;
 use App\Services\Tenancy\MailSettings;
 use App\Services\Tenancy\Pricing;
+use App\Services\Tenancy\Recaptcha;
+use App\Services\Tenancy\SignupSettings;
 use App\Services\Tenancy\SmsSettings;
 use App\Support\Tenancy\Company;
 use Illuminate\Http\RedirectResponse;
@@ -35,10 +39,14 @@ class PlatformSettingsController extends Controller
             'pricing' => $pricing->current(),
             'sms' => ['enabled' => $sms->current()['enabled'], 'ready' => $sms->account() !== null, 'from' => $sms->current()['messaging_service_sid'] ? 'Messaging service' : $sms->current()['from_number']],
             'calls' => $calls->current(),
+            'inactivity' => ['enabled' => app(InactiveCompanies::class)->enabled(), 'days' => app(InactiveCompanies::class)->days(), 'flagged' => Tenant::active()->whereNotNull('inactive_since')->count()],
+            'recaptcha' => ['active' => app(Recaptcha::class)->active(), 'enabled' => app(Recaptcha::class)->current()['enabled']],
+            'signup' => ['mode' => app(SignupSettings::class)->mode(), 'waiting' => Signup::where('status', Signup::PENDING_APPROVAL)->count()],
             'branding' => collect(Company::platformBranding())->only(['name', 'color', 'theme', 'dark_style'])->all() + ['custom_logo' => ! Company::platformBranding()['logo_is_default'], 'custom_background' => (bool) Company::platformBranding()['background_url']],
             'notifications' => [
                 'administrators' => $admins->count(), 'requests' => $admins->where('notify_requests', true)->count(),
                 'messages' => $admins->where('notify_messages', true)->count(), 'automation_failures' => $admins->where('notify_automation_failures', true)->count(),
+                'inactive_companies' => $admins->where('notify_inactive_companies', true)->count(),
             ],
             'mail' => ['custom' => $custom['enabled'] && $custom['host'] !== '', 'host' => $custom['enabled'] && $custom['host'] !== '' ? $custom['host'] : $mail->envDefaults()['host'], 'from' => $custom['from_address'] ?: $mail->envDefaults()['from_address']],
             'services' => [
@@ -56,7 +64,7 @@ class PlatformSettingsController extends Controller
             'administrators' => AccountUser::where('is_platform_admin', true)->orderBy('name')->get()->map(fn (AccountUser $a) => [
                 'id' => $a->id, 'name' => $a->name, 'email' => $a->email, 'status' => $a->status, 'is_me' => $a->is($me),
                 'notify_requests' => (bool) $a->notify_requests, 'notify_messages' => (bool) $a->notify_messages,
-                'notify_automation_failures' => (bool) $a->notify_automation_failures, 'notify_email' => $a->notify_email,
+                'notify_automation_failures' => (bool) $a->notify_automation_failures, 'notify_inactive_companies' => (bool) $a->notify_inactive_companies, 'notify_email' => $a->notify_email,
             ])->values(),
         ]);
     }
@@ -74,6 +82,7 @@ class PlatformSettingsController extends Controller
             'administrators.*.notify_requests' => ['required', 'boolean'],
             'administrators.*.notify_messages' => ['required', 'boolean'],
             'administrators.*.notify_automation_failures' => ['sometimes', 'boolean'],
+            'administrators.*.notify_inactive_companies' => ['sometimes', 'boolean'],
             'administrators.*.notify_email' => ['nullable', 'email', 'max:255'],
         ], ['administrators.*.notify_email.email' => 'Enter a valid e-mail address, or leave it empty to use the administrator\'s own address.']);
 
@@ -81,6 +90,7 @@ class PlatformSettingsController extends Controller
             AccountUser::where('is_platform_admin', true)->whereKey($row['id'])->update([
                 'notify_requests' => $row['notify_requests'], 'notify_messages' => $row['notify_messages'],
                 'notify_automation_failures' => $row['notify_automation_failures'] ?? false,
+                'notify_inactive_companies' => $row['notify_inactive_companies'] ?? false,
                 'notify_email' => trim((string) ($row['notify_email'] ?? '')) ?: null,
             ]);
         }

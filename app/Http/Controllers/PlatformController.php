@@ -7,6 +7,7 @@ use App\Models\SeatRequest;
 use App\Models\Tenant;
 use App\Models\TenantStat;
 use App\Services\Tenancy\CompanySession;
+use App\Services\Tenancy\InactiveCompanies;
 use App\Services\Tenancy\Seats;
 use App\Services\Tenancy\TenantProvisioner;
 use Illuminate\Http\RedirectResponse;
@@ -21,7 +22,7 @@ use Inertia\Response;
 /** The platform area: create, suspend and open companies. Only platform administrators reach it (EnsurePlatformAdmin). */
 class PlatformController extends Controller
 {
-    public function index(Request $request, CompanySession $session, Seats $seats): Response
+    public function index(Request $request, CompanySession $session, Seats $seats, InactiveCompanies $inactive): Response
     {
         $session->leaveCurrentCompany($request);        // arriving from "support mode": close the company we were looking at
         $stats = TenantStat::pluck('users', 'tenant_id');
@@ -35,9 +36,13 @@ class PlatformController extends Controller
                 'users' => (int) ($stats[$t->getTenantKey()] ?? $seats->usedFor($t)), 'max_users' => (int) $t->max_users,
                 'max_data_objects' => (int) $t->max_data_objects, 'max_automations_per_object' => (int) $t->max_automations_per_object,
                 'pending_requests' => (int) ($pending[$t->getTenantKey()] ?? 0),
+                // when somebody last used it, and whether the daily check has flagged it as abandoned
+                'last_active_at' => ($t->last_active_at ?? $t->created_at)?->toIso8601String(), 'idle_days' => $t->isActive() ? $inactive->daysIdle($t) : null,
+                'inactive' => $t->isActive() && $t->inactive_since !== null, 'status_note' => $t->status_note, 'closed_at' => $t->closed_at?->toIso8601String(),
                 ...$this->headlineCounts($t, $overview[$t->getTenantKey()] ?? null),
             ])->values(),
             'email' => $request->attributes->get('platform_identity')->email,
+            'inactivity' => ['enabled' => $inactive->enabled(), 'days' => $inactive->days()],
         ]);
     }
 
@@ -97,13 +102,21 @@ class PlatformController extends Controller
     public function update(Request $request, Tenant $tenant): RedirectResponse
     {
         $d = $request->validate([
-            'status' => ['sometimes', Rule::in(['active', 'suspended'])],
+            'status' => ['sometimes', Rule::in(['active', 'suspended', 'closed'])],
             'name' => ['sometimes', 'string', 'max:120'],
             'plan' => ['sometimes', 'nullable', 'string', 'max:40'],
             'max_users' => ['sometimes', 'integer', 'min:1', 'max:100000'],
             'max_data_objects' => ['sometimes', 'integer', 'min:1', 'max:100000'],
             'max_automations_per_object' => ['sometimes', 'integer', 'min:1', 'max:100000'],
         ]);
+        // brought back (or never left): a fresh clock, so the daily check does not flag it again at once
+        if (($d['status'] ?? null) === 'active') {
+            $d += ['last_active_at' => now(), 'inactive_since' => null, 'closed_at' => null, 'status_note' => null];
+        } elseif (($d['status'] ?? null) === 'closed') {
+            $d += ['closed_at' => now(), 'inactive_since' => null];
+        } elseif (($d['status'] ?? null) === 'suspended') {
+            $d += ['inactive_since' => null];
+        }
         $tenant->update($d);
 
         return back()->with('success', 'Saved.');

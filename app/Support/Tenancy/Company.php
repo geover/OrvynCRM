@@ -5,6 +5,8 @@ namespace App\Support\Tenancy;
 use App\Models\PlatformSetting;
 use App\Models\Setting;
 use App\Models\Tenant;
+use App\Services\Tenancy\Recaptcha;
+use App\Services\Tenancy\SignupSettings;
 use Illuminate\Http\Request;
 
 /** Where the current request/job is running: inside one company's database, or only in the central one. */
@@ -56,6 +58,10 @@ final class Company
         return [
             'name' => PlatformSetting::get('login.name') ?: config('app.name'),
             'footer' => self::signInFooter(),
+            // closed | open | approval: whether the sign-in page offers "Create an account"
+            'signup' => app(SignupSettings::class)->mode(),
+            // the reCAPTCHA v3 site key (public by design) while bot protection is on, else null
+            'recaptcha_site_key' => app(Recaptcha::class)->siteKey(),
             'tagline' => PlatformSetting::get('login.tagline', 'Build. Connect. Automate.'),      // '' (cleared) hides it
             'color' => PlatformSetting::get('login.color') ?: '#4f46e5',
             'sidebar_color' => null,
@@ -107,6 +113,6 @@ final class Company
     /** Pages everyone sees before (or between) companies: they always carry the platform's look. */
     public static function isSignInPage(Request $request): bool
     {
-        return $request->is('login', 'forgot-password', 'reset-password', 'reset-password/*', 'choose-company');
+        return $request->is('login', 'forgot-password', 'reset-password', 'reset-password/*', 'choose-company', 'signup', 'signup/*');
     }
 }
