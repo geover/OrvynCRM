@@ -9,6 +9,7 @@ use App\Models\EmailSuppression;
 use App\Models\EmailTemplate;
 use App\Models\Setting;
 use App\Models\SmsMessage;
+use App\Services\Tenancy\MailSettings;
 
 /** Builds queued email/SMS rows from templates + merge fields. Delivery is done by queue jobs. */
 class MessageComposer
@@ -27,8 +28,8 @@ class MessageComposer
             'data_object_record_id' => $record?->id,
             'subject' => $this->merge($spec['subject'] ?? $template?->subject ?? '(no subject)', $merge),
             'html' => $this->merge($spec['html'] ?? $template?->html ?? '', $merge),
-            'from_email' => $spec['from_email'] ?? Setting::get('mail.from_email', config('mail.from.address')),
-            'from_name' => $spec['from_name'] ?? Setting::get('mail.from_name', config('mail.from.name')),
+            'from_email' => $spec['from_email'] ?? Setting::get('mail.from_email', app(MailSettings::class)->from()['address']),
+            'from_name' => $spec['from_name'] ?? Setting::get('mail.from_name', app(MailSettings::class)->from()['name']),
             'to' => [['email' => $contact->email, 'name' => $contact->full_name]],
             'scheduled_at' => isset($spec['delay_minutes']) ? now()->addMinutes((int) $spec['delay_minutes']) : null,
             'status' => 'queued',

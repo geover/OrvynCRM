@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" href="{{ \App\Support\Tenancy\Company::pageFaviconUrl(request()) }}">
     <title inertia>{{ config('app.name', 'OrvynCRM') }}</title>
-    @php($signInTheme = \App\Support\Tenancy\Company::isSignInPage(request()) ? \App\Support\Tenancy\Company::platformBranding()['theme'] : null)
-    <script>try{var t={!! json_encode($signInTheme) !!}||JSON.parse(localStorage.getItem(location.pathname.indexOf('/platform')===0?'orvyn:platform-theme':'orvyn:theme')||'"system"');if(t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark');var s={!! json_encode($signInTheme) !!}?'navy':JSON.parse(localStorage.getItem(location.pathname.indexOf('/platform')===0?'orvyn:platform-dark-style':'orvyn:dark-style')||'"navy"');document.documentElement.dataset.darkStyle=s}}catch(e){}</script>
+    @php($signIn = \App\Support\Tenancy\Company::isSignInPage(request()) ? \App\Support\Tenancy\Company::platformBranding() : null)
+    @php($signInTheme = $signIn['theme'] ?? null)
+    @php($signInDarkStyle = $signIn['dark_style'] ?? null)
+    <script>try{var t={!! json_encode($signInTheme) !!}||JSON.parse(localStorage.getItem(location.pathname.indexOf('/platform')===0?'orvyn:platform-theme':'orvyn:theme')||'"system"');if(t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark');var s={!! json_encode($signInDarkStyle) !!}||JSON.parse(localStorage.getItem(location.pathname.indexOf('/platform')===0?'orvyn:platform-dark-style':'orvyn:dark-style')||'"navy"');document.documentElement.dataset.darkStyle=s}}catch(e){}</script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @inertiaHead
 </head>

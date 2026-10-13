@@ -15,6 +15,7 @@ use App\Http\Controllers\PlatformCompanyOverviewController;
 use App\Http\Controllers\PlatformCompanyUsersController;
 use App\Http\Controllers\PlatformController;
 use App\Http\Controllers\PlatformDashboardController;
+use App\Http\Controllers\PlatformIntegrationController;
 use App\Http\Controllers\PlatformMessageController;
 use App\Http\Controllers\PlatformObjectLimitController;
 use App\Http\Controllers\PlatformPricingController;
@@ -89,8 +90,20 @@ Route::middleware('platform')->prefix('platform')->group(function () {
     Route::get('settings/notifications', [PlatformSettingsController::class, 'notificationsPage']);
     Route::patch('settings/notifications', [PlatformSettingsController::class, 'notifications']);
     Route::get('settings/mail', [PlatformSettingsController::class, 'mailPage']);
+    Route::get('settings/sms', [PlatformIntegrationController::class, 'sms']);
+    Route::patch('settings/sms', [PlatformIntegrationController::class, 'saveSms']);
+    Route::post('settings/sms/test', [PlatformIntegrationController::class, 'testSms'])->middleware('throttle:10,1');
+    Route::get('settings/calls', [PlatformIntegrationController::class, 'calls']);
+    Route::patch('settings/calls', [PlatformIntegrationController::class, 'saveCalls']);
+    Route::patch('settings/calls/offered', [PlatformIntegrationController::class, 'saveOfferedNumbers']);
+    Route::post('settings/calls/numbers', [PlatformIntegrationController::class, 'verifyNumber'])->middleware('throttle:10,1');
+    Route::get('settings/calls/numbers/status', [PlatformIntegrationController::class, 'numberStatus'])->middleware('throttle:60,1');
+    Route::patch('settings/calls/numbers/{sid}', [PlatformIntegrationController::class, 'renameNumber']);
+    Route::delete('settings/calls/numbers/{sid}', [PlatformIntegrationController::class, 'removeNumber']);
     Route::patch('settings/mail', [PlatformSettingsController::class, 'mail']);
     Route::post('settings/mail/test', [PlatformSettingsController::class, 'test'])->middleware('throttle:10,1');
+    Route::patch('settings/mail/sendgrid', [PlatformSettingsController::class, 'sendgrid']);
+    Route::post('settings/mail/sendgrid/rotate', [PlatformSettingsController::class, 'rotateSendgrid'])->middleware('throttle:10,1');
 
     Route::get('services', [PlatformServicesController::class, 'index']);
     Route::patch('services', [PlatformServicesController::class, 'update']);
@@ -99,6 +112,9 @@ Route::middleware('platform')->prefix('platform')->group(function () {
     Route::patch('branding', [PlatformBrandingController::class, 'update']);
     Route::post('branding/logo', [PlatformBrandingController::class, 'uploadLogo']);
     Route::delete('branding/logo', [PlatformBrandingController::class, 'destroyLogo']);
+    Route::post('branding/logo-light', [PlatformBrandingController::class, 'uploadLogoLight']);
+    Route::delete('branding/logo-light', [PlatformBrandingController::class, 'destroyLogoLight']);
+    Route::patch('branding/logo-style', [PlatformBrandingController::class, 'logoStyle']);
     Route::post('branding/favicon', [PlatformBrandingController::class, 'uploadFavicon']);
     Route::delete('branding/favicon', [PlatformBrandingController::class, 'destroyFavicon']);
     Route::post('branding/background', [PlatformBrandingController::class, 'uploadBackground']);
@@ -123,6 +139,7 @@ Route::middleware('guest')->group(function () {
 // Signing out must work at every stage: also from the company chooser, where the person is signed in but has no company profile yet
 Route::post('/logout', [WebAuthController::class, 'destroy']);
 Route::get('/brand/logo', [PlatformBrandingController::class, 'logo']);
+Route::get('/brand/logo-light', [PlatformBrandingController::class, 'logoLight']);
 Route::get('/brand/background', [PlatformBrandingController::class, 'background']);
 Route::get('/brand/favicon', [PlatformBrandingController::class, 'favicon']);        // the sign-in logo: public, platform-owned
 
@@ -163,7 +180,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             'app-details' => 'AppDetails', 'platform-messages' => 'PlatformMessages', 'look-and-feel' => 'LookAndFeel', 'support-emails' => 'SupportEmails', 'email-domains' => 'EmailDomains',
             'custom-tabs' => 'CustomTabs', 'contact-relationships' => 'ContactRelationships', 'users' => 'Users', 'queries' => 'Queries',
             'blast-progress' => 'BlastProgress', 'data-tools' => 'DataTools', 'workflow-boards' => 'WorkflowBoards', 'scheduler' => 'Scheduler',
-            'forms' => 'Forms', 'price-lists' => 'PriceLists', 'phone' => 'Phone', 'tours' => 'Tours', 'email-templates' => 'EmailTemplates', 'webhooks' => 'Webhooks',
+            'forms' => 'Forms', 'price-lists' => 'PriceLists', 'phone' => 'Phone', 'keap' => 'Keap', 'twilio' => 'Twilio', 'tours' => 'Tours', 'email-templates' => 'EmailTemplates', 'webhooks' => 'Webhooks',
         ] as $slug => $component) {
             Route::get("/admin/$slug", fn () => Inertia::render("Admin/$component"))->name("admin.$slug");
         }

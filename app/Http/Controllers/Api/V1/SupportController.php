@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Jobs\SendEmailMessage;
 use App\Models\EmailMessage;
 use App\Models\Setting;
+use App\Services\Tenancy\MailSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -25,8 +26,8 @@ class SupportController extends Controller
 
         foreach ($to as $address) {
             $m = EmailMessage::create([
-                'user_id' => $u->id, 'subject' => '[Support] '.$d['subject'], 'html' => $body, 'from_email' => config('mail.from.address'),
-                'from_name' => config('mail.from.name'), 'to' => [['email' => $address]], 'cc' => [['email' => $u->email]],
+                'user_id' => $u->id, 'subject' => '[Support] '.$d['subject'], 'html' => $body, 'from_email' => app(MailSettings::class)->from()['address'],
+                'from_name' => app(MailSettings::class)->from()['name'], 'to' => [['email' => $address]], 'cc' => [['email' => $u->email]],
             ]);
             SendEmailMessage::dispatch($m->id);
         }

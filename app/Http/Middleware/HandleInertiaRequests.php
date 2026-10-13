@@ -31,6 +31,7 @@ class HandleInertiaRequests extends Middleware
         $brand = Cache::remember('branding', 300, fn () => SettingsController::branding());
         if ($brand['logo_is_default'] ?? true) {
             $brand['logo_url'] = Company::platformBranding()['logo_url'];
+            $brand['logo_light_url'] = Company::platformBranding()['logo_light_url'];
         }
 
         if ($brand['favicon_is_default'] ?? true) {

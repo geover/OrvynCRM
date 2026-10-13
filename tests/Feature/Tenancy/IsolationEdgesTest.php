@@ -90,4 +90,18 @@ class IsolationEdgesTest extends TenantTestCase
         $this->assertNull(session('tenant_id'));
         $this->withCookie(CompanySession::COOKIE, "x' OR 1=1 --")->get('/login')->assertOk();
     }
+
+    public function test_a_leftover_remember_me_cookie_without_a_company_is_dropped_not_looked_up_in_the_central_database(): void
+    {
+        $this->company('Alpha', 'a@alpha.test');
+        $this->flushSession();
+        $this->disableCookieEncryption();                                               // hand-made cookies, as an old browser would send them
+        $recaller = auth()->guard('web')->getRecallerName();
+
+        // no company cookie: the company cannot be found, and the guard must not query company users centrally
+        $response = $this->withUnencryptedCookie($recaller, '1|a-token-from-before|a-hash')->get('/contacts');
+
+        $response->assertRedirect('/login');
+        $response->assertCookieExpired($recaller);                                      // the browser is told to delete it
+    }
 }

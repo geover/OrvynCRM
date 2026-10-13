@@ -8,6 +8,7 @@ use App\Services\Tenancy\CompanySession;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -97,12 +98,21 @@ class ResolveTenant
     }
 
     /**
-     * No company is open, so nothing in this request may look up a company user. A session can still carry a sign-in
-     * from before (the company was deleted, the cookie is gone): forget it instead of letting the session guard query
-     * the central database, where company users do not exist.
+     * No company is open, so nothing in this request may look up a company user. A session or a remember-me cookie can
+     * still carry a sign-in from before (the company was deleted, the company cookie is gone): forget it instead of
+     * letting the session guard query the central database, where company users do not exist.
      */
     private function dropStaleSignIn(Request $request): void
     {
         $request->session()->forget([Auth::guard('web')->getName(), 'tenant_id']);
+
+        // The same for a "remember me" cookie: the guard would look its user up in the central database, which has no
+        // company users (a cookie left from before, or one whose company cookie is gone). Ignore it now and have the
+        // browser delete it.
+        $recaller = Auth::guard('web')->getRecallerName();
+        if ($request->cookies->has($recaller)) {
+            $request->cookies->remove($recaller);
+            Cookie::queue(Cookie::forget($recaller));
+        }
     }
 }

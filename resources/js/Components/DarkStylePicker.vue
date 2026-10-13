@@ -6,10 +6,10 @@ import { DARK_STYLES } from '@/lib/theme';
 // The look of the dark theme: a collapsible row of colour swatches, shown under a Theme switch whenever dark can apply.
 // Closed it shows only the current style; v-model is the style id ('navy', 'graphite', ...). Each area (company app,
 // platform) keeps its own choice.
-const props = defineProps({ modelValue: { type: String, required: true } });
+const props = defineProps({ modelValue: { type: String, required: true }, startOpen: Boolean });
 defineEmits(['update:modelValue']);
 
-const open = ref(false);
+const open = ref(props.startOpen);
 const current = computed(() => DARK_STYLES.find((s) => s.id === props.modelValue) ?? DARK_STYLES[0]);
 </script>
 

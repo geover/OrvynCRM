@@ -130,6 +130,10 @@ A company has a maximum number of **active users**, **data objects**, and **auto
 
 `PlatformNotifier` decides who among the platform administrators is e-mailed (requests, messages, failed automations; each chooses a topic and an address) and sends. `FailureNotifier` e-mails when an automation run gives up or an action fails, at most once per automation per hour. `MailSettings` lets the platform override the `.env` mail server; it is applied lazily, the first time a mailer is built.
 
+### Integrations: e-mail, SMS, calls
+
+The platform's settings for what every company can use live under Platform -> Settings -> Integrations. **E-mail:** `MailSettings` (the `.env` server or an override). **SMS:** `SmsSettings` holds the platform's Twilio account (token encrypted); `TwilioClient::account()` picks the company's own `integrations` row if it has one, otherwise the platform's, and passes the company's own callback URL so delivery reports reach the right message. **Calls:** `CallSettings` (a default caller ID, and whether companies may set caller IDs; the company API and Phone page follow it).
+
 ### Messaging and "live" pages
 
 Company administrators and platform administrators talk in threads. The pages stay current by **polling**, not websockets: `ThreadPoll` computes a cheap fingerprint of what a viewer can see, a page asks every few seconds with the last fingerprint it saw, and the server answers "unchanged" in one query or returns the new list and messages. On the client, `lib/live.js` pauses polling while the tab is hidden, backs off on errors, stops when the session ends, and drops an answer that was overtaken by something the person did (`useEpoch`).

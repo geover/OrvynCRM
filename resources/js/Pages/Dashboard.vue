@@ -162,7 +162,7 @@ const cell = (v) => (Array.isArray(v) ? v.join(', ') : v);
             <div><label class="label">Title</label><input v-model="draft.name" class="input" required /></div>
             <div><label class="label">Saved query</label>
                 <select v-model="draft.saved_query_id" class="input" required><option v-for="q in queries" :key="q.id" :value="q.id">{{ q.name }}</option></select>
-                <p v-if="!queries.length" class="mt-1 text-xs text-slate-400">No saved queries yet — build one in Admin settings → Query builder.</p></div>
+                <p v-if="!queries.length" class="mt-1 text-xs text-slate-400">No saved queries yet — build one in Admin settings → <Link v-if="isAdmin" href="/admin/queries" class="font-medium text-brand-700 underline hover:text-brand-800">Query builder</Link><template v-else>Query builder</template>.</p></div>
             <label v-if="isAdmin && !draft.id" class="flex items-center gap-2 text-sm"><input v-model="draft.shared" type="checkbox" class="rounded" /> Show to everyone</label>
         </form>
         <template #footer><button class="btn-ghost" @click="modal = null">Cancel</button><button class="btn-primary" form="wf">Save</button></template>

@@ -26,6 +26,14 @@ class CompanyServices
         'housekeeping' => ['label' => 'History clean-up', 'text' => 'Prunes old activity history.', 'schedule' => 'weekly'],
     ];
 
+    /**
+     * Services the platform can only switch on after the company has provided its details (and that stay off until then),
+     * with what the platform sees while it waits.
+     */
+    public const NEEDS_DETAILS = [
+        'keap_sync' => 'Waiting for the company to save its Keap details (Admin settings, Keap).',
+    ];
+
     /** Workers live for an hour: a switch must reach them within seconds, not at their next restart. */
     private const FRESH_FOR = 5;
 
@@ -37,7 +45,31 @@ class CompanyServices
     {
         $id = $this->idOf($company);
 
-        return $id === null || ($this->rows($id)[$service]->enabled ?? true);
+        if ($id === null) {
+            return true;
+        }
+        $row = $this->rows($id)[$service] ?? null;
+
+        // a service that needs the company's details is off until they are there and the platform has switched it on
+        return isset(self::NEEDS_DETAILS[$service]) ? (bool) ($row?->ready && $row->enabled) : (bool) ($row->enabled ?? true);
+    }
+
+    /** Can the platform switch this service on for the company? False while it waits for the company's details. */
+    public function ready(string $service, Tenant|string|null $company = null): bool
+    {
+        $id = $this->idOf($company);
+
+        return ! isset(self::NEEDS_DETAILS[$service]) || $id === null || (bool) ($this->rows($id)[$service]->ready ?? false);
+    }
+
+    /** The company has provided (or removed) the details a service needs. Removing them switches the service off. */
+    public function setReady(Tenant|string $company, string $service, bool $ready): void
+    {
+        abort_unless(isset(self::NEEDS_DETAILS[$service]), 422, 'That service does not need details.');
+        $id = $this->idOf($company);
+        $row = TenantService::firstOrCreate(['tenant_id' => $id, 'service' => $service], ['enabled' => false]);
+        $row->update($ready ? ['ready' => true] : ['ready' => false, 'enabled' => false, 'changed_at' => now()]);
+        unset($this->loaded[$id]);
     }
 
     /** Services that can also be switched per data object (their work belongs to one). */
@@ -107,17 +139,20 @@ class CompanyServices
     {
         abort_unless(isset(self::CATALOG[$service]), 422, 'Unknown service.');
         $id = $this->idOf($company);
+        abort_if($on && ! $this->ready($service, $id), 422, self::NEEDS_DETAILS[$service]);
         TenantService::updateOrCreate(['tenant_id' => $id, 'service' => $service], ['enabled' => $on, 'changed_at' => now()]);
         unset($this->loaded[$id]);
     }
 
-    /** @return array<string, array{enabled: bool, last_run_at: ?string, last_count: int}> */
+    /** @return array<string, array{enabled: bool, ready: bool, note: ?string, last_run_at: ?string, last_count: int}> */
     public function states(Tenant|string $company): array
     {
         $rows = $this->rows($this->idOf($company));
 
         return collect(self::CATALOG)->map(fn ($meta, $key) => [
-            'enabled' => $rows[$key]->enabled ?? true,
+            'enabled' => $this->enabled($key, $company),
+            'ready' => $this->ready($key, $company),
+            'note' => ! $this->ready($key, $company) ? self::NEEDS_DETAILS[$key] : null,
             'last_run_at' => ($at = $rows[$key]->last_run_at ?? null) instanceof CarbonInterface ? $at->toIso8601String() : null,
             'last_count' => $rows[$key]->last_count ?? 0,
         ])->all();

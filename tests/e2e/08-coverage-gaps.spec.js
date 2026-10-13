@@ -91,7 +91,7 @@ test.describe('admin hub', () => {
         const hrefs = await page.locator('main a.card').evaluateAll((els) => els.map((e) => e.getAttribute('href')));
         expect(hrefs.sort()).toEqual(['/admin/app-details', '/admin/look-and-feel', '/admin/users', '/admin/phone', '/objects', '/admin/contact-relationships', '/admin/queries', '/admin/data-tools',
             '/admin/custom-tabs', '/automations', '/admin/webhooks', '/admin/email-templates', '/admin/forms', '/admin/blast-progress', '/admin/support-emails', '/admin/email-domains',
-            '/admin/workflow-boards', '/admin/scheduler', '/admin/price-lists', '/admin/tours', '/admin/platform-messages'].sort());
+            '/admin/workflow-boards', '/admin/scheduler', '/admin/price-lists', '/admin/tours', '/admin/platform-messages', '/admin/keap', '/admin/twilio'].sort());
         for (const title of ['General', 'Data', 'Automation & communication', 'Planning']) await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
 
         // really click through a card of each group, and come back with the breadcrumb

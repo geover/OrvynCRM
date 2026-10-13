@@ -47,6 +47,10 @@ class SendEmailMessage implements ShouldQueue
         try {
             Mail::html($message->html.$pixel, function ($mail) use ($message) {
                 $mail->from($message->from_email, $message->from_name)->subject($message->subject);
+                // SendGrid reports back with these: which message, and which company it belongs to (see InboundWebhookController)
+                if (str_contains((string) config('mail.mailers.smtp.host'), 'sendgrid')) {
+                    $mail->getSymfonyMessage()->getHeaders()->addTextHeader('X-SMTPAPI', json_encode(['unique_args' => ['tracker_id' => $message->tracker_id, 'tenant_id' => (string) tenant('id')]]));
+                }
                 foreach ($message->to as $to) {
                     $mail->to($to['email'], $to['name'] ?? null);
                 }

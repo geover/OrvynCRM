@@ -1,15 +1,17 @@
 <script setup>
 import { Link, usePage } from '@inertiajs/vue3';
-import { Activity, CircleDollarSign, LayoutGrid, Mail, Palette, Server } from 'lucide-vue-next';
+import { Activity, CircleDollarSign, LayoutGrid, Mail, MessageSquareText, Palette, PhoneCall, Server } from 'lucide-vue-next';
 
 // The sub-menu of the platform's Settings, in groups. A column on the left of wide screens, a scrolling row of pills on narrow ones.
 const page = usePage();
 const GROUPS = [
     { title: 'General', items: [{ href: '/platform/settings', label: 'Overview', icon: LayoutGrid, exact: true }] },
     { title: 'Appearance', items: [{ href: '/platform/branding', label: 'Sign-in page', icon: Palette }] },
-    { title: 'Communication', items: [
-        { href: '/platform/settings/notifications', label: 'E-mail notifications', icon: Mail },
+    { title: 'Communication', items: [{ href: '/platform/settings/notifications', label: 'E-mail notifications', icon: Mail }] },
+    { title: 'Integrations', items: [
         { href: '/platform/settings/mail', label: 'E-mail server', icon: Server },
+        { href: '/platform/settings/sms', label: 'SMS', icon: MessageSquareText },
+        { href: '/platform/settings/calls', label: 'Calls', icon: PhoneCall },
     ] },
     { title: 'Billing', items: [{ href: '/platform/pricing', label: 'Pricing', icon: CircleDollarSign }] },
     { title: 'System', items: [{ href: '/platform/services', label: 'Background services', icon: Activity }] },

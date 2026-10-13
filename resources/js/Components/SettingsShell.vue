@@ -13,8 +13,9 @@ defineProps({ title: { type: String, required: true }, subtitle: { type: String,
         <h1 class="page-title">{{ title }}</h1>
         <p v-if="subtitle" class="mt-1 max-w-3xl text-sm text-slate-500">{{ subtitle }}</p>
     </div>
-    <div class="grid gap-6 lg:grid-cols-[14rem_minmax(0,1fr)]">
-        <div><SettingsNav /></div>
+    <!-- minmax(0, 1fr) on narrow screens too: otherwise the row of menu pills pushes the whole page wider than the screen -->
+    <div class="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[14rem_minmax(0,1fr)]">
+        <div class="min-w-0"><SettingsNav /></div>
         <div class="min-w-0 space-y-6" data-testid="settings-content"><slot /></div>
     </div>
 </template>

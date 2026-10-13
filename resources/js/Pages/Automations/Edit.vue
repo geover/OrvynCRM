@@ -1,12 +1,14 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { router } from '@inertiajs/vue3';
-import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-vue-next';
+import { ArrowDown, ArrowUp, Plus, Trash2, TriangleAlert } from 'lucide-vue-next';
 import AdminPage from '@/Components/AdminPage.vue';
 import FilterBuilder from '@/Components/FilterBuilder.vue';
 import { api } from '@/lib/api';
 import { run } from '@/lib/ui';
 
+// Can e-mails and texts leave the system? The platform's mail server, a Twilio account and the sending switch decide it.
+const delivery = ref({ email: { ready: true }, sms: { ready: true } });
 const props = defineProps({ automationId: { type: Number, default: null } });
 
 const ACTIONS = [
@@ -24,6 +26,7 @@ const saving = ref(false);
 
 const ready = ref(false);
 onMounted(async () => {
+    api.get('/messages/readiness').then((r) => { delivery.value = r.data; }).catch(() => {});
     [objects.value, templates.value, users.value, hooks.value, merge.value] = await Promise.all([
         api.get('/data-objects').then((r) => r.data), api.get('/email-templates', { light: 1 }).then((r) => r.data), api.get('/users').then((r) => r.data),
         api.get('/webhooks').then((r) => r.data), api.get('/email-templates/merge-fields').then((r) => r.data),
@@ -62,6 +65,10 @@ async function save() {
     <AdminPage :title="automationId ? 'Edit automation' : 'New automation'" :crumbs="[{ label: 'Automation', href: '/automations' }]">
         <template #actions><button class="btn-primary" :disabled="saving || !ready || !f.name || !actions.length" @click="save">{{ saving ? 'Saving…' : 'Save automation' }}</button></template>
         <div v-if="ready" class="grid max-w-4xl gap-6">
+            <div v-if="!delivery.email.ready || !delivery.sms.ready" class="space-y-2 rounded-lg border border-slate-200 border-l-4 border-l-amber-500 bg-slate-50 px-4 py-3 text-xs text-slate-600" data-testid="delivery-warning" role="status">
+                <p v-if="!delivery.email.ready" class="flex items-start gap-2" data-testid="warn-email"><TriangleAlert class="mt-0.5 size-3.5 shrink-0 text-amber-500" /><span><strong class="font-semibold text-slate-800">"Send email" actions will not run.</strong> {{ delivery.email.reason }}</span></p>
+                <p v-if="!delivery.sms.ready" class="flex items-start gap-2" data-testid="warn-sms"><TriangleAlert class="mt-0.5 size-3.5 shrink-0 text-amber-500" /><span><strong class="font-semibold text-slate-800">"Send SMS" actions will not run.</strong> {{ delivery.sms.reason }}</span></p>
+            </div>
             <section class="card space-y-4 p-5">
                 <h2 class="text-sm font-semibold">Basic information</h2>
                 <div class="grid gap-3 sm:grid-cols-2"><div><label class="label">Name</label><input v-model="f.name" class="input" required /></div>
@@ -78,7 +85,8 @@ async function save() {
             <section class="space-y-3">
                 <div class="flex items-center justify-between"><h2 class="text-sm font-semibold">Then that… <span class="font-normal text-slate-400">(actions, in order)</span></h2></div>
                 <div v-for="(a, i) in actions" :key="a.uid" class="card space-y-3 p-5">
-                    <div class="flex items-center justify-between"><span class="badge !bg-brand-50 !text-brand-700">{{ i + 1 }}. {{ label(a.type) }}</span>
+                    <div class="flex items-center justify-between"><span class="flex items-center gap-2"><span class="badge !bg-brand-50 !text-brand-700">{{ i + 1 }}. {{ label(a.type) }}</span>
+                            <span v-if="(a.type === 'send_email' && !delivery.email.ready) || (a.type === 'send_sms' && !delivery.sms.ready)" class="badge" data-testid="action-not-sent">Will not be sent: not set up</span></span>
                         <div class="flex"><button class="btn-ghost !px-1.5" :disabled="i === 0" @click="move(i, -1)"><ArrowUp class="size-4" /></button><button class="btn-ghost !px-1.5" :disabled="i === actions.length - 1" @click="move(i, 1)"><ArrowDown class="size-4" /></button><button class="btn-ghost !px-1.5 text-red-600" @click="actions.splice(i, 1)"><Trash2 class="size-4" /></button></div></div>
 
                     <div v-if="contactAction(a.type)" class="grid gap-3 sm:grid-cols-2">

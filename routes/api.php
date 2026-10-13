@@ -19,6 +19,7 @@ Route::prefix('v1')->group(function () {
     Route::get('forms/{uuid}', [PublicFormController::class, 'show'])->where('uuid', '[0-9a-fA-F\-]{36}')->middleware(['tenant.public:form', 'throttle:60,1']);
     Route::post('forms/{uuid}/submit', [PublicFormController::class, 'submit'])->where('uuid', '[0-9a-fA-F\-]{36}')->middleware(['tenant.public:form', 'throttle:public-forms']);
     Route::post('hooks/sendgrid', [V1\InboundWebhookController::class, 'sendgrid'])->middleware(['tenant.public:webhook', 'throttle:600,1']);
+    Route::post('hooks/sendgrid/platform', [V1\InboundWebhookController::class, 'sendgridPlatform'])->middleware('throttle:600,1');
     Route::post('hooks/twilio', [V1\InboundWebhookController::class, 'twilio'])->middleware(['tenant.public:webhook', 'throttle:600,1']);
 
     // ---- Authenticated (Sanctum token OR SPA session) ----
@@ -151,6 +152,7 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('webhooks', V1\WebhookEndpointController::class)->except('show');
         Route::post('automations/{automation}/run', [V1\AutomationController::class, 'run']);
         Route::post('support', V1\SupportController::class)->middleware('throttle:10,1');
+        Route::get('messages/readiness', [V1\MessageController::class, 'readiness']);
         Route::get('messages/queue', [V1\MessageController::class, 'queue']);
         Route::get('messages/blast', [V1\MessageController::class, 'blast']);
         Route::get('messages/email/{email}', [V1\MessageController::class, 'showEmail']);
@@ -162,6 +164,21 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('email-templates', V1\EmailTemplateController::class)->parameters(['email-templates' => 'emailTemplate']);
 
         // Admin
+        Route::get('phone', [V1\UserController::class, 'phone']);
+        Route::get('caller-ids', [V1\CallerIdController::class, 'index']);
+        Route::post('caller-ids/verify', [V1\CallerIdController::class, 'verify'])->middleware('throttle:10,1');
+        Route::get('caller-ids/status', [V1\CallerIdController::class, 'status'])->middleware('throttle:60,1');
+        Route::patch('caller-ids/{sid}', [V1\CallerIdController::class, 'update']);
+        Route::delete('caller-ids/{sid}', [V1\CallerIdController::class, 'destroy']);
+        Route::get('integrations/twilio', [V1\TwilioIntegrationController::class, 'show']);
+        Route::put('integrations/twilio', [V1\TwilioIntegrationController::class, 'save']);
+        Route::delete('integrations/twilio', [V1\TwilioIntegrationController::class, 'destroy']);
+        Route::post('integrations/twilio/test', [V1\TwilioIntegrationController::class, 'test'])->middleware('throttle:10,1');
+        Route::get('integrations/keap', [V1\KeapIntegrationController::class, 'show']);
+        Route::put('integrations/keap', [V1\KeapIntegrationController::class, 'save']);
+        Route::delete('integrations/keap', [V1\KeapIntegrationController::class, 'destroy']);
+        Route::post('integrations/keap/test', [V1\KeapIntegrationController::class, 'test'])->middleware('throttle:10,1');
+        Route::post('integrations/keap/sync', [V1\KeapIntegrationController::class, 'sync'])->middleware('throttle:10,1');
         Route::post('users/{user}/reset-password', [V1\UserController::class, 'sendReset']);
         Route::apiResource('users', V1\UserController::class)->except('show');
     });

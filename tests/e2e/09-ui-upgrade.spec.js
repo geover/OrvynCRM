@@ -302,14 +302,14 @@ test.describe('app shell: command palette, collapsible sidebar, admin navigation
 
     test('Admin hub: "Find a setting" filters the cards by title or description; no duplicate breadcrumb', async ({ page }) => {
         await page.goto('/admin');
-        await expect(page.locator('main a.card')).toHaveCount(21);
+        await expect(page.locator('main a.card')).toHaveCount(23);
         await page.getByLabel('Find a setting').fill('caller');                                    // matches a description
         await expect(page.locator('main a.card')).toHaveCount(1);
         await expect(page.locator('main a.card')).toContainText('Phone call');
         await page.getByLabel('Find a setting').fill('nothing-like-this');
         await expect(page.getByText(/No settings match/)).toBeVisible();
         await page.getByLabel('Find a setting').fill('');
-        await expect(page.locator('main a.card')).toHaveCount(21);
+        await expect(page.locator('main a.card')).toHaveCount(23);
         await expect(page.locator('main nav')).toHaveCount(0);                                     // the hub has no breadcrumb above its own title
     });
 

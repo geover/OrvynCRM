@@ -1,11 +1,11 @@
 <script setup>
 import { computed } from 'vue';
-import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import PasswordField from '@/Components/PasswordField.vue';
 import SettingsShell from '@/Components/SettingsShell.vue';
-import { toast } from '@/lib/ui';
+import { confirmDialog, toast } from '@/lib/ui';
 
-const props = defineProps({ mail: Object, env: Object, my_email: String });
+const props = defineProps({ mail: Object, env: Object, my_email: String, sendgrid: Object });
 const page = usePage();
 const done = () => toast(page.props.flash.success ?? 'Saved');
 const failed = (errors, fallback) => toast(Object.values(errors).find((v) => v) ?? fallback, 'error');
@@ -18,6 +18,19 @@ const saveMail = () => mailForm.transform((d) => ({ ...d, port: d.port === '' ? 
 
 const testForm = useForm({ to: props.my_email });
 const sendTest = () => testForm.post('/platform/settings/mail/test', { preserveScroll: true, onSuccess: done, onError: (e) => failed(e, 'The test e-mail could not be sent') });
+// SendGrid is an SMTP relay: the preset fills in what SendGrid always uses, so only the API key is left to paste.
+const useSendGrid = () => {
+    Object.assign(mailForm, { enabled: true, host: 'smtp.sendgrid.net', port: 587, username: 'apikey', scheme: 'smtp' });
+    toast('SendGrid details filled in. Paste your SendGrid API key as the password, add a verified sender address, and save.');
+    document.getElementById('ms-pass')?.focus();
+};
+const copied = () => navigator.clipboard?.writeText(props.sendgrid.url).then(() => toast('Address copied'), () => toast('Select the address and copy it', 'error'));
+const keyForm = useForm({ verification_key: '' });
+const saveKey = () => keyForm.patch('/platform/settings/mail/sendgrid', { preserveScroll: true, onSuccess: () => { keyForm.verification_key = ''; done(); }, onError: (e) => failed(e, 'Could not save the verification key') });
+const regenerate = async () => {
+    if (!(await confirmDialog({ title: 'Create a new event address?', message: 'The current address stops working at once. Paste the new one into SendGrid, or its reports are refused.', confirmLabel: 'Create new address', danger: true }))) return;
+    router.post('/platform/settings/mail/sendgrid/rotate', {}, { preserveScroll: true, onSuccess: done });
+};
 const envSummary = computed(() => `${props.env.host ?? '(none)'}:${props.env.port ?? ''}${props.env.username ? ` as ${props.env.username}` : ''}`);
 </script>
 
@@ -31,7 +44,10 @@ const envSummary = computed(() => `${props.env.host ?? '(none)'}:${props.env.por
             <h2 class="text-sm font-semibold">E-mail server</h2>
             <p class="mt-1 text-xs text-slate-500">By default the application sends e-mail through the server in its <code>.env</code> file ({{ envSummary }}). Switch this on to use another server for every e-mail the application sends, without touching the file.</p>
         </div>
-        <label class="flex items-center gap-2 text-sm font-medium"><input v-model="mailForm.enabled" type="checkbox" class="size-4 accent-brand-600" data-testid="mail-enabled" /> Use this e-mail server instead of the one in .env</label>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+                <label class="flex items-center gap-2 text-sm font-medium"><input v-model="mailForm.enabled" type="checkbox" class="size-4 accent-brand-600" data-testid="mail-enabled" /> Use this e-mail server instead of the one in .env</label>
+                <button type="button" class="btn-outline !py-1 text-xs" data-testid="use-sendgrid" @click="useSendGrid">Use SendGrid</button>
+            </div>
 
         <fieldset :disabled="!mailForm.enabled" :class="!mailForm.enabled && 'opacity-50'" class="space-y-3">
             <div class="grid gap-3 sm:grid-cols-3">
@@ -61,6 +77,26 @@ const envSummary = computed(() => `${props.env.host ?? '(none)'}:${props.env.por
             <button class="btn-outline" :disabled="testForm.processing" data-testid="send-test">{{ testForm.processing ? 'Sending…' : 'Send test' }}</button>
         </div>
     </form>
+
+        <section class="card space-y-4 p-5" aria-labelledby="ms-sendgrid" data-testid="sendgrid-card">
+            <div>
+                <h2 id="ms-sendgrid" class="text-sm font-semibold">SendGrid event reports</h2>
+                <p class="mt-1 text-xs text-slate-500">If the e-mail server above is SendGrid, give SendGrid this address as its Event Webhook (SendGrid: Settings, Mail Settings, Event Webhook). It reports bounces, spam reports, unsubscribes and clicks. Each e-mail carries its company, so the reports reach the right one: companies do not need an address of their own.</p>
+            </div>
+            <div>
+                <label class="label" for="ms-sg-url">Event webhook address</label>
+                <div class="flex gap-2"><input id="ms-sg-url" :value="sendgrid.url" readonly class="input font-mono text-xs" data-testid="sendgrid-url" @focus="$event.target.select()" />
+                    <button type="button" class="btn-outline shrink-0" data-testid="sendgrid-copy" @click="copied">Copy</button>
+                    <button type="button" class="btn-ghost shrink-0 text-red-600" data-testid="sendgrid-rotate" @click="regenerate">Regenerate</button></div>
+            </div>
+            <form class="space-y-2" data-testid="sendgrid-key-form" @submit.prevent="saveKey">
+                <label class="label" for="ms-sg-key">Verification key <span class="normal-case text-slate-400">(optional, recommended)</span></label>
+                <div class="flex flex-wrap gap-2"><input id="ms-sg-key" v-model="keyForm.verification_key" class="input min-w-64 flex-1 font-mono text-xs" autocomplete="off" :placeholder="sendgrid.key_set ? 'Saved. Paste a new key to replace it, or save empty to remove it.' : 'Paste it from SendGrid'" data-testid="sendgrid-key" />
+                    <button class="btn-outline" :disabled="keyForm.processing" data-testid="sendgrid-key-save">Save key</button></div>
+                <p v-if="keyForm.errors.verification_key" class="text-xs text-red-600">{{ keyForm.errors.verification_key }}</p>
+                <p class="text-xs text-slate-400">Turn on "Signed Event Webhook" in SendGrid and paste its verification key here: reports that are not signed by SendGrid are then refused. Without it, the secret in the address is the only check. Status: <strong>{{ sendgrid.key_set ? 'signatures are required' : 'secret only' }}</strong>.</p>
+            </form>
+        </section>
     </div>
 </SettingsShell>
 </template>

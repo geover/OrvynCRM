@@ -16,6 +16,6 @@ class TenantService extends Model
 
     protected function casts(): array
     {
-        return ['enabled' => 'boolean', 'last_run_at' => 'datetime', 'changed_at' => 'datetime'];
+        return ['enabled' => 'boolean', 'ready' => 'boolean', 'last_run_at' => 'datetime', 'changed_at' => 'datetime'];
     }
 }

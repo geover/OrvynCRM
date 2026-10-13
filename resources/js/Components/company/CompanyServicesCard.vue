@@ -10,7 +10,8 @@ import { saved } from '@/lib/visit';
 const props = defineProps({ company: { type: Object, required: true }, services: { type: Object, required: true } });
 
 const set = (service, enabled) => router.patch('/platform/services', { company: props.company.id, service, enabled }, saved());
-const allOff = computed(() => props.services.catalog.every((s) => !props.services.states[s.key].enabled));
+// a service that waits for the company's details cannot be switched on, so it does not count here
+const allOff = computed(() => props.services.catalog.filter((s) => props.services.states[s.key].ready).every((s) => !props.services.states[s.key].enabled));
 const runNow = () => router.post(`/platform/companies/${props.company.id}/services/run`, {}, saved('Run queued'));
 async function pauseAll() {
     if (!(await confirmDialog({ title: `Pause everything for ${props.company.name}?`, message: 'No scheduled work, automations or message sending will run for this company until you resume it. Their data and sign-ins are not affected.', confirmLabel: 'Pause all', danger: true }))) return;
@@ -36,9 +37,10 @@ async function pauseAll() {
                 <div class="min-w-0">
                     <div class="text-sm font-medium">{{ s.label }}</div>
                     <div class="text-xs text-slate-500">{{ s.text }}</div>
+                    <div v-if="services.states[s.key].note" class="mt-0.5 text-xs text-amber-700" data-testid="waiting-details">{{ services.states[s.key].note }}</div>
                     <div class="mt-0.5 text-[11px] text-slate-400" :title="services.states[s.key].last_run_at">{{ s.schedule }} · {{ services.states[s.key].last_run_at ? `ran ${fmtRelative(services.states[s.key].last_run_at)}` : 'not run yet' }}</div>
                 </div>
-                <ToggleSwitch :on="services.states[s.key].enabled" :label="`${s.label} for ${company.name}`" :data-service="s.key" @toggle="set(s.key, !services.states[s.key].enabled)" />
+                <ToggleSwitch :on="services.states[s.key].enabled" :disabled="!services.states[s.key].ready" :title="services.states[s.key].note ?? undefined" :label="`${s.label} for ${company.name}`" :data-service="s.key" @toggle="set(s.key, !services.states[s.key].enabled)" />
             </li>
         </ul>
     </section>

@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Contact;
 use App\Models\User;
+use App\Services\Tenancy\CallSettings;
+use App\Services\Tenancy\CompanyCallerIds;
 use App\Services\Tenancy\CompanyUsers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -32,7 +34,7 @@ class UserController extends Controller
      * Add a user to this company. Without a password an invitation (set-password link) is e-mailed instead.
      * An email that already has an account (another company) is simply added here and keeps its password.
      */
-    public function store(Request $request, CompanyUsers $users): JsonResponse
+    public function store(Request $request, CompanyUsers $users, CallSettings $calls, CompanyCallerIds $callerIds): JsonResponse
     {
         abort_unless($request->user()->isAdmin(), 403);
         $data = $request->validate([
@@ -44,13 +46,18 @@ class UserController extends Controller
             'link_contact' => ['boolean'],
         ]);
 
+        if (isset($data['caller_id'])) {
+            $calls->ensureCompaniesMaySet();
+            $data['caller_id'] = $callerIds->assertUsable($data['caller_id']);
+        }
+
         $contact = ($data['link_contact'] ?? false) ? Contact::where('email', $data['email'])->first() : null;
         $result = $users->add(['contact_id' => $contact?->id] + collect($data)->except(['link_contact'])->all());
 
         return response()->json(['data' => $result['user']->only(['id', 'name', 'email', 'role']), 'invited' => $result['invited'], 'existing_account' => $result['existing']], 201);
     }
 
-    public function update(Request $request, User $user, CompanyUsers $users): JsonResponse
+    public function update(Request $request, User $user, CompanyUsers $users, CallSettings $calls, CompanyCallerIds $callerIds): JsonResponse
     {
         abort_unless($request->user()->isAdmin(), 403);
         abort_if($user->is_platform_support, 404);
@@ -61,6 +68,11 @@ class UserController extends Controller
             'permission_template_id' => ['nullable', 'exists:permission_templates,id'],
             'caller_id' => ['nullable', 'string', 'max:40'],
         ]);
+
+        if (array_key_exists('caller_id', $data) && ($data['caller_id'] ?? null) !== $user->caller_id) {
+            $calls->ensureCompaniesMaySet();
+            $data['caller_id'] = $callerIds->assertUsable($data['caller_id'] ?? null);
+        }
 
         // Never let the last active admin demote or suspend themselves out of the system.
         if ($user->role === 'admin' && (($data['role'] ?? 'admin') !== 'admin' || ($data['status'] ?? 'active') !== 'active')
@@ -74,6 +86,14 @@ class UserController extends Controller
         }
 
         return response()->json(['data' => $user->only(self::ADMIN_COLUMNS)]);
+    }
+
+    /** What the Phone page needs to know: the platform's default caller ID, and whether the company may set its own. */
+    public function phone(Request $request, CallSettings $calls): JsonResponse
+    {
+        abort_unless($request->user()->isAdmin(), 403);
+
+        return response()->json(['data' => ['default_caller_id' => $calls->defaultCallerId(), 'can_set' => $calls->companiesMaySetCallerIds()]]);
     }
 
     public function sendReset(Request $request, User $user): JsonResponse

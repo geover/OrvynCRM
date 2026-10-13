@@ -44,6 +44,9 @@ class PlatformServicesController extends Controller
         $keys = $d['service'] === '*' ? array_keys(CompanyServices::CATALOG) : [$d['service']];
         foreach ($companies as $id) {
             foreach ($keys as $key) {
+                if ($d['enabled'] && $d['service'] === '*' && ! $services->ready($key, $id)) {
+                    continue;                                       // "resume all" leaves a service that waits for the company's details off
+                }
                 $services->set($id, $key, (bool) $d['enabled']);
             }
         }

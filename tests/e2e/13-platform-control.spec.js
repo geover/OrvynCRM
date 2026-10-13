@@ -155,8 +155,7 @@ test.describe('the sign-in page look', () => {
         await page.locator('#pb-name').fill('Orvyn Test Cloud');
         await page.locator('#pb-tagline').fill('Platform tagline');
         await page.locator('#pb-color').fill('#0891b2');
-        await page.getByRole('button', { name: 'Save', exact: true }).click();
-        await expect(toast(page, 'success').first()).toBeVisible();
+        await expect(toast(page, 'success').first()).toBeVisible();                       // saved by itself, a moment after the last change
 
         // everybody sees it, signed out
         const guest = await browser.newContext();
@@ -205,15 +204,14 @@ test.describe('the sign-in page look', () => {
         await page.locator('#pb-name').fill('OrvynCRM');
         await page.locator('#pb-tagline').fill('Build. Connect. Automate.');
         await page.locator('#pb-color').fill('#4f46e5');
-        await page.getByRole('button', { name: 'Save', exact: true }).click();
-        await expect(toast(page, 'success').first()).toBeVisible();
+        await expect(toast(page, 'success').first()).toBeVisible();                       // saved by itself, a moment after the last change
     });
 
     test('the logo: built-in by default for every company; a platform upload replaces it everywhere; removing restores it', async ({ page, browser }) => {
         await signIn(page, 'platform@orvyn.test');
         await expect(page).toHaveURL(/\/platform$/);
         await page.goto('/platform/branding');
-        await expect(page.locator('img[alt="Platform logo"]')).toHaveAttribute('src', /\/brand\/logo\?v=default/);
+        await expect(page.locator('img[alt="Logo for dark backgrounds"]')).toHaveAttribute('src', /\/brand\/logo\?v=default/);
 
         const guest = await browser.newContext();
         const g = await guest.newPage();

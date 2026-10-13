@@ -10,9 +10,11 @@ const page = usePage();
 
 const done = (msg) => ({ preserveScroll: true, onSuccess: () => toast(page.props.flash.success ?? msg) });
 const set = (company, service, enabled) => router.patch('/platform/services', { company, service, enabled }, done('Saved'));
-const allOn = (c) => props.catalog.every((s) => c.services[s.key].enabled);
-const allOff = (c) => props.catalog.every((s) => !c.services[s.key].enabled);
-const columnOn = (key) => props.companies.every((c) => c.services[key].enabled);
+// a service that waits for the company's details cannot be switched on, so it does not count for "all on" or "all off"
+const usable = (c) => props.catalog.filter((s) => c.services[s.key].ready);
+const allOn = (c) => usable(c).every((s) => c.services[s.key].enabled);
+const allOff = (c) => usable(c).every((s) => !c.services[s.key].enabled);
+const columnOn = (key) => props.companies.filter((c) => c.services[key].ready).every((c) => c.services[key].enabled);
 
 async function pauseAll(c) {
     if (!(await confirmDialog({ title: `Pause everything for ${c.name}?`, message: 'No scheduled work, automations or message sending will run for this company until you resume it. Their data and sign-ins are not affected.', confirmLabel: 'Pause all', danger: true }))) return;
@@ -56,7 +58,8 @@ const run = (c) => router.post(`/platform/companies/${c.id}/services/run`, {}, d
                 <tr v-for="c in companies" :key="c.id" :data-company="c.slug">
                     <td class="px-5 py-3"><div class="font-medium">{{ c.name }}</div><div class="text-xs text-slate-400">{{ c.slug }}<span v-if="c.status !== 'active'" class="badge ml-2 !bg-amber-50 !text-amber-700">suspended</span></div></td>
                     <td v-for="s in catalog" :key="s.key" class="px-4 py-3">
-                        <ToggleSwitch :on="c.services[s.key].enabled" :label="`${s.label} for ${c.name}`" :data-service="s.key" @toggle="set(c.id, s.key, !c.services[s.key].enabled)" />
+                        <ToggleSwitch :on="c.services[s.key].enabled" :disabled="!c.services[s.key].ready" :title="c.services[s.key].note ?? undefined" :label="`${s.label} for ${c.name}`" :data-service="s.key" @toggle="set(c.id, s.key, !c.services[s.key].enabled)" />
+                        <div v-if="c.services[s.key].note" class="mt-1 max-w-[9rem] text-[11px] leading-tight text-amber-700" data-testid="waiting-details">Waiting for the company's details</div>
                         <div class="mt-1 text-[11px] text-slate-400" :title="c.services[s.key].last_run_at">{{ c.services[s.key].last_run_at ? `ran ${fmtRelative(c.services[s.key].last_run_at)}` : 'not run yet' }}</div>
                     </td>
                     <td class="px-4 py-3 tabular-nums">{{ c.queued }}</td>

@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\AccountUser;
 use App\Models\PlatformSetting;
 use App\Models\Tenant;
+use App\Services\Tenancy\CallSettings;
 use App\Services\Tenancy\CompanyServices;
 use App\Services\Tenancy\MailSettings;
 use App\Services\Tenancy\Pricing;
+use App\Services\Tenancy\SmsSettings;
 use App\Support\Tenancy\Company;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,7 +25,7 @@ use Throwable;
 class PlatformSettingsController extends Controller
 {
     /** The overview: one card per settings area with where it stands right now. */
-    public function show(MailSettings $mail, CompanyServices $services, Pricing $pricing): Response
+    public function show(MailSettings $mail, CompanyServices $services, Pricing $pricing, SmsSettings $sms, CallSettings $calls): Response
     {
         $admins = AccountUser::where('is_platform_admin', true)->where('status', 'active')->get();
         $companies = Tenant::get();
@@ -31,7 +33,9 @@ class PlatformSettingsController extends Controller
 
         return Inertia::render('Platform/Settings', [
             'pricing' => $pricing->current(),
-            'branding' => collect(Company::platformBranding())->only(['name', 'color', 'theme'])->all() + ['custom_logo' => ! Company::platformBranding()['logo_is_default'], 'custom_background' => (bool) Company::platformBranding()['background_url']],
+            'sms' => ['enabled' => $sms->current()['enabled'], 'ready' => $sms->account() !== null, 'from' => $sms->current()['messaging_service_sid'] ? 'Messaging service' : $sms->current()['from_number']],
+            'calls' => $calls->current(),
+            'branding' => collect(Company::platformBranding())->only(['name', 'color', 'theme', 'dark_style'])->all() + ['custom_logo' => ! Company::platformBranding()['logo_is_default'], 'custom_background' => (bool) Company::platformBranding()['background_url']],
             'notifications' => [
                 'administrators' => $admins->count(), 'requests' => $admins->where('notify_requests', true)->count(),
                 'messages' => $admins->where('notify_messages', true)->count(), 'automation_failures' => $admins->where('notify_automation_failures', true)->count(),
@@ -59,7 +63,7 @@ class PlatformSettingsController extends Controller
 
     public function mailPage(Request $request, MailSettings $mail): Response
     {
-        return Inertia::render('Platform/SettingsMail', ['mail' => $mail->current(), 'env' => $mail->envDefaults(), 'my_email' => $request->attributes->get('platform_identity')->email]);
+        return Inertia::render('Platform/SettingsMail', ['sendgrid' => ['url' => $mail->sendgridUrl(), 'key_set' => $mail->sendgridVerificationKeySet()], 'mail' => $mail->current(), 'env' => $mail->envDefaults(), 'my_email' => $request->attributes->get('platform_identity')->email]);
     }
 
     public function notifications(Request $request): RedirectResponse
@@ -101,6 +105,23 @@ class PlatformSettingsController extends Controller
         $this->restartWorkers();
 
         return back()->with('success', $d['enabled'] ? 'Saved. E-mails now go through this server.' : 'Saved. E-mails use the server from the .env file.');
+    }
+
+    /** SendGrid's verification key (optional): with it, event reports must be signed by SendGrid. */
+    public function sendgrid(Request $request, MailSettings $mail): RedirectResponse
+    {
+        $d = $request->validate(['verification_key' => ['nullable', 'string', 'max:600', 'regex:/^[A-Za-z0-9+\/=\s]*$/']], ['verification_key.regex' => 'Paste the verification key exactly as SendGrid shows it.']);
+        $mail->saveSendgridVerificationKey($d['verification_key'] ?? null);
+
+        return back()->with('success', $mail->sendgridVerificationKeySet() ? 'Saved. Event reports must now be signed by SendGrid.' : 'Saved. Event reports are accepted on the secret in the address alone.');
+    }
+
+    /** A new secret for the event address; paste the new address into SendGrid. */
+    public function rotateSendgrid(MailSettings $mail): RedirectResponse
+    {
+        $mail->rotateSendgridToken();
+
+        return back()->with('success', 'New event address created. Paste it into SendGrid: the old one no longer works.');
     }
 
     /** Send a test e-mail through whatever is saved, and report the server's own error when it fails. */

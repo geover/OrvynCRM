@@ -3,14 +3,15 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Integrations\Twilio\TwilioClient;
 use App\Jobs\SendEmailMessage;
 use App\Jobs\SendSmsMessage;
 use App\Models\Contact;
 use App\Models\EmailMessage;
 use App\Models\EmailSuppression;
-use App\Models\Integration;
 use App\Models\SmsMessage;
 use App\Services\Messaging\MessageComposer;
+use App\Services\Messaging\MessagingReadiness;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -19,6 +20,12 @@ use Illuminate\Support\Str;
 /** Replaces V1::email_post/get, sms_post, communication_*, messaging_queue_get, resend_email, email_suppression_delete. */
 class MessageController extends Controller
 {
+    /** Whether e-mails and texts can leave the system for this company (the automation editor warns when they cannot). */
+    public function readiness(MessagingReadiness $readiness): JsonResponse
+    {
+        return response()->json(['data' => $readiness->status()]);
+    }
+
     public function history(Request $request, Contact $contact): JsonResponse
     {
         $limit = min($request->integer('limit', 50), 200);
@@ -91,10 +98,10 @@ class MessageController extends Controller
         return response()->json(['data' => $message->only(['id', 'status', 'scheduled_at'])], 202);
     }
 
-    public function sms(Request $request, Contact $contact, MessageComposer $composer): JsonResponse
+    public function sms(Request $request, Contact $contact, MessageComposer $composer, TwilioClient $twilio): JsonResponse
     {
         $spec = $request->validate(['body' => ['required', 'string', 'max:1600'], 'delay_minutes' => ['nullable', 'integer', 'min:0']]);
-        abort_if(! Integration::for('twilio'), 422, 'SMS is not configured. Ask an administrator to enable the Twilio integration.');
+        abort_unless($twilio->available(), 422, 'Text messages are not set up. Ask your platform administrator to switch them on.');
 
         $message = $composer->queueSms($contact, $spec);
         abort_if(! $message, 422, 'Contact has no phone number.');

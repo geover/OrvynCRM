@@ -27,6 +27,8 @@ export const ADMIN_GROUPS = [
         { href: '/admin/custom-tabs', icon: Rows3, title: 'Custom tabs', text: 'Tabs with customised content in the contact page sidebar.' },
     ] },
     { title: 'Automation & communication', items: [
+        { href: '/admin/twilio', icon: MessageSquare, title: 'Twilio', text: 'Use your own Twilio account for text messages and phone numbers.' },
+        { href: '/admin/keap', icon: PlugZap, title: 'Keap', text: 'Connect your Keap account so the platform can sync your contacts.' },
         { href: '/automations', icon: Zap, title: 'Automation', text: 'Configure automated processes by choosing conditions and actions.' },
         { href: '/admin/webhooks', icon: Workflow, title: 'Webhooks', text: 'Outbound HTTPS endpoints your automations can call.' },
         { href: '/admin/email-templates', icon: Mail, title: 'Email templates', text: 'Reusable email templates, grouped for the composers.' },

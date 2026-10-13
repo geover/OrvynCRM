@@ -29,7 +29,8 @@ watch(() => brand.value.timezone, (tz) => setDisplayTimezone(tz), { immediate: t
 // A company can give its sidebar a colour of its own (Admin > Look & feel); light colours switch the sidebar to dark text.
 const sidebarColor = computed(() => brand.value.sidebar_color || null);
 const sidebarLight = computed(() => !!sidebarColor.value && isLightColor(sidebarColor.value));
-const logoSrc = computed(() => (sidebarLight.value && brand.value.logo_url?.includes('v=default') ? '/brand/orvyn-logo-dark.svg' : brand.value.logo_url));
+// a light sidebar needs the logo made for light backgrounds; a company's own logo is used as it is
+const logoSrc = computed(() => (sidebarLight.value && brand.value.logo_is_default && brand.value.logo_light_url ? brand.value.logo_light_url : brand.value.logo_url));
 
 const nav = computed(() => [
     ...MAIN_NAV.map((n) => ({ ...n, match: n.href === '/' ? (u) => u === '/' || u.startsWith('/?') : (u) => u.startsWith(n.href) })),

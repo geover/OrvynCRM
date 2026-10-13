@@ -208,3 +208,8 @@ aside.sidebar-light .bg-white\/15 { background-color: rgb(15 23 42 / 0.1); }
 aside.sidebar-light .hover\:bg-white\/10:hover { background-color: rgb(15 23 42 / 0.07); }
 aside.sidebar-light .hover\:text-white:hover { color: #0f172a; }
 aside.sidebar-light .border-white\/10 { border-color: rgb(15 23 42 / 0.12); }
+
+/* A page that has both logos shows the one that suits the current theme (light lettering on dark pages, dark on light ones). */
+.logo-on-dark { display: none; }
+html.dark .logo-on-light { display: none; }
+html.dark .logo-on-dark { display: block; }

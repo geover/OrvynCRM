@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\EmailMessage;
 use App\Models\EmailSuppression;
 use App\Models\SmsMessage;
+use App\Models\Tenant;
+use App\Services\Tenancy\MailSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -15,8 +17,30 @@ class InboundWebhookController extends Controller
     public function sendgrid(Request $request): JsonResponse
     {
         $this->authorizeProvider($request, 'sendgrid');
+        $this->applySendgridEvents((array) $request->json()->all());
 
-        foreach ((array) $request->json()->all() as $event) {
+        return response()->json(['ok' => true]);
+    }
+
+    /**
+     * The platform's SendGrid account is one for every company, so it can report to one address only. Each e-mail carries its
+     * company in a custom argument (see SendEmailMessage); the events are sorted by it and applied inside that company.
+     */
+    public function sendgridPlatform(Request $request, MailSettings $mail): JsonResponse
+    {
+        abort_unless(hash_equals($mail->sendgridToken(), (string) $request->query('token')), 403);
+        abort_unless($mail->validSendgridSignature($request->getContent(), $request->header('X-Twilio-Email-Event-Webhook-Signature'), $request->header('X-Twilio-Email-Event-Webhook-Timestamp')), 403, 'The signature of the event report is not valid.');
+
+        collect((array) $request->json()->all())->filter(fn ($e) => is_array($e) && ! empty($e['tenant_id']))->groupBy('tenant_id')
+            ->each(fn ($events, $id) => Tenant::find($id)?->run(fn () => $this->applySendgridEvents($events->all())));
+
+        return response()->json(['ok' => true]);
+    }
+
+    /** @param  array<int, mixed>  $events */
+    private function applySendgridEvents(array $events): void
+    {
+        foreach ($events as $event) {
             $email = $event['email'] ?? null;
             match ($event['event'] ?? null) {
                 'bounce', 'dropped', 'spamreport', 'unsubscribe' => $email && EmailSuppression::firstOrCreate(['email' => $email], ['reason' => $event['event']]),
@@ -24,8 +48,6 @@ class InboundWebhookController extends Controller
                 default => null,
             };
         }
-
-        return response()->json(['ok' => true]);
     }
 
     public function twilio(Request $request): JsonResponse

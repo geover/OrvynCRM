@@ -8,6 +8,7 @@ export const theme = useStored('theme', 'system');
 export const platformTheme = useStored('platform-theme', 'system');
 /** ...and the sign-in pages follow the platform's setting (Platform > Sign-in page), for every visitor alike. */
 export const signInTheme = ref('light');
+export const signInDarkStyle = ref('navy');
 
 /** The look of the dark theme. `page`, `surface` and `line` only paint the swatches; the real colours are in app.css. */
 export const DARK_STYLES = [
@@ -35,7 +36,7 @@ export function applyTheme() {
     const choice = (area === 'signin' ? signInTheme : area === 'platform' ? platformTheme : theme).value;
     const dark = choice === 'dark' || (choice === 'system' && !!media?.matches);
     document.documentElement.classList.toggle('dark', dark);
-    const style = area === 'signin' ? 'navy' : (area === 'platform' ? platformDarkStyle : darkStyle).value;
+    const style = (area === 'signin' ? signInDarkStyle : area === 'platform' ? platformDarkStyle : darkStyle).value;
     document.documentElement.dataset.darkStyle = STYLE_IDS.includes(style) ? style : 'navy';
     applyBrandColor();                       // tints depend on the theme
 }
@@ -52,8 +53,13 @@ export function setSignInTheme(value) {
     signInTheme.value = ['light', 'dark', 'system'].includes(value) ? value : 'light';
 }
 
+/** The dark style the platform chose for the sign-in pages. */
+export function setSignInDarkStyle(value) {
+    signInDarkStyle.value = STYLE_IDS.includes(value) ? value : 'navy';
+}
+
 export function initTheme() {
     applyTheme();
-    watch([theme, platformTheme, signInTheme, darkStyle, platformDarkStyle], applyTheme);
+    watch([theme, platformTheme, signInTheme, signInDarkStyle, darkStyle, platformDarkStyle], applyTheme);
     media?.addEventListener?.('change', applyTheme);
 }

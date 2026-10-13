@@ -20,8 +20,12 @@ class KeapClient
     {
         $integration = Integration::for('keap') ?? throw new RuntimeException('Keap integration is not enabled.');
 
-        return Http::baseUrl(self::BASE)->withToken($integration->credentials['access_token'] ?? '')
-            ->acceptJson()->timeout(30)
+        $c = (array) $integration->credentials;
+        $http = Http::baseUrl(self::BASE);
+        // the company's service account key or personal access token (Admin settings, Keap); an OAuth access token from an old import still works
+        $http = ! empty($c['api_key']) ? $http->withHeaders(['X-Keap-API-Key' => $c['api_key']]) : $http->withToken($c['access_token'] ?? '');
+
+        return $http->acceptJson()->timeout(30)
             ->retry(3, 1000, fn ($e) => in_array($e->response?->status(), [429, 500, 502, 503], true), throw: false);
     }
 
@@ -44,6 +48,12 @@ class KeapClient
     public function updateContact(int $id, array $payload): array
     {
         return $this->http()->patch("/contacts/$id", $payload)->throw()->json();
+    }
+
+    /** Is the key accepted? Throws with Keap's own answer when it is not. */
+    public function ping(): void
+    {
+        $this->http()->get('/tags', ['limit' => 1])->throw();
     }
 
     public function tags(): array

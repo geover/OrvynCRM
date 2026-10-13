@@ -1,13 +1,17 @@
 <?php
 
+use App\Http\Middleware\EnsureAdmin;
+use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\ResolvePublicTenant;
 use App\Http\Middleware\ResolveTenant;
+use App\Support\UploadLimit;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\PostTooLargeException;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 
@@ -27,9 +31,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: ResolvePublicTenant::class);
         $middleware->alias([
             'active' => EnsureUserIsActive::class,
-            'admin' => \App\Http\Middleware\EnsureAdmin::class,
+            'admin' => EnsureAdmin::class,
             'tenant.public' => ResolvePublicTenant::class,
-            'platform' => \App\Http\Middleware\EnsurePlatformAdmin::class,
+            'platform' => EnsurePlatformAdmin::class,
         ]);
         $middleware->trustProxies(at: '*');
     })
@@ -37,4 +41,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+        $exceptions->render(function (PostTooLargeException $e, Request $request) {
+            $message = 'That file is bigger than this server accepts ('.UploadLimit::label().'). Use a smaller file, or ask your administrator to raise upload_max_filesize and post_max_size.';
+
+            return $request->expectsJson() || $request->header('X-Inertia')
+                ? response()->json(['message' => $message], 413)
+                : response($message, 413);
+        });
     })->create();

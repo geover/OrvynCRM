@@ -97,6 +97,7 @@ The browser suite starts its own app instance on port 8123 with a throw-away SQL
 | Doc | What |
 |---|---|
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Stack, why OldCRM was slow, data model, code layout, open decisions |
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Local development with Laragon: the two sites, daily routine, troubleshooting |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Local and production setup, workers, scaling, benchmarks |
 | [docs/SERVICES_MAP.md](docs/SERVICES_MAP.md) | The old `services/*` daemons mapped to the scheduler and queue jobs |
 | [docs/LEGACY_ENDPOINT_MAP.md](docs/LEGACY_ENDPOINT_MAP.md) | The old API methods mapped to routes and their status |

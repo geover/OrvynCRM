@@ -10,6 +10,7 @@ use App\Models\DataObject;
 use App\Models\EmailMessage;
 use App\Models\Form;
 use App\Services\DataObjects\RecordService;
+use App\Services\Tenancy\MailSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -95,7 +96,7 @@ JS;
 
         foreach ((array) ($form->settings['notify_emails'] ?? []) as $to) {
             $m = EmailMessage::create([
-                'subject' => "New submission: {$form->name}", 'from_email' => config('mail.from.address'), 'from_name' => config('mail.from.name'),
+                'subject' => "New submission: {$form->name}", 'from_email' => app(MailSettings::class)->from()['address'], 'from_name' => app(MailSettings::class)->from()['name'],
                 'to' => [['email' => $to]], 'html' => '<p>'.e($form->name).' received a new submission'.($contact ? ' from '.e($contact->full_name) : '').'.</p><pre>'.e(json_encode($payload, JSON_PRETTY_PRINT)).'</pre>',
             ]);
             SendEmailMessage::dispatch($m->id);
