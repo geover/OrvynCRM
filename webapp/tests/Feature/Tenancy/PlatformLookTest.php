@@ -97,7 +97,7 @@ class PlatformLookTest extends TenantTestCase
         $this->delete('/platform/look/favicon')->assertRedirect();
         PlatformSetting::forgetCache();
         $this->assertStringEndsWith('/brand/orvyn-mark.svg', Company::platformAreaBranding()['mark_url']);
-        $this->assertStringContainsString('/brand/favicon', Company::platformAreaBranding()['favicon_url']);
+        $this->assertStringContainsString('/favicon.svg', Company::platformAreaBranding()['favicon_url']);        // none of its own: the built-in one
     }
 
     public function test_only_platform_administrators_open_or_change_the_platform_look(): void

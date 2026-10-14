@@ -49,8 +49,8 @@ class UsageTracker
         $unlimited = Plans::isUnlimitedSeats((int) $tenant->max_users);
         $measured = [
             'users' => [$this->seats->usedFor($tenant), $unlimited ? null : (int) $tenant->max_users],
-            'sms' => [$this->plans->smsUsed($tenant), $tier['sms_per_month']],
-            'numbers' => [$this->plans->numbersUsed($tenant), $tier['sms_numbers']],
+            'sms' => [$this->plans->smsUsed($tenant), $this->plans->smsLimit($tenant)],
+            'numbers' => [$this->plans->numbersUsed($tenant), $this->plans->smsNumbersMax($tenant)],
         ];
 
         $row = CompanyUsage::firstOrNew(['tenant_id' => $tenant->getTenantKey(), 'period' => $period]);

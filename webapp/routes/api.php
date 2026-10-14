@@ -178,6 +178,7 @@ Route::prefix('v1')->group(function () {
         Route::post('billing/cancel', [V1\BillingController::class, 'cancel'])->middleware('throttle:10,1');
         Route::post('billing/resume', [V1\BillingController::class, 'resume'])->middleware('throttle:10,1');
         Route::post('billing/resubscribe', [V1\BillingController::class, 'resubscribe'])->middleware('throttle:10,1');
+        Route::post('billing/text-request', [V1\BillingController::class, 'requestTexts'])->middleware('throttle:10,1');
         Route::post('billing/portal', [V1\BillingController::class, 'portal'])->middleware('throttle:20,1');
         Route::get('sms-numbers', [V1\SmsNumbersController::class, 'options']);
         Route::get('integrations/sms-numbers', [V1\SmsNumbersController::class, 'show']);

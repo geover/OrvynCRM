@@ -107,18 +107,18 @@ class KeapSettingsTest extends TenantTestCase
         $api()->postJson('/api/v1/integrations/keap/test')->assertUnprocessable();                              // nothing saved yet
 
         $api()->putJson('/api/v1/integrations/keap', ['api_key' => 'sk-test-1234567890'])->assertOk();
-        Http::fake(['api.infusionsoft.com/*' => Http::response(['message' => 'Invalid API key'], 401)]);
+        $this->fakeHttp(['api.infusionsoft.com/*' => Http::response(['message' => 'Invalid API key'], 401)]);
         $api()->postJson('/api/v1/integrations/keap/test')->assertUnprocessable()->assertJsonPath('message', fn ($m) => str_contains($m, 'Keap did not accept'));
 
-        Http::fake(['api.infusionsoft.com/*' => Http::response(['tags' => []], 200)]);
+        $this->fakeHttp(['api.infusionsoft.com/*' => Http::response(['tags' => []], 200)]);
         $api()->postJson('/api/v1/integrations/keap/test')->assertOk()->assertJsonPath('ok', true);
         Http::assertSent(fn ($r) => $r->hasHeader('X-Keap-API-Key', 'sk-test-1234567890'));                      // the key is sent as Keap expects it
     }
 
     public function test_sync_now_waits_for_the_platform_and_then_queues_the_job(): void
     {
-        Bus::fake();
         $acme = $this->company('Acme', 'owner@acme.test');
+        Bus::fake();                                     // after the company exists: its database is made by queued jobs
         $api = fn () => $this->api('owner@acme.test', 'acme');
         $api()->putJson('/api/v1/integrations/keap', ['api_key' => 'sk-test-1234567890'])->assertOk();
 
@@ -131,7 +131,7 @@ class KeapSettingsTest extends TenantTestCase
     public function test_the_client_still_uses_an_oauth_token_from_an_old_import(): void
     {
         $acme = $this->company('Acme', 'owner@acme.test');
-        Http::fake(['api.infusionsoft.com/*' => Http::response(['tags' => []], 200)]);
+        $this->fakeHttp(['api.infusionsoft.com/*' => Http::response(['tags' => []], 200)]);
 
         $acme->run(function () {
             Integration::create(['provider' => 'keap', 'credentials' => ['access_token' => 'oauth-token'], 'is_enabled' => true]);

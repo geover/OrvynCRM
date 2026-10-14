@@ -37,7 +37,7 @@ const creating = ref(false);
 const form = useForm({ name: '', slug: '', owner_name: '', owner_email: '', owner_password: '', max_users: '', max_data_objects: '', max_automations_per_object: '', tier: 1, trial: false });
 
 const editing = ref(null);
-const editForm = useForm({ name: '', slug: '', plan: '', max_users: 5, max_data_objects: 10, max_automations_per_object: 5, tier: 1, trial_ends_at: '' });
+const editForm = useForm({ name: '', slug: '', plan: '', max_users: 5, extra_sms: 0, bonus_sms: 0, extra_numbers: 0, max_data_objects: 10, max_automations_per_object: 5, tier: 1, trial_ends_at: '' });
 const UNLIMITED = 999999;
 const dayOf = (iso) => (iso ? iso.slice(0, 10) : '');
 // the least users a tier allows (the tier's own number): the limit can be raised above it for extra users, never set lower; an unlimited tier is fixed
@@ -48,7 +48,7 @@ const newMin = computed(() => tierSeats(form.tier));
 const pickTier = (n) => { editForm.tier = n; editForm.max_users = tierSeats(n); };
 function edit(c) {
     editing.value = c;
-    editForm.name = c.name; editForm.slug = c.slug; editForm.plan = c.plan ?? ''; editForm.max_users = c.max_users; editForm.max_data_objects = c.max_data_objects; editForm.max_automations_per_object = c.max_automations_per_object;
+    editForm.name = c.name; editForm.slug = c.slug; editForm.plan = c.plan ?? ''; editForm.max_users = c.max_users; editForm.extra_sms = c.extra_sms; editForm.bonus_sms = c.bonus_sms ?? 0; editForm.extra_numbers = c.extra_numbers; editForm.max_data_objects = c.max_data_objects; editForm.max_automations_per_object = c.max_automations_per_object;
     editForm.tier = c.tier; editForm.trial_ends_at = dayOf(c.trial.ends_at);
     editForm.clearErrors();
 }
@@ -94,7 +94,7 @@ const open = (c) => router.post(`/platform/companies/${c.id}/open`);
         <button class="btn-outline !border-amber-300 !py-1.5 text-xs" data-testid="show-inactive" @click="view = 'inactive'">Review them</button>
     </div>
 
-    <div class="card overflow-x-auto">
+    <div class="card table-scroll">
         <table class="w-full text-sm" data-testid="companies-table">
             <thead class="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500"><tr>
                 <th class="px-4 py-3">Company</th><th class="px-3 py-3">Status</th><th class="px-3 py-3">Users</th><th class="hidden px-3 py-3 xl:table-cell">Data</th><th class="hidden px-3 py-3 md:table-cell">Last active</th><th class="px-3 py-3"><span class="sr-only">Actions</span></th>
@@ -105,11 +105,12 @@ const open = (c) => router.post(`/platform/companies/${c.id}/open`);
                         <div class="min-w-0"><Link :href="`/platform/companies/${c.id}`" class="block truncate font-medium hover:underline" :data-overview="c.slug">{{ c.name }}</Link><div class="truncate text-xs text-slate-400">{{ c.slug }}</div></div></div></td>
                     <td class="px-3 py-3"><span class="badge" :class="c.status === 'active' ? '!bg-emerald-50 !text-emerald-700' : c.status === 'closed' ? '!bg-slate-200 !text-slate-700' : '!bg-amber-50 !text-amber-700'">{{ c.status }}</span><div v-if="c.status_note && c.status !== 'active'" class="mt-1 max-w-40 truncate text-xs text-slate-400" :title="c.status_note">{{ c.status_note }}</div>
                         <div class="mt-1 whitespace-nowrap text-xs text-slate-500" data-cell="plan">Tier {{ c.tier }}<span v-if="c.trial.state === 'trial'" class="ml-1 text-sky-700" data-testid="trial-badge">· trial, {{ c.trial.days_left }}d left</span><span v-else-if="c.trial.state === 'expired'" class="ml-1 font-medium text-red-600" data-testid="trial-ended-badge">· trial ended</span><Link v-if="c.usage_level !== 'ok'" href="/platform/usage" class="ml-1 rounded-full px-1.5 py-0.5 text-[11px] font-medium" :class="c.usage_level === 'at' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'" :data-testid="`usage-${c.usage_level}`" :title="c.usage_level === 'at' ? 'At a limit of its plan' : 'Near a limit of its plan (80% or more)'">{{ c.usage_level === 'at' ? 'at limit' : 'near limit' }}</Link><span v-if="c.subscription" class="ml-1" :class="['active', 'trialing'].includes(c.subscription) ? 'text-emerald-700' : 'text-amber-700'" data-testid="subscription-badge">· {{ { active: 'paying', trialing: 'subscribed', past_due: 'payment late', canceled: 'cancelled', unpaid: 'unpaid' }[c.subscription] ?? c.subscription }}</span></div></td>
-                    <td class="px-3 py-3"><SeatMeter :used="c.users" :max="c.max_users" compact /><Link v-if="c.pending_requests" href="/platform/seat-requests" class="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800" data-testid="company-request-badge">asks for more</Link></td>
+                    <td class="px-3 py-3"><SeatMeter :used="c.users" :max="c.max_users" compact /><Link v-if="c.pending_user_requests" href="/platform/seat-requests" class="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800" data-testid="company-request-badge">asks for more</Link><Link v-if="c.pending_other_requests" href="/platform/seat-requests" class="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800 xl:hidden" data-testid="company-request-badge-narrow">asks for more</Link></td>
                     <td class="hidden whitespace-nowrap px-3 py-3 text-xs text-slate-500 xl:table-cell">
                         <div><span class="tabular-nums font-medium text-slate-700" data-cell="contacts">{{ c.contacts === null ? '-' : c.contacts.toLocaleString() }}</span> contacts</div>
                         <div><span class="tabular-nums font-medium text-slate-700" data-cell="data-objects">{{ c.data_objects === null ? '-' : c.data_objects.toLocaleString() }}</span> data objects</div>
                         <div><span class="tabular-nums font-medium text-slate-700" data-cell="records">{{ c.records === null ? '-' : c.records.toLocaleString() }}</span> records</div>
+                        <Link v-if="c.pending_other_requests" href="/platform/seat-requests" class="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800" title="Waiting for more data objects, automations or texts" data-testid="company-request-badge-data">asks for more</Link>
                     </td>
                     <td class="hidden whitespace-nowrap px-3 py-3 text-slate-500 md:table-cell" data-cell="last-active">
                         <template v-if="c.status === 'active'">{{ idleText(c) }}<span v-if="c.inactive" class="badge ml-2 !bg-amber-50 !text-amber-700" data-testid="inactive-badge">Inactive</span></template><template v-else>-</template>
@@ -184,6 +185,11 @@ const open = (c) => router.post(`/platform/companies/${c.id}/open`);
             <div><label class="label" for="ce-plan">Plan label <span class="normal-case text-slate-400">(free text, for your own notes)</span></label><input id="ce-plan" v-model="editForm.plan" class="input" maxlength="40" placeholder="e.g. Starter" /></div>
             <div><label class="label" for="ce-max">Users allowed</label><input id="ce-max" v-model.number="editForm.max_users" type="number" :min="editMin" :max="editMin >= UNLIMITED ? UNLIMITED : 1000000" :disabled="editMin >= UNLIMITED" class="input !w-32" required data-testid="max-users" />
                 <p class="mt-1 text-xs text-slate-500">{{ editMin >= UNLIMITED ? 'This tier has unlimited users.' : `Tier ${editForm.tier} includes ${editMin} users. Raise the limit above that to give this company extra users without moving it to a bigger tier; it cannot go lower.` }} {{ editing.users }} in use now. Lowering the limit never removes anyone; it only stops new people being added until the count is under it.</p><p v-if="editForm.errors.max_users" class="mt-1 text-xs text-red-600">{{ editForm.errors.max_users }}</p></div>
+            <div class="grid gap-3 sm:grid-cols-2">
+                <div><label class="label" for="ce-xsms">Extra texts per month</label><input id="ce-xsms" v-model.number="editForm.extra_sms" type="number" min="0" max="10000000" class="input" required data-testid="extra-sms" /><p class="mt-1 text-xs text-slate-500">On top of the {{ (tiers.find((t) => t.tier === editForm.tier)?.sms_per_month ?? 0).toLocaleString() }} its tier includes.</p><p v-if="editForm.errors.extra_sms" class="mt-1 text-xs text-red-600">{{ editForm.errors.extra_sms }}</p></div>
+                <div><label class="label" for="ce-bsms">Extra texts, this month only</label><input id="ce-bsms" v-model.number="editForm.bonus_sms" type="number" min="0" max="10000000" class="input" data-testid="bonus-sms" /><p class="mt-1 text-xs text-slate-500">A boost that ends by itself when the month does. A number you change here counts for the current month.</p><p v-if="editForm.errors.bonus_sms" class="mt-1 text-xs text-red-600">{{ editForm.errors.bonus_sms }}</p></div>
+                <div><label class="label" for="ce-xnum">Extra texting numbers</label><input id="ce-xnum" v-model.number="editForm.extra_numbers" type="number" min="0" max="1000" class="input" required data-testid="extra-numbers" /><p class="mt-1 text-xs text-slate-500">On top of the {{ tiers.find((t) => t.tier === editForm.tier)?.sms_numbers ?? 0 }} its tier includes. Lowering it drops numbers beyond the new allowance.</p><p v-if="editForm.errors.extra_numbers" class="mt-1 text-xs text-red-600">{{ editForm.errors.extra_numbers }}</p></div>
+            </div>
             <div class="grid gap-3 sm:grid-cols-2">
                 <div><label class="label" for="ce-objects">Data objects allowed</label><input id="ce-objects" v-model.number="editForm.max_data_objects" type="number" min="1" max="100000" class="input" required data-testid="max-data-objects" /><p v-if="editForm.errors.max_data_objects" class="mt-1 text-xs text-red-600">{{ editForm.errors.max_data_objects }}</p></div>
                 <div><label class="label" for="ce-autos">Automations per data object</label><input id="ce-autos" v-model.number="editForm.max_automations_per_object" type="number" min="1" max="100000" class="input" required data-testid="max-automations" /><p v-if="editForm.errors.max_automations_per_object" class="mt-1 text-xs text-red-600">{{ editForm.errors.max_automations_per_object }}</p></div>

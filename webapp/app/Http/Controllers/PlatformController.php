@@ -35,7 +35,9 @@ class PlatformController extends Controller
         $paying = CompanySubscription::whereIn('status', CompanySubscription::GOOD)->pluck('tenant_id')->flip();
         $subs = CompanySubscription::pluck('status', 'tenant_id');
         $usage = CompanyUsage::whereIn('period', [now()->format('Y-m'), now()->subMonth()->format('Y-m')])->orderBy('period')->get()->keyBy('tenant_id');
+        // waiting requests per company: for users (the Users column) and for everything else, i.e. data objects, automations, texts (the Data column)
         $pending = SeatRequest::pending()->selectRaw('tenant_id, count(*) as n')->groupBy('tenant_id')->pluck('n', 'tenant_id');
+        $pendingUsers = SeatRequest::pending()->where('kind', SeatRequest::USERS)->selectRaw('tenant_id, count(*) as n')->groupBy('tenant_id')->pluck('n', 'tenant_id');
 
         return Inertia::render('Platform/Companies', [
             'companies' => Tenant::withCount('members')->orderBy('name')->get()->map(fn (Tenant $t) => [
@@ -44,8 +46,10 @@ class PlatformController extends Controller
                 'users' => (int) ($stats[$t->getTenantKey()] ?? $seats->usedFor($t)), 'max_users' => (int) $t->max_users,
                 'max_data_objects' => (int) $t->max_data_objects, 'max_automations_per_object' => (int) $t->max_automations_per_object,
                 'pending_requests' => (int) ($pending[$t->getTenantKey()] ?? 0),
+                'pending_user_requests' => (int) ($pendingUsers[$t->getTenantKey()] ?? 0),
+                'pending_other_requests' => (int) ($pending[$t->getTenantKey()] ?? 0) - (int) ($pendingUsers[$t->getTenantKey()] ?? 0),
                 // the licence tier and where the free trial stands
-                'tier' => (int) $t->tier, 'trial' => $plans->state($t, $billed->has($t->getTenantKey()), $paying->has($t->getTenantKey())), 'subscription' => $subs[$t->getTenantKey()] ?? null, 'usage_level' => ($usage[$t->getTenantKey()] ?? null)?->level() ?? 'ok',
+                'tier' => (int) $t->tier, 'extra_sms' => (int) $t->extra_sms, 'bonus_sms' => $plans->bonusSms($t), 'extra_numbers' => (int) $t->extra_numbers, 'trial' => $plans->state($t, $billed->has($t->getTenantKey()), $paying->has($t->getTenantKey())), 'subscription' => $subs[$t->getTenantKey()] ?? null, 'usage_level' => ($usage[$t->getTenantKey()] ?? null)?->level() ?? 'ok',
                 // when somebody last used it, and whether the daily check has flagged it as abandoned
                 'last_active_at' => ($t->last_active_at ?? $t->created_at)?->toIso8601String(), 'idle_days' => $t->isActive() ? $inactive->daysIdle($t) : null,
                 'inactive' => $t->isActive() && $t->inactive_since !== null, 'status_note' => $t->status_note, 'closed_at' => $t->closed_at?->toIso8601String(),
@@ -120,6 +124,9 @@ class PlatformController extends Controller
             'slug' => ['sometimes', 'string', 'max:63', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::notIn(TenantProvisioner::RESERVED), Rule::unique('tenants', 'slug')->ignore($tenant->getTenantKey(), 'id')],
             'plan' => ['sometimes', 'nullable', 'string', 'max:40'],
             'max_users' => ['sometimes', 'integer', 'min:'.$plans->seatsFor((int) ($request->input('tier') ?: $tenant->tier)), 'max:1000000'],
+            'extra_sms' => ['sometimes', 'integer', 'min:0', 'max:10000000'],
+            'bonus_sms' => ['sometimes', 'integer', 'min:0', 'max:10000000'],
+            'extra_numbers' => ['sometimes', 'integer', 'min:0', 'max:1000'],
             'max_data_objects' => ['sometimes', 'integer', 'min:1', 'max:100000'],
             'max_automations_per_object' => ['sometimes', 'integer', 'min:1', 'max:100000'],
             'tier' => ['sometimes', 'integer', 'between:1,'.count(config('plans.tiers'))],
@@ -139,11 +146,20 @@ class PlatformController extends Controller
         } elseif (($d['status'] ?? null) === 'suspended') {
             $d += ['inactive_since' => null];
         }
+        // extra texts for this month only: a changed number counts for the current month (and ends with it); an unchanged one keeps its month
+        if (array_key_exists('bonus_sms', $d)) {
+            if ((int) $d['bonus_sms'] === $plans->bonusSms($tenant)) {
+                unset($d['bonus_sms']);
+            } else {
+                $d['bonus_sms_month'] = (int) $d['bonus_sms'] > 0 ? $plans->currentMonth($tenant) : null;
+            }
+        }
         $tenant->update($d);
         if ($newTier !== null) {
             $plans->applyTier($tenant, (int) $newTier);
             isset($d['max_users']) && $tenant->update(['max_users' => $d['max_users']]);
         }
+        array_key_exists('extra_numbers', $d) && $plans->enforceNumbers($tenant->fresh());
 
         return back()->with('success', 'Saved.');
     }

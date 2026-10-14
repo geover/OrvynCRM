@@ -8,6 +8,7 @@ use App\Models\Signup;
 use App\Services\Tenancy\Recaptcha;
 use App\Services\Tenancy\SignupSettings;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
 use Tests\TenantTestCase;
@@ -23,11 +24,21 @@ class RecaptchaTest extends TenantTestCase
 
     private function google(array $answer, int $status = 200): void
     {
+        Http::swap(new Factory);                                // a new answer replaces the earlier one: the first matching fake wins otherwise
         Http::fake([Recaptcha::VERIFY_URL => Http::response($answer, $status)]);
+    }
+
+    /** Nobody signed in: the sign-in page is not shown to somebody who already is, so every attempt starts from here. */
+    private function signedOut(): void
+    {
+        $this->app['auth']->forgetGuards();
+        $this->flushSession();
     }
 
     private function login(array $extra = [])
     {
+        $this->signedOut();
+
         return $this->post('/login', ['email' => 'owner@acme.test', 'password' => 'Owner-Passw0rd-1'] + $extra);
     }
 
@@ -38,6 +49,7 @@ class RecaptchaTest extends TenantTestCase
 
         $this->login()->assertRedirect();                                                             // no token needed
         Http::assertNothingSent();
+        $this->signedOut();
         $this->get('/login')->assertInertia(fn ($p) => $p->where('app.recaptcha_site_key', null));
 
         app(Recaptcha::class)->save(['enabled' => true, 'site_key' => '6Lc_test-site-key', 'threshold' => 0.5]);       // no secret yet
@@ -76,6 +88,7 @@ class RecaptchaTest extends TenantTestCase
 
         $this->google(['success' => true, 'score' => 0.9, 'action' => 'login']);
         $this->login(['recaptcha_token' => 'abc'])->assertRedirect();
+        $this->assertAuthenticated();
         $this->assertAuthenticated();
         Http::assertSent(fn ($r) => $r['secret'] === 'test-secret' && $r['response'] === 'abc');
     }

@@ -37,7 +37,7 @@ const raise = () => router.visit('/platform');
         <p v-else class="min-w-0 flex-1 text-sm text-slate-500">{{ company.max_users - used }} more {{ company.max_users - used === 1 ? 'user' : 'users' }} can be added.</p>
     </div>
 
-    <div class="card overflow-x-auto">
+    <div class="card table-scroll">
         <table class="w-full text-sm" aria-label="People of the company">
             <thead class="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Name</th><th class="px-5 py-3">Role</th><th class="px-5 py-3">Status</th><th class="px-5 py-3">Added</th></tr></thead>
             <tbody class="divide-y divide-slate-100">

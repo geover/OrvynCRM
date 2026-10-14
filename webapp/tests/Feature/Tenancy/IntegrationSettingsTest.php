@@ -89,17 +89,18 @@ class IntegrationSettingsTest extends TenantTestCase
         $this->platformAdmin();
 
         $this->patch('/platform/settings/sms', $this->savedSms(['from_number' => 'not a number']))->assertSessionHasErrors('from_number');
-        $this->patch('/platform/settings/sms', ['enabled' => true, 'account_sid' => ''])->assertSessionHasErrors('account_sid');
+        $this->patch('/platform/settings/sms', ['enabled' => true, 'account_sid' => ''])->assertSessionDoesntHaveErrors();      // blank means the .env account
         $this->patch('/platform/settings/calls', ['default_caller_id' => 'abc', 'company_caller_ids' => true])->assertSessionHasErrors('default_caller_id');
     }
 
     public function test_a_company_sends_through_its_own_twilio_account_else_the_platforms(): void
     {
         $acme = $this->company('Acme', 'owner@acme.test');
-        Http::fake(['api.twilio.com/*' => Http::response(['sid' => 'SM1'], 201)]);
+        $this->fakeHttp(['api.twilio.com/*' => Http::response(['sid' => 'SM1'], 201)]);
 
         $acme->run(fn () => $this->assertFalse(app(TwilioClient::class)->available(), 'nothing set up yet'));
 
+        URL::forceRootUrl('https://crm.orvyn-app.com');                 // Twilio is only given a callback address it can reach
         $this->platformAdmin();
         $this->patch('/platform/settings/sms', $this->savedSms());
         PlatformSetting::forgetCache();
@@ -133,10 +134,10 @@ class IntegrationSettingsTest extends TenantTestCase
         $this->patch('/platform/settings/sms', $this->savedSms());
         PlatformSetting::forgetCache();
 
-        Http::fake(['api.twilio.com/*' => Http::response(['message' => 'The number is unverified'], 400)]);
+        $this->fakeHttp(['api.twilio.com/*' => Http::response(['message' => 'The number is unverified'], 400)]);
         $this->post('/platform/settings/sms/test', ['to' => '+15552223333'])->assertSessionHasErrors(['test' => 'Twilio error: The number is unverified']);
 
-        Http::fake(['api.twilio.com/*' => Http::response(['sid' => 'SM9'], 201)]);
+        $this->fakeHttp(['api.twilio.com/*' => Http::response(['sid' => 'SM9'], 201)]);
         $this->post('/platform/settings/sms/test', ['to' => '+15552223333'])->assertSessionHas('success');
     }
 
@@ -205,9 +206,11 @@ class IntegrationSettingsTest extends TenantTestCase
         URL::forceRootUrl('http://127.0.0.1:8000');
         $this->assertNull($callback(), 'a local address would make Twilio refuse the text');
 
-        URL::forceRootUrl('https://crm.example.com');
-        $this->assertStringContainsString('https://crm.example.com/api/v1/hooks/twilio?token=', (string) $callback());
+        URL::forceRootUrl('https://crm.orvyn-app.com');
+        URL::forceScheme('https');
+        $this->assertStringContainsString('https://crm.orvyn-app.com/api/v1/hooks/twilio?token=', (string) $callback());
         URL::forceRootUrl(null);
+        URL::forceScheme('http');
     }
 
     public function test_sendgrid_reports_for_the_shared_account_are_applied_inside_the_company_they_name(): void
@@ -269,7 +272,7 @@ class IntegrationSettingsTest extends TenantTestCase
     /** A fake Twilio that owns one number, has one verified caller ID, and verifies whatever it is asked to. */
     private function fakeTwilioNumbers(): void
     {
-        Http::fake(function ($request) {
+        $this->fakeHttp(function ($request) {
             $url = $request->url();
             if (str_contains($url, 'IncomingPhoneNumbers')) {
                 return Http::response(['incoming_phone_numbers' => [['sid' => 'PN1', 'phone_number' => '+15550001111', 'friendly_name' => 'Main line']]]);
@@ -366,9 +369,9 @@ class IntegrationSettingsTest extends TenantTestCase
         $api()->putJson('/api/v1/integrations/twilio', ['account_sid' => 'ACabcdef0123456789', 'auth_token' => '', 'from_number' => '+15550000000'])->assertOk();      // an empty token keeps the saved one
         $acme->run(fn () => $this->assertSame('secret-token-1234', Integration::for('twilio')->credentials['auth_token']));
 
-        Http::fake(['api.twilio.com/*' => Http::response(['message' => 'Authenticate'], 401)]);
+        $this->fakeHttp(['api.twilio.com/*' => Http::response(['message' => 'Authenticate'], 401)]);
         $api()->postJson('/api/v1/integrations/twilio/test')->assertUnprocessable()->assertJsonPath('message', fn ($m) => str_contains($m, 'Authenticate'));
-        Http::fake(['api.twilio.com/*' => Http::response(['sid' => 'ACabcdef0123456789'], 200)]);
+        $this->fakeHttp(['api.twilio.com/*' => Http::response(['sid' => 'ACabcdef0123456789'], 200)]);
         $api()->postJson('/api/v1/integrations/twilio/test')->assertOk()->assertJsonPath('ok', true);
 
         $api()->deleteJson('/api/v1/integrations/twilio')->assertOk()->assertJsonPath('data.configured', false);

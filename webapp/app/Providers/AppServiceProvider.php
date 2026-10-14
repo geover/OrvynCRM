@@ -5,11 +5,14 @@ namespace App\Providers;
 use App\Models\PersonalAccessToken;
 use App\Models\Task;
 use App\Services\DataObjects\RecordIndexer;
+use App\Services\ScheduleLog;
 use App\Services\Tenancy\JobMetrics;
 use App\Services\Tenancy\MailSettings;
 use App\Support\Tenancy\Company;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Console\Events\ScheduledTaskFailed;
+use Illuminate\Console\Events\ScheduledTaskFinished;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -39,6 +42,10 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Remember how each scheduled job went (shown on the Background services page)
+        Event::listen(ScheduledTaskFinished::class, [ScheduleLog::class, 'finished']);
+        Event::listen(ScheduledTaskFailed::class, [ScheduleLog::class, 'failed']);
+
         // The password reset e-mail (also the invitation to choose a first password): the platform's name, one button, how long the link lasts.
         ResetPassword::toMailUsing(function (object $notifiable, string $token) {
             $url = url(route('password.reset', ['token' => $token, 'email' => $notifiable->getEmailForPasswordReset()], false));

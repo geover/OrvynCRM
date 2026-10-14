@@ -114,9 +114,11 @@ Route::middleware('platform')->prefix('platform')->group(function () {
     Route::get('settings/payments', [PlatformPaymentsController::class, 'show']);
     Route::patch('settings/payments', [PlatformPaymentsController::class, 'save']);
     Route::post('settings/payments/test', [PlatformPaymentsController::class, 'test'])->middleware('throttle:10,1');
+    Route::post('settings/payments/move-subscribers', [PlatformPaymentsController::class, 'moveSubscribers'])->middleware('throttle:6,1');
     Route::post('settings/payments/prices', [PlatformPaymentsController::class, 'syncPrices'])->middleware('throttle:10,1');
     Route::get('settings/plans', [PlatformPlansController::class, 'show']);
     Route::patch('settings/plans', [PlatformPlansController::class, 'save']);
+    Route::post('settings/plans/reset', [PlatformPlansController::class, 'reset'])->middleware('throttle:10,1');
     Route::get('settings/inactive-companies', [PlatformInactivityController::class, 'show']);
     Route::patch('settings/inactive-companies', [PlatformInactivityController::class, 'save']);
     Route::post('settings/inactive-companies/scan', [PlatformInactivityController::class, 'scan'])->middleware('throttle:10,1');
@@ -143,6 +145,7 @@ Route::middleware('platform')->prefix('platform')->group(function () {
 
     Route::get('services', [PlatformServicesController::class, 'index']);
     Route::patch('services', [PlatformServicesController::class, 'update']);
+    Route::patch('services/schedule/{job}', [PlatformServicesController::class, 'schedule']);
 
     Route::get('look', [PlatformBrandingController::class, 'look']);
     Route::patch('look', [PlatformBrandingController::class, 'updateLook']);

@@ -28,7 +28,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     /** Real columns on the central `tenants` table; anything else goes to the JSON `data` column. */
     public static function getCustomColumns(): array
     {
-        return ['id', 'name', 'slug', 'status', 'plan', 'max_users', 'max_data_objects', 'max_automations_per_object', 'last_active_at', 'inactive_since', 'closed_at', 'status_note', 'tier', 'trial_ends_at', 'trial_notice_stage'];
+        return ['id', 'name', 'slug', 'status', 'plan', 'max_users', 'max_data_objects', 'max_automations_per_object', 'last_active_at', 'inactive_since', 'closed_at', 'status_note', 'tier', 'trial_ends_at', 'trial_notice_stage', 'extra_sms', 'bonus_sms', 'bonus_sms_month', 'extra_numbers'];
     }
 
     protected function casts(): array

@@ -189,7 +189,7 @@ class SignInBrandingTest extends TenantTestCase
     public function test_the_platform_sets_the_favicon_for_everyone(): void
     {
         $this->company('Acme', 'owner@acme.test');
-        $this->get('/login')->assertSee('<link rel="icon" href="'.url('/favicon.svg').'">', false);
+        $this->get('/login')->assertSee('<link rel="icon" href="'.url('/favicon.svg').'?v=', false);        // the built-in file, with a fingerprint
         $this->get('/brand/favicon')->assertOk()->assertHeader('Content-Type', 'image/svg+xml');
 
         $this->post('/login', ['email' => 'owner@acme.test', 'password' => 'Owner-Passw0rd-1']);
@@ -227,7 +227,7 @@ class SignInBrandingTest extends TenantTestCase
 
             return $client->withToken($token);
         };
-        $platformIcon = url('/favicon.svg');
+        $platformIcon = Company::platformBranding()['favicon_url'];
 
         // no favicon of its own: the platform's, in the page head and in the shared props
         $this->get('/')->assertSee('<link rel="icon" href="'.$platformIcon.'">', false)->assertInertia(fn ($p) => $p->where('app.favicon_url', $platformIcon));
@@ -399,22 +399,22 @@ class SignInBrandingTest extends TenantTestCase
     {
         $this->platformAdmin();
         $this->get('/brand/logo')->assertOk();
-        $colour = $this->get('/brand/logo')->getContent();
+        $colour = $this->get('/brand/logo')->streamedContent();
         $before = app(Company::class)::platformBranding()['logo_url'];
         $this->assertMatchesRegularExpression('/\?v=default-[0-9a-f]{7}$/', $before);                          // a fingerprint of the file, never a fixed word
 
         $this->patch('/platform/branding/logo-style', ['logo_mono' => 'sometimes'])->assertSessionHasErrors('logo_mono');
         $this->patch('/platform/branding/logo-style', ['logo_mono' => true])->assertRedirect()->assertSessionHas('success', 'The built-in logo is now one colour.');
         PlatformSetting::forgetCache();
-        $this->assertNotSame($colour, $this->get('/brand/logo')->getContent());
-        $this->assertStringContainsString('<mask', $this->get('/brand/logo')->getContent());              // one colour: the mark is cut out of a single shape
-        $this->assertStringContainsString('<mask', $this->get('/brand/logo-light')->getContent());
+        $this->assertNotSame($colour, $this->get('/brand/logo')->streamedContent());
+        $this->assertStringContainsString('<mask', $this->get('/brand/logo')->streamedContent());              // one colour: the mark is cut out of a single shape
+        $this->assertStringContainsString('<mask', $this->get('/brand/logo-light')->streamedContent());
         $this->assertNotSame($before, app(Company::class)::platformBranding()['logo_url']);
         $this->assertTrue(app(Company::class)::platformBranding()['logo_mono']);
 
         $this->patch('/platform/branding/logo-style', ['logo_mono' => false])->assertRedirect();
         PlatformSetting::forgetCache();
-        $this->assertSame($colour, $this->get('/brand/logo')->getContent());
+        $this->assertSame($colour, $this->get('/brand/logo')->streamedContent());
     }
 
     public function test_the_sign_in_footer_links_and_business_address_are_set_by_the_platform(): void

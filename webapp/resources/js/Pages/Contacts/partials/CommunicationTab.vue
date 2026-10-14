@@ -47,7 +47,7 @@ const color = { sent: 'bg-emerald-50 text-emerald-700', delivered: 'bg-emerald-5
         </div>
 
         <div v-if="!data" class="text-sm text-slate-400">Loading…</div>
-        <div v-else-if="view === 'email'" class="card overflow-x-auto">
+        <div v-else-if="view === 'email'" class="card table-scroll">
             <table class="w-full text-sm">
                 <thead class="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3">Subject</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Sent</th><th class="px-4 py-3">Opens</th><th class="px-4 py-3">Clicks</th><th /></tr></thead>
                 <tbody class="divide-y divide-slate-100">

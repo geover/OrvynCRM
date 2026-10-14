@@ -98,7 +98,7 @@ const err = (k) => errors.value[k]?.[0];
             <button :class="tab === 'templates' ? 'bg-white shadow-sm' : 'text-slate-500'" class="rounded-md px-4 py-1.5" @click="tab = 'templates'">Permission templates ({{ templates.length }})</button>
         </div>
 
-        <div v-if="tab === 'users'" class="card overflow-x-auto">
+        <div v-if="tab === 'users'" class="card table-scroll">
             <table class="w-full text-sm">
                 <thead class="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Name</th><th class="px-5 py-3">Role</th><th class="px-5 py-3">Permission template</th><th class="px-5 py-3">Status</th><th class="px-5 py-3">Added</th><th /></tr></thead>
                 <tbody class="divide-y divide-slate-100">

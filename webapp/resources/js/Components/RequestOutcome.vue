@@ -22,7 +22,7 @@ const dismiss = () => run(async () => {
         :class="request.status === 'approved' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'" role="status" data-testid="request-outcome" :data-outcome="request.status">
         <component :is="request.status === 'approved' ? CircleCheck : CircleAlert" class="size-4 shrink-0" aria-hidden="true" />
         <span class="min-w-0">
-            <template v-if="request.status === 'approved'">Your last request for {{ what }} was approved: the limit is now <strong class="font-semibold">{{ request.granted_limit }}</strong>.</template>
+            <template v-if="request.status === 'approved'">Your last request for {{ what }} was approved: the limit is now <strong class="font-semibold">{{ request.granted_limit }}</strong><template v-if="request.granted_month"> for {{ request.granted_month }} only</template>.</template>
             <template v-else>Your last request for {{ what }} was declined.</template>
             <template v-if="request.response"> <span class="italic">“{{ request.response }}”</span></template>
         </span>

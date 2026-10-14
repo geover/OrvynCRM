@@ -1,12 +1,13 @@
 <script setup>
+import { ref } from 'vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import PasswordField from '@/Components/PasswordField.vue';
 import SettingsShell from '@/Components/SettingsShell.vue';
 import { fmtMoney, periodLabel } from '@/lib/money';
-import { toast } from '@/lib/ui';
+import { confirmDialog, toast } from '@/lib/ui';
 
 // Stripe: companies subscribe to a tier and type their card on Stripe's own pages, so no card number ever reaches this application.
-const props = defineProps({ settings: Object, tiers: Array, money: Object, subscriptions: Object });
+const props = defineProps({ settings: Object, tiers: Array, money: Object, subscriptions: Object, outdated: { type: Array, default: null } });
 const page = usePage();
 
 const form = useForm({ enabled: props.settings.enabled, require_payment: props.settings.require_payment, secret_key: '', clear_key: false, webhook_secret: '', clear_webhook: false });
@@ -16,6 +17,15 @@ const save = () => form.patch('/platform/settings/payments', {
 });
 const act = (path) => router.post(path, {}, { preserveScroll: true, onSuccess: () => toast(page.props.flash.success ?? 'Done'), onError: (e) => toast(Object.values(e).find((v) => v) ?? 'Stripe refused', 'error') });
 const copy = () => navigator.clipboard?.writeText(props.settings.webhook_url).then(() => toast('Address copied'), () => toast('Select the address and copy it', 'error'));
+// Subscribers charged on an older price than their tier's current one (the price changed after they subscribed)
+const checking = ref(false);
+const tell = ref(true);
+const check = () => { checking.value = true; router.get('/platform/settings/payments', {}, { only: ['outdated'], preserveState: true, preserveScroll: true, preserveUrl: true, onFinish: () => { checking.value = false; } }); };
+async function move() {
+    if (!(await confirmDialog({ title: 'Move them to the new prices?', message: `${props.outdated.length} ${props.outdated.length === 1 ? 'company pays' : 'companies pay'} less than the current price of their tier. From their next renewal they will pay the current one. Nothing is charged or credited now.${tell.value ? ' Their administrators are told.' : ''}`, confirmLabel: 'Move them' }))) return;
+    router.post('/platform/settings/payments/move-subscribers', { tell: tell.value }, { preserveScroll: true, onSuccess: () => { toast(page.props.flash.success ?? 'Done', 'success', 8000); if (page.props.flash.warning) toast(page.props.flash.warning, 'error', 14000); check(); } });
+}
+const STATE = { synced: ['on Stripe', '!bg-emerald-50 !text-emerald-700'], outdated: ['Stripe has the old price', '!bg-amber-50 !text-amber-700'], missing: ['not on Stripe yet', '!bg-amber-50 !text-amber-700'], none: ['not sold online', ''] };
 const price = (t) => (t.price === null ? 'no price' : `${fmtMoney(t.price, props.money.currency)} / ${periodLabel(props.money.period)}`);
 const STATUS = { trialing: 'trialing', active: 'active', past_due: 'payment late', canceled: 'cancelled', unpaid: 'unpaid', incomplete: 'incomplete' };
 </script>
@@ -62,10 +72,24 @@ const STATUS = { trialing: 'trialing', active: 'active', past_due: 'payment late
                 <h2 id="st-prices" class="text-sm font-semibold">Stripe prices</h2>
                 <p class="text-xs text-slate-500">Each tier is a recurring price on Stripe. They are made from the prices on <Link href="/platform/settings/plans" class="text-brand-700 hover:underline">Plans &amp; trial</Link>; press the button after you change a price. Companies already subscribed keep the price they signed up for.</p>
                 <ul class="divide-y divide-slate-100 text-sm" data-testid="stripe-tiers">
-                    <li v-for="t in tiers" :key="t.tier" class="flex items-center justify-between gap-3 py-2"><span class="font-medium">{{ t.name }}</span><span class="text-slate-500">{{ price(t) }}</span><span class="badge" :class="t.synced ? '!bg-emerald-50 !text-emerald-700' : t.price === null ? '' : '!bg-amber-50 !text-amber-700'">{{ t.synced ? 'on Stripe' : t.price === null ? 'not sold online' : 'not on Stripe yet' }}</span></li>
+                    <li v-for="t in tiers" :key="t.tier" class="flex items-center justify-between gap-3 py-2"><span class="font-medium">{{ t.name }}</span><span class="text-slate-500">{{ price(t) }}</span><span class="badge" :class="STATE[t.state][1]" :data-testid="`state-${t.tier}`">{{ STATE[t.state][0] }}</span></li>
                 </ul>
                 <button type="button" class="btn-outline" :disabled="!settings.enabled || !settings.key_set" data-testid="sync-prices" @click="act('/platform/settings/payments/prices')">Create or update the Stripe prices</button>
                 <p v-if="page.props.errors.prices" class="text-xs text-red-600" role="alert">{{ page.props.errors.prices }}</p>
+            </section>
+
+            <section class="card space-y-3 p-5" aria-labelledby="st-old" data-testid="old-price-section">
+                <h2 id="st-old" class="text-sm font-semibold">Subscribers on an old price</h2>
+                <p class="text-xs text-slate-500">When a tier's price changes, companies already subscribed keep the price they signed up for. Check who that is, and move them to the current price from their next renewal if you want to. Nothing is charged or credited when you do.</p>
+                <button type="button" class="btn-outline" :disabled="!settings.enabled || !settings.key_set || checking" data-testid="check-old" @click="check">{{ checking ? 'Checking Stripe…' : 'Check subscribers' }}</button>
+                <template v-if="outdated !== null">
+                    <p v-if="!outdated.length" class="text-sm text-emerald-700" data-testid="old-none">Everybody is on the current price.</p>
+                    <template v-else>
+                        <ul class="divide-y divide-slate-100 text-sm" data-testid="old-list"><li v-for="(o, i) in outdated" :key="i" class="flex justify-between gap-3 py-1.5"><span class="font-medium">{{ o.company }}</span><span class="text-slate-500">Tier {{ o.tier }}</span></li></ul>
+                        <label class="flex items-center gap-2 text-sm"><input v-model="tell" type="checkbox" class="size-4 accent-brand-600" data-testid="tell-old" /> Tell their administrators (a notice in the app and an e-mail)</label>
+                        <button type="button" class="btn-primary" data-testid="move-old" @click="move">Move {{ outdated.length }} {{ outdated.length === 1 ? 'subscriber' : 'subscribers' }} to the current price</button>
+                    </template>
+                </template>
             </section>
 
             <section v-if="Object.keys(subscriptions).length" class="card p-5" aria-labelledby="st-subs">

@@ -29,7 +29,7 @@ class PlatformSeatRequestController extends Controller
             'requests' => SeatRequest::orderByRaw("case status when 'pending' then 0 else 1 end")->orderByDesc('id')->limit(200)->get()->map(fn (SeatRequest $r) => [
                 'id' => $r->id, 'company_id' => $r->tenant_id, 'company' => $companies[$r->tenant_id] ?? 'Deleted company',
                 'requester_name' => $r->requester_name, 'requester_email' => $r->requester_email,
-                'current_limit' => $r->current_limit, 'requested_limit' => $r->requested_limit, 'granted_limit' => $r->granted_limit,
+                'current_limit' => $r->current_limit, 'requested_limit' => $r->requested_limit, 'granted_limit' => $r->granted_limit, 'granted_month' => $r->granted_month,
                 'message' => $r->message, 'status' => $r->status, 'response' => $r->response,
                 'created_at' => $r->created_at?->toIso8601String(), 'handled_at' => $r->handled_at?->toIso8601String(), 'archived_at' => $r->archived_at?->toIso8601String(),
                 'kind' => $r->kind, 'data_object_id' => $r->data_object_id, 'data_object_name' => $r->data_object_name,
@@ -43,13 +43,13 @@ class PlatformSeatRequestController extends Controller
     public function approve(Request $request, SeatRequest $seatRequest): RedirectResponse
     {
         abort_unless($seatRequest->status === 'pending' && ! $seatRequest->archived_at, 422, 'This request was already handled.');
-        $d = $request->validate(['granted_limit' => ['nullable', 'integer', 'min:1', 'max:100000'], 'response' => ['nullable', 'string', 'max:1000']]);
+        $d = $request->validate(['granted_limit' => ['nullable', 'integer', 'min:1', 'max:10000000'], 'response' => ['nullable', 'string', 'max:1000'], 'this_month_only' => ['sometimes', 'boolean']]);
         $limit = $d['granted_limit'] ?? $seatRequest->requested_limit;
 
-        $this->requests->grant($seatRequest, $limit);
-        $this->close($seatRequest, 'approved', $limit, $d['response'] ?? null, $request);
+        $month = $this->requests->grant($seatRequest, $limit, $seatRequest->kind === SeatRequest::TEXTS && ! empty($d['this_month_only']));
+        $this->close($seatRequest, 'approved', $limit, $d['response'] ?? null, $request, $month);
 
-        return back()->with('success', "Approved: the limit is now {$limit}.");
+        return back()->with('success', $month ? "Approved for this month only: the limit is now {$limit} until the month ends." : "Approved: the limit is now {$limit}.");
     }
 
     public function decline(Request $request, SeatRequest $seatRequest): RedirectResponse
@@ -87,9 +87,9 @@ class PlatformSeatRequestController extends Controller
     }
 
     /** Record the outcome and tell the person who asked. */
-    private function close(SeatRequest $r, string $status, ?int $granted, ?string $response, Request $request): void
+    private function close(SeatRequest $r, string $status, ?int $granted, ?string $response, Request $request, ?string $month = null): void
     {
-        $r->update(['status' => $status, 'granted_limit' => $granted, 'response' => $response, 'handled_by' => $request->attributes->get('platform_identity')?->id, 'handled_at' => now()]);
+        $r->update(['status' => $status, 'granted_limit' => $granted, 'granted_month' => $month, 'response' => $response, 'handled_by' => $request->attributes->get('platform_identity')?->id, 'handled_at' => now()]);
         $this->requests->tellRequester($r);
     }
 }

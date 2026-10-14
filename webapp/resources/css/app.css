@@ -36,6 +36,18 @@
     @apply rounded-xl border border-slate-200 bg-white shadow-sm;
 }
 
+/* A table that can grow long: scrolls inside its own box (both ways) and keeps its column names in view */
+@utility table-scroll {
+    max-height: min(34rem, 70vh);
+    overflow: auto;
+    & thead th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background-color: var(--color-white);
+    }
+}
+
 @utility label {
     @apply mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500;
 }
@@ -179,6 +191,10 @@ html.dark[data-dark-style='dim'] {
 html.dark[data-dark-style='mocha'] {
     --surface: #231f1c; --color-slate-50: #161311; --color-slate-100: #2f2a26; --color-slate-200: #413a35; --color-slate-300: #5a5149; --color-slate-400: #8b7f74;
     --color-slate-500: #b0a498; --color-slate-600: #c9beb2; --color-slate-700: #e0d7cd; --color-slate-800: #f0eae3; --color-slate-900: #faf7f3;
+}
+
+html.dark .table-scroll thead th {
+    background-color: var(--surface);
 }
 
 html.dark .bg-white,

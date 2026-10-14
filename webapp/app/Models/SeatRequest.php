@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 /**
- * A company's request for more users, more data objects, or more automations for one data object. Handled by a platform
+ * A company's request for more users, more data objects, more automations for one data object, or more texts per month. Handled by a platform
  * administrator (billing is not part of this yet). See App\Services\Tenancy\LimitRequests.
  */
 class SeatRequest extends Model
@@ -20,6 +20,8 @@ class SeatRequest extends Model
     public const DATA_OBJECTS = 'data_objects';
 
     public const AUTOMATIONS = 'automations';
+
+    public const TEXTS = 'texts';
 
     protected $guarded = ['id'];
 
@@ -44,6 +46,7 @@ class SeatRequest extends Model
         return match ($this->kind) {
             self::DATA_OBJECTS => 'more data objects',
             self::AUTOMATIONS => "more automations for “{$this->data_object_name}”",
+            self::TEXTS => 'more texts per month',
             default => 'more users',
         };
     }
@@ -54,6 +57,7 @@ class SeatRequest extends Model
         return match ($this->kind) {
             self::DATA_OBJECTS => 'data object',
             self::AUTOMATIONS => 'automation',
+            self::TEXTS => 'text',
             default => 'user',
         };
     }

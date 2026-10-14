@@ -6,6 +6,8 @@ use App\Models\Integration;
 use App\Services\Tenancy\SmsNumbers;
 use App\Services\Tenancy\SmsSettings;
 use App\Services\Tenancy\WebhookToken;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 use Throwable;
@@ -69,7 +71,8 @@ class TwilioClient
             'StatusCallback' => $this->statusCallback(),
         ]);
 
-        $response = Http::asForm()->withBasicAuth($account['sid'], $account['token'])->timeout(15)->retry(2, 500)
+        $response = Http::asForm()->withBasicAuth($account['sid'], $account['token'])->timeout(15)
+            ->retry(2, 500, fn ($e) => $e instanceof ConnectionException || ($e instanceof RequestException && $e->response->serverError()), throw: false)
             ->post("https://api.twilio.com/2010-04-01/Accounts/{$account['sid']}/Messages.json", $fields);
 
         if ($response->failed()) {

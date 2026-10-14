@@ -31,7 +31,9 @@ class SubscriptionCancellationTest extends TenantTestCase
     {
         $this->app['auth']->forgetGuards();
         $this->flushSession();
+        $this->defaultHeaders = [];
         $this->post('/login', ['email' => $email, 'password' => $password]);
+        $this->bearerFor($email, $password);
     }
 
     private function subscribed(Tenant $tenant, int $tier = 3): CompanySubscription

@@ -43,7 +43,7 @@ const sendReset = (a) => router.post(`/platform/administrators/${a.id}/reset-pas
         <button class="btn-primary" @click="adding = true"><Plus class="size-4" /> Add administrator</button>
     </PageHeader>
 
-    <div class="card overflow-x-auto">
+    <div class="card table-scroll">
         <table class="w-full text-sm" aria-label="Platform administrators">
             <thead class="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Name</th><th class="px-5 py-3">Email</th><th class="px-5 py-3">Status</th><th /></tr></thead>
             <tbody class="divide-y divide-slate-100">

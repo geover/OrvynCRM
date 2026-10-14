@@ -54,6 +54,8 @@ class UsageTrackerTest extends TenantTestCase
     public function test_a_record_is_made_for_the_month_with_the_usage_and_the_limits_of_the_tier(): void
     {
         $tenant = $this->company('Acme', 'owner@acme.test');
+        app(Plans::class)->applyTier($tenant, 1);                  // a company made by the helper has the default limit, not a tier's
+        $tenant->refresh();
         $this->texts($tenant, 12);
 
         $row = app(UsageTracker::class)->refresh($tenant);
@@ -142,13 +144,17 @@ class UsageTrackerTest extends TenantTestCase
         app(UsageTracker::class)->refresh($acme);
         AccountUser::create(['name' => 'Platform Admin', 'email' => 'platform@x.test', 'password' => 'Platform-Passw0rd-1', 'is_platform_admin' => true]);
 
+        $this->defaultHeaders = [];
+
         $this->post('/login', ['email' => 'platform@x.test', 'password' => 'Platform-Passw0rd-1']);
         $this->get('/platform/usage')->assertOk()->assertInertia(fn ($p) => $p->component('Platform/Usage')->where('companies.0.level', 'near')->where('companies.0.sms.used', 85));
         $this->get('/platform')->assertInertia(fn ($p) => $p->where('companies.0.usage_level', 'near'));
 
         $this->app['auth']->forgetGuards();
         $this->flushSession();
+        $this->defaultHeaders = [];
         $this->post('/login', ['email' => 'owner@acme.test', 'password' => 'Owner-Passw0rd-1']);
+        $this->bearerFor('owner@acme.test', 'Owner-Passw0rd-1');
         $this->getJson('/api/v1/billing')->assertOk()->assertJsonPath('data.history.0.sms', 85)->assertJsonPath('data.numbers.max', 1);
     }
 
@@ -156,7 +162,9 @@ class UsageTrackerTest extends TenantTestCase
     {
         $this->company('Acme', 'owner@acme.test');
         $this->get('/platform/usage')->assertRedirect('/login');
+        $this->defaultHeaders = [];
         $this->post('/login', ['email' => 'owner@acme.test', 'password' => 'Owner-Passw0rd-1']);
+        $this->bearerFor('owner@acme.test', 'Owner-Passw0rd-1');
         $this->get('/platform/usage')->assertForbidden();
     }
 
@@ -164,6 +172,7 @@ class UsageTrackerTest extends TenantTestCase
     {
         app(TenantProvisioner::class)->createCompany('Late Co', 'late-co', ['name' => 'Lee', 'email' => 'lee@late.test', 'password' => 'Late-Passw0rd-1']);
         AccountUser::create(['name' => 'Platform Admin', 'email' => 'platform@x.test', 'password' => 'Platform-Passw0rd-1', 'is_platform_admin' => true]);
+        $this->defaultHeaders = [];
         $this->post('/login', ['email' => 'platform@x.test', 'password' => 'Platform-Passw0rd-1']);
 
         $this->get('/platform/usage')->assertOk()->assertInertia(fn ($p) => $p->has('companies', 1));

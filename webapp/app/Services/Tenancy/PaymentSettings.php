@@ -91,6 +91,17 @@ class PaymentSettings
         return PlatformSetting::get("stripe.price_sig.{$tier}") ?: null;
     }
 
+    /** The tier name the Stripe product was last given. */
+    public function productName(int $tier): ?string
+    {
+        return PlatformSetting::get("stripe.product_name.{$tier}") ?: null;
+    }
+
+    public function saveProductName(int $tier, string $name): void
+    {
+        PlatformSetting::put("stripe.product_name.{$tier}", $name);
+    }
+
     public function productId(int $tier): ?string
     {
         return PlatformSetting::get("stripe.product.{$tier}") ?: null;

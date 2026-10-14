@@ -37,7 +37,9 @@ class PlansTest extends TenantTestCase
     {
         $this->app['auth']->forgetGuards();
         $this->flushSession();
+        $this->defaultHeaders = [];
         $this->post('/login', ['email' => $email, 'password' => $password]);
+        $this->bearerFor($email, $password);
     }
 
     private function trialCompany(string $name = 'Acme', string $email = 'owner@acme.test'): Tenant

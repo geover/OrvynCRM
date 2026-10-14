@@ -33,11 +33,11 @@ const sum = (o) => Object.entries(o ?? {});
             </div>
             <section v-for="g in [{ t: 'Emails waiting / failed', rows: data.emails, f: 'subject' }, { t: 'SMS waiting / failed', rows: data.sms, f: 'body' }]" :key="g.t" class="card">
                 <h2 class="card-title">{{ g.t }}</h2>
-                <table class="w-full text-sm"><tbody class="divide-y divide-slate-100">
+                <div class="table-scroll"><table class="w-full text-sm"><tbody class="divide-y divide-slate-100">
                     <tr v-for="m in g.rows" :key="m.id"><td class="max-w-md truncate px-5 py-2.5">{{ m[g.f] }}</td><td class="px-3 py-2.5 text-slate-500">{{ m.contact ? `${m.contact.first_name ?? ''} ${m.contact.last_name ?? ''}` : '' }}</td>
                         <td class="px-3 py-2.5"><span class="badge" :class="color[m.status]" :title="m.error">{{ m.status }}</span></td><td class="px-5 py-2.5 text-right text-xs text-slate-400">{{ fmtDate(m.scheduled_at || m.created_at, true) }}</td></tr>
                     <tr v-if="!g.rows.length"><td class="px-5 py-8 text-center text-slate-400">Queue is empty.</td></tr>
-                </tbody></table>
+                </tbody></table></div>
             </section>
         </div>
     </AdminPage>

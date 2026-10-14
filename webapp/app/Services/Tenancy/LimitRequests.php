@@ -17,7 +17,7 @@ use Throwable;
  */
 class LimitRequests
 {
-    public function __construct(private readonly Pricing $pricing, private readonly PlatformNotifier $notifier) {}
+    public function __construct(private readonly Pricing $pricing, private readonly PlatformNotifier $notifier, private readonly Plans $plans) {}
 
     /** Is a request of this kind (for this data object) already waiting for the open company? */
     public function hasPending(string $kind, ?int $dataObjectId = null): bool
@@ -29,7 +29,7 @@ class LimitRequests
     public function submit(User $by, string $kind, int $currentLimit, int $requestedLimit, ?string $message, ?string $dataObjectName = null, ?int $dataObjectId = null): SeatRequest
     {
         $price = $this->pricing->current();
-        $unit = $price[self::PRICE_KEY[$kind]];
+        $unit = isset(self::PRICE_KEY[$kind]) ? $price[self::PRICE_KEY[$kind]] : null;      // texts have no quote: the platform sets them case by case
 
         $request = SeatRequest::create([
             'tenant_id' => tenant('id'), 'kind' => $kind, 'data_object_id' => $dataObjectId, 'data_object_name' => $dataObjectName,
@@ -59,20 +59,38 @@ class LimitRequests
         return match (true) {
             ! $tenant => null,
             $request->kind === SeatRequest::DATA_OBJECTS => (int) $tenant->max_data_objects,
+            $request->kind === SeatRequest::TEXTS => $this->plans->smsLimit($tenant),
             $request->kind === SeatRequest::AUTOMATIONS => (int) (ObjectAutomationLimit::where('tenant_id', $request->tenant_id)->where('data_object_id', $request->data_object_id)->value('max_automations') ?? $tenant->max_automations_per_object),
             default => (int) $tenant->max_users,
         };
     }
 
-    /** Raise the company's limit to `$limit`: its user or data object limit, or the automation limit of the one data object. */
-    public function grant(SeatRequest $request, int $limit): void
+    /**
+     * Raise the company's limit to `$limit`: its user or data object limit, or the automation limit of the one data object, or its texts
+     * a month. Texts can be granted for the current month only (`$thisMonthOnly`): a bonus that ends by itself with the month.
+     *
+     * @return string|null the month (2026-11) a one-month text grant is for, else null
+     */
+    public function grant(SeatRequest $request, int $limit, bool $thisMonthOnly = false): ?string
     {
         $tenant = Tenant::findOrFail($request->tenant_id);
+        if ($request->kind === SeatRequest::TEXTS && $thisMonthOnly) {
+            $month = $this->plans->currentMonth($tenant);
+            $tenant->update(['bonus_sms' => max(0, $limit - (int) $this->plans->tier((int) $tenant->tier)['sms_per_month'] - (int) $tenant->extra_sms), 'bonus_sms_month' => $month]);
+            app(UsageTracker::class)->refresh($tenant->refresh());
+
+            return $month;
+        }
         match ($request->kind) {
             SeatRequest::DATA_OBJECTS => $tenant->update(['max_data_objects' => $limit]),
+            // texts: the limit is the tier's plus the company's extra, so the extra becomes whatever is needed to reach the granted total
+            SeatRequest::TEXTS => $tenant->update(['extra_sms' => max(0, $limit - (int) $this->plans->tier((int) $tenant->tier)['sms_per_month']), 'bonus_sms' => 0, 'bonus_sms_month' => null]),
             SeatRequest::AUTOMATIONS => ObjectAutomationLimit::updateOrCreate(['tenant_id' => $tenant->getTenantKey(), 'data_object_id' => $request->data_object_id], ['max_automations' => $limit]),
             default => $tenant->update(['max_users' => $limit]),
         };
+        $request->kind === SeatRequest::TEXTS && app(UsageTracker::class)->refresh($tenant->refresh());      // its meters, notices and the platform's Usage page follow at once
+
+        return null;
     }
 
     /** E-mail the person who asked: approved (with the new limit) or declined. Their User management / Data Objects page shows it too. */
@@ -80,7 +98,7 @@ class LimitRequests
     {
         $company = Tenant::find($request->tenant_id);
         $text = $request->status === 'approved'
-            ? "Your request for {$request->subject()} for {$company?->name} was approved. The limit is now {$request->granted_limit}."
+            ? "Your request for {$request->subject()} for {$company?->name} was approved. The limit is now {$request->granted_limit}".($request->kind === SeatRequest::TEXTS ? ($request->granted_month ? ' texts, for '.now()->createFromFormat('Y-m', $request->granted_month)->format('F Y').' only.' : ' texts a month.') : '.')
             : "Your request for {$request->subject()} for {$company?->name} was declined.";
         $text .= $request->response ? "\n\n{$request->response}" : '';
 

@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\CompanyBilling;
 use App\Models\CompanyUsage;
+use App\Models\SeatRequest;
 use App\Models\Tenant;
+use App\Services\Tenancy\LimitRequests;
 use App\Services\Tenancy\Plans;
 use App\Services\Tenancy\PlatformNotifier;
 use App\Services\Tenancy\Seats;
@@ -85,8 +87,9 @@ class BillingController extends Controller
             throw ValidationException::withMessages(['tier' => "{$target['name']} allows {$target['users']} active users and you have {$users}. Suspend or remove some people first."]);
         }
         $chosen = count($numbers->chosen());
-        if ($chosen > $target['sms_numbers']) {
-            throw ValidationException::withMessages(['tier' => "{$target['name']} allows {$target['sms_numbers']} texting ".($target['sms_numbers'] === 1 ? 'number' : 'numbers')." and you use {$chosen}. Remove some under Admin settings, Twilio."]);
+        $allowedNumbers = $target['sms_numbers'] + (int) $company->extra_numbers;
+        if ($chosen > $allowedNumbers) {
+            throw ValidationException::withMessages(['tier' => "{$target['name']} allows {$allowedNumbers} texting ".($allowedNumbers === 1 ? 'number' : 'numbers')." and you use {$chosen}. Remove some under Admin settings, Twilio."]);
         }
 
         $from = $this->plans->tier((int) $company->tier)['name'];
@@ -153,6 +156,23 @@ class BillingController extends Controller
         return response()->json(['data' => $this->payload($request, $this->company())]);
     }
 
+    /** Ask the platform for more texts per month (the same request list as more users, data objects and automations). */
+    public function requestTexts(Request $request, LimitRequests $requests): JsonResponse
+    {
+        abort_unless($request->user()->isAdmin() && tenancy()->initialized, 403);
+        $company = $this->company();
+        $current = $this->plans->smsLimit($company);
+        $d = $request->validate([
+            'requested_limit' => ['required', 'integer', 'min:'.($current + 1), 'max:10000000'],
+            'message' => ['nullable', 'string', 'max:1000'],
+        ]);
+        abort_if($requests->hasPending(SeatRequest::TEXTS), 422, 'You already have a request for more texts waiting for the platform.');
+
+        $requests->submit($request->user(), SeatRequest::TEXTS, $current, (int) $d['requested_limit'], $d['message'] ?? null);
+
+        return response()->json(['data' => $this->payload($request, $company)], 201);
+    }
+
     /** Stripe's Customer Portal: card, invoices, cancelling. */
     public function portal(Request $request): JsonResponse
     {
@@ -184,6 +204,10 @@ class BillingController extends Controller
         if ($out['is_admin']) {
             $b = $this->plans->billing($company);
             $out['tiers'] = $this->plans->tiers();
+            // the latest request for more texts, until the company clears an answered one
+            $asked = SeatRequest::where('tenant_id', $company->getTenantKey())->where('kind', SeatRequest::TEXTS)->latest('id')->first();
+            $out['text_request'] = $asked && ! ($asked->tenant_dismissed_at && $asked->status !== 'pending')
+                ? $asked->only(['id', 'status', 'requested_limit', 'granted_limit', 'granted_month', 'response']) + ['created_at' => $asked->created_at?->toIso8601String()] : null;
             $out['history'] = app(UsageTracker::class)->history($company)->map(fn (CompanyUsage $u) => $u->only(['period', 'tier', 'users', 'users_limit', 'sms', 'sms_limit', 'numbers', 'numbers_limit']))->values()->all();
             $out['billing'] = collect(CompanyBilling::REQUIRED)->merge(['phone', 'address_line2', 'region', 'tax_id', 'po_reference'])->mapWithKeys(fn ($f) => [$f => (string) ($b?->{$f} ?? '')])->all();
         }

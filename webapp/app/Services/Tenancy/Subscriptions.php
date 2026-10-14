@@ -88,6 +88,10 @@ class Subscriptions
 
                 continue;
             }
+            // a renamed tier renames its product on Stripe too
+            if ($product = $this->settings->productId($n)) {
+                $this->settings->productName($n) !== $tier['name'] && $this->renameProduct($n, $product, $tier['name']);
+            }
             $amount = $this->minorUnits($tier['price'], $money['currency']);
             $signature = "{$amount}|{$money['currency']}|{$money['period']}";
             if ($this->settings->priceId($n) && $this->settings->priceSignature($n) === $signature) {
@@ -110,10 +114,115 @@ class Subscriptions
                 }
             }
             $this->settings->savePrice($n, $product, $price, $signature);
+            $this->settings->saveProductName($n, $tier['name']);
             $out['created'][] = $n;
         }
 
         return $out;
+    }
+
+    /** What a tier's price signature should be for Stripe (amount in the smallest unit, currency, interval). */
+    private function signatureFor(array $tier): ?string
+    {
+        if ($tier['price'] === null) {
+            return null;
+        }
+        $money = $this->plans->money();
+
+        return $this->minorUnits($tier['price'], $money['currency']).'|'.$money['currency'].'|'.$money['period'];
+    }
+
+    /**
+     * Where a tier's price stands against Stripe: none (no price here, not sold online), synced (Stripe has this price), outdated (the price
+     * or currency changed here since Stripe's was made) or missing (a price here that Stripe does not have yet).
+     *
+     * @return 'none'|'synced'|'outdated'|'missing'
+     */
+    public function stateOf(int $tier): string
+    {
+        $t = $this->plans->tier($tier);
+        if ($t['price'] === null) {
+            return 'none';
+        }
+        if (! $this->settings->priceId($tier)) {
+            return 'missing';
+        }
+
+        return $this->settings->priceSignature($tier) === $this->signatureFor($t) ? 'synced' : 'outdated';
+    }
+
+    /**
+     * Running subscriptions that are charged on an older Stripe price than their tier's current one (the price changed after they subscribed).
+     * A subscription whose price is not known yet is looked up on Stripe.
+     *
+     * @return list<array{row: CompanySubscription, company: string, tier: int, from: string|null, to: string}>
+     */
+    public function outdatedSubscribers(): array
+    {
+        $out = [];
+        $names = Tenant::pluck('name', 'id');
+        foreach (CompanySubscription::whereIn('status', CompanySubscription::GOOD)->whereNotNull('stripe_subscription_id')->get() as $row) {
+            $current = $row->tier ? $this->settings->priceId((int) $row->tier) : null;
+            if (! $current) {
+                continue;
+            }
+            if (! $row->stripe_price_id) {
+                try {
+                    $price = $this->stripe->get("subscriptions/{$row->stripe_subscription_id}")['items']['data'][0]['price']['id'] ?? null;
+                    $price && $row->update(['stripe_price_id' => $price]);
+                } catch (Throwable) {
+                    continue;
+                }
+            }
+            if ($row->stripe_price_id && $row->stripe_price_id !== $current) {
+                $out[] = ['row' => $row, 'company' => $names[$row->tenant_id] ?? 'Deleted company', 'tier' => (int) $row->tier, 'from' => $row->stripe_price_id, 'to' => $current];
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Move the subscribers who are on an old price to the current one, from their next renewal (nothing is charged or credited now).
+     *
+     * @return array{moved: int, failed: list<string>}
+     */
+    public function moveSubscribers(bool $tell): array
+    {
+        $this->ensureAvailable();
+        $moved = 0;
+        $failed = [];
+        foreach ($this->outdatedSubscribers() as $o) {
+            $row = $o['row'];
+            try {
+                $item = $this->stripe->get("subscriptions/{$row->stripe_subscription_id}")['items']['data'][0]['id'] ?? null;
+                $this->stripe->post("subscriptions/{$row->stripe_subscription_id}", ['items' => [['id' => $item, 'price' => $o['to']]], 'proration_behavior' => 'none']);
+                $row->update(['stripe_price_id' => $o['to']]);
+                $moved++;
+                if ($tell && ($tenant = Tenant::find($row->tenant_id))) {
+                    $plan = $this->plans->tier($o['tier']);
+                    $money = $this->plans->money();
+                    $this->notices->tell($tenant, "The price of {$plan['name']} has changed", [
+                        "From your next renewal your plan {$plan['name']} costs ".number_format((float) $plan['price'], 2)." {$money['currency']} per {$money['period']}.",
+                        'Nothing is charged or credited now. You can see your subscription and invoices on the Billing & plan page.',
+                    ]);
+                }
+            } catch (Throwable $e) {
+                $failed[] = $o['company'].': '.str($e->getMessage())->squish()->limit(100)->value();
+            }
+        }
+
+        return ['moved' => $moved, 'failed' => $failed];
+    }
+
+    private function renameProduct(int $tier, string $product, string $name): void
+    {
+        try {
+            $this->stripe->post("products/{$product}", ['name' => 'OrvynCRM '.$name]);
+            $this->settings->saveProductName($tier, $name);
+        } catch (Throwable) {
+            // the name on Stripe is only a label: try again on the next sync
+        }
     }
 
     /** Stripe wants the smallest unit of the currency (cents). A few currencies have none. */
@@ -203,7 +312,7 @@ class Subscriptions
         $this->stripe->post("subscriptions/{$sub->stripe_subscription_id}", [
             'items' => [['id' => $item, 'price' => $priceId]], 'proration_behavior' => 'create_prorations', 'metadata' => ['tier' => $tier],
         ]);
-        $sub->update(['tier' => $tier]);
+        $sub->update(['tier' => $tier, 'stripe_price_id' => $priceId]);
 
         return true;
     }
@@ -378,6 +487,7 @@ class Subscriptions
         $wasGood = (bool) $before?->isGood();
         $row = CompanySubscription::updateOrCreate(['tenant_id' => $tenant->getTenantKey()], [
             'stripe_customer_id' => $sub['customer'] ?? null, 'stripe_subscription_id' => $sub['id'] ?? null, 'status' => $status, 'tier' => $tier,
+            'stripe_price_id' => $sub['items']['data'][0]['price']['id'] ?? null,
             'current_period_end' => ($sub['current_period_end'] ?? $sub['items']['data'][0]['current_period_end'] ?? null) ? now()->setTimestamp((int) ($sub['current_period_end'] ?? $sub['items']['data'][0]['current_period_end'])) : null,
             'trial_end' => ! empty($sub['trial_end']) ? now()->setTimestamp((int) $sub['trial_end']) : null,
             'cancel_at_period_end' => (bool) ($sub['cancel_at_period_end'] ?? false),

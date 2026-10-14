@@ -23,7 +23,9 @@ class InactiveCompaniesTest extends TenantTestCase
 
     private function age(Tenant $tenant, int $days): void
     {
-        $tenant->update(['last_active_at' => now()->subDays($days), 'inactive_since' => null]);
+        // straight to the table: an update on a model that already holds this value would send nothing
+        Tenant::whereKey($tenant->getTenantKey())->update(['last_active_at' => now()->subDays($days), 'inactive_since' => null]);
+        $tenant->refresh();
     }
 
     private function platformAdmin(string $email = 'platform@x.test'): AccountUser
@@ -94,7 +96,7 @@ class InactiveCompaniesTest extends TenantTestCase
     public function test_a_company_never_used_counts_from_the_day_it_was_created(): void
     {
         $company = $this->company('Acme', 'owner@acme.test');
-        $company->forceFill(['last_active_at' => null, 'created_at' => now()->subDays(50)])->save();
+        DB::table('tenants')->where('id', $company->getTenantKey())->update(['last_active_at' => null, 'created_at' => now()->subDays(50)]);
 
         $this->assertSame(1, app(InactiveCompanies::class)->scan()['flagged']);
     }

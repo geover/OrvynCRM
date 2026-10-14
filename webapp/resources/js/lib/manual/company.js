@@ -281,7 +281,7 @@ export default {
                         { h: "The free trial" },
                         { p: "A workspace created through sign-up starts with a free trial on **Tier 1**. The banner and this page show how many days are left, and you get reminders by e-mail and in the bell 14 days, 7 days and 1 day before it ends. You may enter your billing information at any time, even on day one." },
                         { warn: "When the trial ends and no billing information is on file, only the Billing & plan page (and the manual) stays open, for everybody in the company, until an administrator enters it. Nothing is deleted. People who are not administrators are asked to tell theirs." },
-                        { h: "Plans" },
+                        { h: "Plans (the platform can change these numbers)" },
                         {
                             table: {
                                 head: ["Plan", "Active users", "Texts per month", "Texting numbers"],
@@ -294,8 +294,10 @@ export default {
                                 ],
                             },
                         },
-                        { p: "The page shows each plan with its price (or *Contact us* when the platform has not set one) and how much of your plan you use: **Active users**, **Texts this month** (it starts again each calendar month) and **Texting numbers**." },
+                        { p: "What each plan includes is set by the platform and can change; the page always shows the current numbers. If the platform gave your company extra texts or texting numbers, the meters include them and say so. The page shows each plan with its price (or *Contact us* when the platform has not set one) and how much of your plan you use: **Active users**, **Texts this month** (it starts again each calendar month) and **Texting numbers**." },
                         { steps: ["Enter your **billing information** first. A plan cannot be chosen without it.", "Press **Upgrade to…** or **Switch to…** on the plan you want and confirm.", "The new limits apply at once, and the platform is told."] },
+                        { p: "If you need more texts than your plan allows, press **Ask for more texts** under the *Texts this month* meter (administrators only). Say how many texts a month you need in total and, if you like, why. The platform sees it in its Requests, and you are e-mailed the answer, which also shows under the meter until you dismiss it. Only one request can wait at a time. If it is approved, the new limit applies at once. The platform may approve it for every month (it stays when you change plan) or for the current month only; the meter then says how many of your extra texts are for this month only, and the allowance goes back on the 1st." },
+                        { p: "When the platform changes what a plan includes or what it costs, the company's administrators get a notice in the app and an e-mail. A new price applies from your next renewal; nothing is charged or credited at that moment." },
                         { p: "A smaller plan must still hold what you have: if you have more active users than it allows, suspend or remove some first; if you use more texting numbers than it allows, remove numbers under Admin settings, Twilio." },
                         { h: "Usage, warnings and limits" },
                         { p: "The meters show **Active users**, **Texts this month** and **Texting numbers** against your plan, and **Usage by month** lists the last months (most active users, texts sent, numbers). You are told by e-mail and in the bell when you reach **80%** and again at **100%** of one of them." },

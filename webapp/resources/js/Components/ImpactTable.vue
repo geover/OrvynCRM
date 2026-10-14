@@ -10,12 +10,13 @@ const BAR = { heavy: 'bg-red-500', busy: 'bg-amber-500', normal: 'bg-emerald-500
 </script>
 
 <template>
-    <section class="card overflow-x-auto" aria-labelledby="h-impact">
+    <section class="card" aria-labelledby="h-impact">
         <div class="px-5 pt-5">
             <h2 id="h-impact" class="text-sm font-semibold">Impact by company</h2>
             <p class="mt-1 text-xs text-slate-400">{{ rangeLabel }}. A company using {{ pct(thresholds.heavy) }} or more of all worker time is flagged Heavy, {{ pct(thresholds.busy) }} or more Busy (only when there are several companies).</p>
         </div>
-        <table class="mt-3 w-full text-sm" aria-label="Impact by company">
+        <div class="table-scroll mt-3">
+        <table class="w-full text-sm" aria-label="Impact by company">
             <thead class="border-y border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500">
                 <tr>
                     <th class="px-5 py-3">Company</th><th class="px-3 py-3">Users</th><th class="px-3 py-3 text-right">Activities</th><th class="px-3 py-3 text-right">Automations</th>
@@ -45,5 +46,6 @@ const BAR = { heavy: 'bg-red-500', busy: 'bg-amber-500', normal: 'bg-emerald-500
                 <tr v-if="!companies.length"><td colspan="11" class="px-5 py-10 text-center text-slate-400">No companies yet.</td></tr>
             </tbody>
         </table>
+        </div>
     </section>
 </template>

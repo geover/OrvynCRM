@@ -87,7 +87,7 @@ const show = (v) => (Array.isArray(v) ? v.join(', ') : typeof v === 'boolean' ? 
             <button class="btn-primary ml-auto" @click="openAdd"><Plus class="size-4" /> Add item</button>
         </div>
 
-        <div class="card overflow-x-auto">
+        <div class="card table-scroll">
             <table class="w-full text-sm">
                 <thead class="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500">
                     <tr><th v-for="f in columns" :key="f.id" class="px-4 py-3">{{ f.label }}</th><th class="px-4 py-3">Linked contacts</th><th /></tr>

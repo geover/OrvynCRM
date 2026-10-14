@@ -64,7 +64,8 @@ const clickRow = (r) => props.rowClickable && emit('row-click', r);
                     <span class="h-4 w-1/5 animate-pulse rounded bg-slate-100" /><span class="h-4 w-1/4 animate-pulse rounded bg-slate-100" /><span class="hidden h-4 w-1/6 animate-pulse rounded bg-slate-100 md:block" /><span class="hidden h-4 w-1/6 animate-pulse rounded bg-slate-100 lg:block" />
                 </div>
             </div>
-            <table v-else class="w-full text-sm max-md:block">
+            <div v-else class="table-scroll max-md:max-h-none max-md:overflow-visible">
+            <table class="w-full text-sm max-md:block">
                 <thead class="max-md:hidden">
                     <tr class="text-left text-xs uppercase tracking-wide text-slate-500">
                         <th v-if="selectable" class="sticky top-[65px] z-10 w-10 rounded-tl-xl border-b border-slate-100 bg-white px-5 py-3"><input type="checkbox" class="rounded" aria-label="Select all rows" :checked="allOn" @change="toggleAll" /></th>
@@ -84,6 +85,7 @@ const clickRow = (r) => props.rowClickable && emit('row-click', r);
                     <tr v-if="!rows.length && !loading" class="max-md:block"><td :colspan="visible.length + 2" class="px-5 py-12 text-center text-slate-400 max-md:block"><slot name="empty">{{ emptyText }}</slot></td></tr>
                 </tbody>
             </table>
+            </div>
             <slot name="footer" />
         </div>
     </div>

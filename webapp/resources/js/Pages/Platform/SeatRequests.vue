@@ -10,16 +10,16 @@ import { confirmDialog, fmtDate, fmtRelative, toast } from '@/lib/ui';
 const props = defineProps({ requests: Array, subscription_requests: { type: Array, default: () => [] } });
 const page = usePage();
 
-const UNIT = { users: ['user', 'users'], data_objects: ['data object', 'data objects'], automations: ['automation', 'automations'] };
+const UNIT = { users: ['user', 'users'], data_objects: ['data object', 'data objects'], automations: ['automation', 'automations'], texts: ['text per month', 'texts per month'] };
 const unit = (r, n = 2) => UNIT[r.kind ?? 'users'][n === 1 ? 0 : 1];
-const KIND = { users: 'Users', data_objects: 'Data objects', automations: 'Automations' };
+const KIND = { users: 'Users', data_objects: 'Data objects', automations: 'Automations', texts: 'Texts' };
 const STATUS = { pending: ['Waiting', '!bg-amber-50 !text-amber-700'], approved: ['Approved', '!bg-emerald-50 !text-emerald-700'], declined: ['Declined', '!bg-slate-100 !text-slate-600'] };
 const tab = ref('active');
 const activeList = computed(() => props.requests.filter((r) => !r.archived_at));
 const archivedList = computed(() => props.requests.filter((r) => r.archived_at));
 const inTab = computed(() => (tab.value === 'archived' ? archivedList.value : activeList.value));
-const kind = ref('all');                                       // 'all' | 'users' | 'data_objects' | 'automations'
-const KIND_FILTERS = [['all', 'All'], ['users', 'Users'], ['data_objects', 'Data objects'], ['automations', 'Automations']];
+const kind = ref('all');                                       // 'all' | 'users' | 'data_objects' | 'automations' | 'texts'
+const KIND_FILTERS = [['all', 'All'], ['users', 'Users'], ['data_objects', 'Data objects'], ['automations', 'Automations'], ['texts', 'Texts']];
 const kindOf = (r) => r.kind ?? 'users';
 const countOf = (k) => inTab.value.filter((r) => k === 'all' || kindOf(r) === k).length;
 const waitingOf = (k) => inTab.value.filter((r) => r.status === 'pending' && (k === 'all' || kindOf(r) === k)).length;
@@ -43,17 +43,18 @@ const subSubmit = () => {
 };
 
 const handling = ref(null);       // { request, action }
-const form = useForm({ granted_limit: '', response: '' });
+const form = useForm({ granted_limit: '', response: '', this_month_only: false });
 
 function handle(request, action) {
     handling.value = { request, action };
     form.granted_limit = request.requested_limit;
     form.response = '';
+    form.this_month_only = false;
     form.clearErrors();
 }
 function submit() {
     const { request, action } = handling.value;
-    form.transform((d) => (action === 'approve' ? d : { response: d.response })).post(`/platform/seat-requests/${request.id}/${action}`, {
+    form.transform((d) => (action === 'approve' ? (request.kind === 'texts' ? d : { granted_limit: d.granted_limit, response: d.response }) : { response: d.response })).post(`/platform/seat-requests/${request.id}/${action}`, {
         preserveScroll: true, onSuccess: () => { handling.value = null; toast(page.props.flash.success ?? 'Done'); },
     });
 }
@@ -109,6 +110,7 @@ function submit() {
                     <p class="text-sm text-slate-500">{{ r.requester_name }} · {{ r.requester_email }}</p>
                     <p v-if="r.price_per_user !== null" class="mt-1 text-sm text-slate-600" data-testid="request-quote">Quoted {{ fmtMoney(r.price_per_user, r.price_currency) }} per additional {{ unit(r, 1) }} per {{ r.price_period }}: {{ r.requested_limit - r.current_limit }} more = <strong>{{ fmtMoney((r.requested_limit - r.current_limit) * r.price_per_user, r.price_currency) }}</strong> per {{ r.price_period }}.</p>
                     <p v-if="r.message" class="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">{{ r.message }}</p>
+                    <p v-if="r.status === 'approved' && r.granted_month" class="mt-1 text-xs text-slate-500" data-testid="granted-month">Approved for {{ r.granted_month }} only.</p>
                     <p v-if="r.response" class="mt-2 text-sm text-slate-500">Your answer: “{{ r.response }}”</p>
                 </div>
                 <div v-if="r.archived_at" class="flex shrink-0 gap-1">
@@ -130,7 +132,12 @@ function submit() {
 
     <Modal v-if="handling" :title="handling.action === 'approve' ? `Approve ${handling.request.company}` : `Decline ${handling.request.company}`" @close="handling = null">
         <form id="seat-decision" class="space-y-3" @submit.prevent="submit">
-            <div v-if="handling.action === 'approve'"><label class="label" for="sd-limit">New limit<template v-if="handling.request.kind === 'automations'"> of automations for “{{ handling.request.data_object_name }}”</template><template v-else-if="handling.request.kind === 'data_objects'"> of data objects</template><template v-else> of users</template></label><input id="sd-limit" v-model.number="form.granted_limit" type="number" min="1" class="input !w-32" required data-testid="granted-limit" /><p class="mt-1 text-xs text-slate-500">They asked for {{ handling.request.requested_limit }}; it is {{ handling.request.limit_now }} now. Billing is not connected yet.</p><p v-if="handling.request.price_per_user !== null && form.granted_limit > handling.request.limit_now" class="mt-1 text-xs text-slate-600">At the quoted price, {{ form.granted_limit - handling.request.limit_now }} more = {{ fmtMoney((form.granted_limit - handling.request.limit_now) * handling.request.price_per_user, handling.request.price_currency) }} per {{ handling.request.price_period }}.</p><p v-if="form.errors.granted_limit" class="mt-1 text-xs text-red-600">{{ form.errors.granted_limit }}</p></div>
+            <div v-if="handling.action === 'approve'"><label class="label" for="sd-limit">New limit<template v-if="handling.request.kind === 'automations'"> of automations for “{{ handling.request.data_object_name }}”</template><template v-else-if="handling.request.kind === 'data_objects'"> of data objects</template><template v-else-if="handling.request.kind === 'texts'"> of texts per month</template><template v-else> of users</template></label><input id="sd-limit" v-model.number="form.granted_limit" type="number" min="1" class="input !w-32" required data-testid="granted-limit" /><p class="mt-1 text-xs text-slate-500">They asked for {{ handling.request.requested_limit }}; it is {{ handling.request.limit_now }} now. Billing is not connected yet.</p><p v-if="handling.request.price_per_user !== null && form.granted_limit > handling.request.limit_now" class="mt-1 text-xs text-slate-600">At the quoted price, {{ form.granted_limit - handling.request.limit_now }} more = {{ fmtMoney((form.granted_limit - handling.request.limit_now) * handling.request.price_per_user, handling.request.price_currency) }} per {{ handling.request.price_period }}.</p><p v-if="form.errors.granted_limit" class="mt-1 text-xs text-red-600">{{ form.errors.granted_limit }}</p></div>
+            <fieldset v-if="handling.action === 'approve' && handling.request.kind === 'texts'" class="space-y-1.5" data-testid="texts-duration">
+                <legend class="label">For how long</legend>
+                <label class="flex items-start gap-2 text-sm"><input v-model="form.this_month_only" type="radio" :value="false" class="mt-0.5 size-4 accent-brand-600" data-testid="duration-permanent" /><span>Every month<span class="block text-xs text-slate-500">The company's allowance stays at this number until you change it.</span></span></label>
+                <label class="flex items-start gap-2 text-sm"><input v-model="form.this_month_only" type="radio" :value="true" class="mt-0.5 size-4 accent-brand-600" data-testid="duration-month" /><span>This month only<span class="block text-xs text-slate-500">A boost for the current month. It ends by itself on the 1st and the allowance goes back to what it was.</span></span></label>
+            </fieldset>
             <div><label class="label" for="sd-note">Message to them <span class="normal-case text-slate-400">(optional, they see it and get it by e-mail)</span></label><textarea id="sd-note" v-model="form.response" class="input min-h-20" maxlength="1000" /></div>
         </form>
         <template #footer><button class="btn-ghost" @click="handling = null">Cancel</button><button class="btn-primary" form="seat-decision" :disabled="form.processing">{{ handling.action === 'approve' ? 'Approve' : 'Decline' }}</button></template>

@@ -62,7 +62,7 @@ const waiting = computed(() => props.counts.waiting);
         <section class="card overflow-hidden" aria-labelledby="su-list">
             <div class="border-b border-slate-100 px-5 py-3"><h2 id="su-list" class="text-sm font-semibold">Recent requests</h2></div>
             <p v-if="!signups.length" class="px-5 py-10 text-center text-sm text-slate-400">No one has asked yet.</p>
-            <div v-else class="overflow-x-auto">
+            <div v-else class="table-scroll">
                 <table class="w-full text-sm" data-testid="signup-table">
                     <thead class="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Company</th><th class="px-5 py-3">Person</th><th class="px-5 py-3">Status</th><th class="px-5 py-3">Asked</th><th /></tr></thead>
                     <tbody class="divide-y divide-slate-100">

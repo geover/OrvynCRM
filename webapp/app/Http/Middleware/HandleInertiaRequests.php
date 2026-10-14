@@ -9,6 +9,7 @@ use App\Models\MessageThread;
 use App\Models\SeatRequest;
 use App\Models\SubscriptionRequest;
 use App\Models\Tenant;
+use App\Services\Heartbeat;
 use App\Services\Tenancy\Plans;
 use App\Support\Tenancy\Company;
 use Illuminate\Http\Request;
@@ -99,6 +100,8 @@ class HandleInertiaRequests extends Middleware
             // the free trial of the open company: a banner for its administrators while it runs out, and the page they are sent to once it has
             'trial' => fn () => Company::isOpen() && ! Company::isSignInPage($request) && ! Company::isPlatformArea($request) && $request->user() && tenancy()->initialized
                 ? $this->trial() : null,
+            // a background process (scheduler or queue worker) that has gone quiet: a banner in the platform area
+            'stoppedServices' => fn () => Company::isPlatformArea($request) && $identityId ? app(Heartbeat::class)->problems() : [],
             'seatRequestsPending' => fn () => Company::isPlatformArea($request) ? SeatRequest::pending()->count() + SubscriptionRequest::pending()->count() : 0,
             'platformMessagesUnread' => fn () => Company::isPlatformArea($request) ? MessageThread::unreadForPlatform()->count() : 0,
             // a company administrator: conversations with the platform that have a new reply
@@ -107,7 +110,7 @@ class HandleInertiaRequests extends Middleware
             // who is signed in at the platform level (the platform area has no company profile to show)
             'identity' => fn () => $identityId && ($who = AccountUser::find($identityId)) ? ['name' => $who->name, 'email' => $who->email] : null,
             'platform' => fn () => $identityId && AccountUser::whereKey($identityId)->where('is_platform_admin', true)->exists(),
-            'flash' => ['success' => fn () => $request->session()->get('success')],
+            'flash' => ['success' => fn () => $request->session()->get('success'), 'warning' => fn () => $request->session()->get('warning')],
         ]);
     }
 }

@@ -4,6 +4,7 @@ import { Head, router } from '@inertiajs/vue3';
 import { Check, Clock, CreditCard, ExternalLink, TriangleAlert } from 'lucide-vue-next';
 import Modal from '@/Components/Modal.vue';
 import PageHeader from '@/Components/PageHeader.vue';
+import RequestOutcome from '@/Components/RequestOutcome.vue';
 import SeatMeter from '@/Components/SeatMeter.vue';
 import { api } from '@/lib/api';
 import { fmtMoney, periodLabel } from '@/lib/money';
@@ -61,6 +62,18 @@ const confirmCancel = async () => { if (await subAction('/billing/cancel', { rea
 const keepSubscription = () => subAction('/billing/resume', {}, 'Your subscription carries on');
 const again = reactive({ tier: '', message: '' });
 const askAgain = () => subAction('/billing/resubscribe', { tier: again.tier || null, message: again.message }, 'The platform was told. You will be notified when you can subscribe again.');
+// Asking the platform for more texts per month (it appears in the platform's Requests like a request for more users)
+const askingTexts = ref(false);
+const textAsk = reactive({ requested_limit: 0, message: '', error: '' });
+const openTextAsk = () => { textAsk.requested_limit = Math.ceil((data.value.sms.max + 500) / 100) * 100; textAsk.message = ''; textAsk.error = ''; askingTexts.value = true; };
+async function sendTextAsk() {
+    textAsk.error = '';
+    try {
+        data.value = (await api.post('/billing/text-request', { requested_limit: textAsk.requested_limit, message: textAsk.message })).data;
+        askingTexts.value = false;
+        toast('The platform was told. You will be e-mailed its answer.', 'success');
+    } catch (e) { textAsk.error = e.errors?.requested_limit?.[0] ?? e.errors?.message?.[0] ?? e.message; }
+}
 const users = (t) => (t.users === null ? 'Unlimited' : t.users);
 
 async function saveBilling() {
@@ -117,8 +130,21 @@ async function choose(t) {
             <div class="mb-4 flex flex-wrap items-center gap-2"><h2 id="bl-usage" class="text-sm font-semibold">Your plan</h2><span class="badge !bg-brand-50 !text-brand-700" data-testid="current-tier">{{ data.tier.name }}</span><span v-if="trial.state === 'trial'" class="badge !bg-sky-50 !text-sky-700">Trial</span></div>
             <div class="grid gap-6 sm:grid-cols-3">
                 <div><p class="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">Active users</p><SeatMeter :used="data.users.used" :max="data.users.max" unit="users" /></div>
-                <div><p class="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">Texts this month</p><SeatMeter :used="data.sms.used" :max="data.sms.max" unit="texts" /></div>
-                <div><p class="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">Texting numbers</p><SeatMeter :used="data.sms_numbers.used" :max="data.sms_numbers.max" unit="numbers" /></div>
+                <div><p class="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">Texts this month</p><SeatMeter :used="data.sms.used" :max="data.sms.max" unit="texts" /><p v-if="data.extras?.sms" class="mt-1 text-xs text-slate-400">includes {{ data.extras.sms.toLocaleString() }} extra from the platform<template v-if="data.extras.bonus_sms"> ({{ data.extras.bonus_sms.toLocaleString() }} of them for this month only)</template></p>
+                    <template v-if="data.is_admin">
+                        <p v-if="data.text_request?.status === 'pending'" class="mt-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900" data-testid="text-request-pending">You asked the platform for {{ data.text_request.requested_limit.toLocaleString() }} texts a month ({{ fmtDate(data.text_request.created_at) }}). You will be e-mailed its answer.</p>
+                        <template v-else>
+                            <RequestOutcome v-if="data.text_request" :request="data.text_request" what="more texts per month" class="mt-2" @dismissed="data.text_request = null" />
+                            <button v-if="!askingTexts" type="button" class="mt-2 text-xs font-medium text-brand-700 hover:underline" data-testid="text-request-open" @click="openTextAsk">Ask for more texts</button>
+                        </template>
+                        <form v-if="askingTexts && data.text_request?.status !== 'pending'" class="mt-2 space-y-2 rounded-lg border border-slate-200 p-3" data-testid="text-request-form" @submit.prevent="sendTextAsk">
+                            <div><label class="label" for="tx-limit">Texts per month you need</label><input id="tx-limit" v-model.number="textAsk.requested_limit" type="number" :min="data.sms.max + 1" step="100" class="input !w-32" required data-testid="text-request-limit" /><p class="mt-1 text-xs text-slate-500">Your plan allows {{ data.sms.max.toLocaleString() }} now.</p></div>
+                            <div><label class="label" for="tx-msg">Why <span class="normal-case text-slate-400">(optional)</span></label><input id="tx-msg" v-model="textAsk.message" class="input" maxlength="1000" placeholder="For example: a campaign next week" data-testid="text-request-message" /></div>
+                            <p v-if="textAsk.error" class="text-xs text-red-600" role="alert" data-testid="text-request-error">{{ textAsk.error }}</p>
+                            <div class="flex gap-2"><button class="btn-primary" data-testid="text-request-send">Send to the platform</button><button type="button" class="btn-outline" @click="askingTexts = false">Cancel</button></div>
+                        </form>
+                    </template></div>
+                <div><p class="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">Texting numbers</p><SeatMeter :used="data.sms_numbers.used" :max="data.sms_numbers.max" unit="numbers" /><p v-if="data.extras?.numbers" class="mt-1 text-xs text-slate-400">includes {{ data.extras.numbers }} extra from the platform</p></div>
             </div>
         </section>
 

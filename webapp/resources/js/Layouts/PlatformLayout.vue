@@ -86,7 +86,13 @@ const themes = [['system', 'System', SunMoon], ['light', 'Light', Sun], ['dark',
                 <button class="btn-ghost !p-1.5" aria-label="Open menu" @click="open = true"><Menu class="size-5" /></button>
                 <img :src="brand.mark_url ?? '/brand/orvyn-mark.svg'" alt="" class="size-6" /><span class="font-semibold">Platform</span>
             </header>
-            <main id="main" tabindex="-1" class="w-full p-4 outline-none sm:p-6 lg:p-8 2xl:px-12"><slot /></main>
+            <main id="main" tabindex="-1" class="w-full p-4 outline-none sm:p-6 lg:p-8 2xl:px-12">
+                <div v-if="page.props.stoppedServices?.length" role="alert" class="mb-4 rounded-lg border border-red-500/40 bg-red-50 px-4 py-3 text-sm text-red-800" data-testid="stopped-services">
+                    <p v-for="s in page.props.stoppedServices" :key="s" class="font-medium">{{ s }}</p>
+                    <p class="mt-1 text-xs">Until it runs again, texts and e-mails are not sent, automations do not run and usage is not measured.</p>
+                </div>
+                <slot />
+            </main>
         </div>
     </div>
 </template>

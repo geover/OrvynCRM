@@ -24,15 +24,197 @@ class Plans
 
     // ---- the tiers ---------------------------------------------------------------------------------------------------------------
 
-    /** @return list<array{tier: int, name: string, users: int|null, sms_per_month: int, sms_numbers: int, price: float|null}> */
+    /**
+     * The tiers as they are now: what config/plans.php says, with whatever a platform administrator changed on Plans & trial laid over it.
+     * `users` null means unlimited.
+     *
+     * @return list<array{tier: int, name: string, users: int|null, sms_per_month: int, sms_numbers: int, price: float|null, customised: bool}>
+     */
     public function tiers(): array
     {
         $out = [];
         foreach (config('plans.tiers') as $n => $t) {
-            $out[] = ['tier' => (int) $n, 'name' => $t['name'], 'users' => $t['users'], 'sms_per_month' => $t['sms_per_month'], 'sms_numbers' => $t['sms_numbers'], 'price' => $this->price((int) $n)];
+            $n = (int) $n;
+            $users = PlatformSetting::get("plans.tier.{$n}.users");
+            $name = trim((string) PlatformSetting::get("plans.tier.{$n}.name"));
+            $sms = PlatformSetting::get("plans.tier.{$n}.sms");
+            $numbers = PlatformSetting::get("plans.tier.{$n}.numbers");
+            $row = [
+                'tier' => $n, 'name' => $name !== '' ? $name : $t['name'],
+                'users' => $users === null || $users === '' ? $t['users'] : ($users === 'unlimited' ? null : (int) $users),
+                'sms_per_month' => $sms === null || $sms === '' ? $t['sms_per_month'] : (int) $sms,
+                'sms_numbers' => $numbers === null || $numbers === '' ? $t['sms_numbers'] : (int) $numbers,
+                'price' => $this->price($n),
+            ];
+            $row['customised'] = $row['name'] !== $t['name'] || $row['users'] !== $t['users'] || $row['sms_per_month'] !== $t['sms_per_month'] || $row['sms_numbers'] !== $t['sms_numbers'];
+            $out[] = $row;
         }
 
         return $out;
+    }
+
+    /**
+     * What differs between two sets of tiers (as `tiers()` returns them), tier by tier, in words a person can read.
+     *
+     * @param  list<array<string, mixed>>  $before
+     * @param  list<array<string, mixed>>  $after
+     * @return list<array{tier: int, name: string, was: string, changes: list<array{label: string, from: string, to: string}>}>
+     */
+    public function diff(array $before, array $after): array
+    {
+        $money = $this->money();
+        $users = fn ($v) => $v === null ? 'unlimited' : number_format((int) $v);
+        $price = fn ($v) => $v === null ? 'no price' : number_format((float) $v, 2).' '.$money['currency'].' per '.$money['period'];
+        $was = collect($before)->keyBy('tier');
+        $out = [];
+        foreach ($after as $t) {
+            $b = $was[$t['tier']] ?? null;
+            if (! $b) {
+                continue;
+            }
+            $changes = [];
+            $b['name'] !== $t['name'] && $changes[] = ['label' => 'Name', 'from' => $b['name'], 'to' => $t['name']];
+            $b['users'] !== $t['users'] && $changes[] = ['label' => 'Active users', 'from' => $users($b['users']), 'to' => $users($t['users'])];
+            $b['sms_per_month'] !== $t['sms_per_month'] && $changes[] = ['label' => 'Texts per month', 'from' => number_format($b['sms_per_month']), 'to' => number_format($t['sms_per_month'])];
+            $b['sms_numbers'] !== $t['sms_numbers'] && $changes[] = ['label' => 'Texting numbers', 'from' => (string) $b['sms_numbers'], 'to' => (string) $t['sms_numbers']];
+            $b['price'] !== $t['price'] && $changes[] = ['label' => 'Price', 'from' => $price($b['price']), 'to' => $price($t['price'])];
+            $changes && $out[] = ['tier' => $t['tier'], 'name' => $t['name'], 'was' => $b['name'], 'changes' => $changes];
+        }
+
+        return $out;
+    }
+
+    /** @return list<array{tier: int, name: string, users: int|null, sms_per_month: int, sms_numbers: int}> what config/plans.php ships with */
+    public function defaults(): array
+    {
+        return collect(config('plans.tiers'))->map(fn ($t, $n) => ['tier' => (int) $n] + $t)->values()->all();
+    }
+
+    /**
+     * Change what the tiers include. Every company on a tier follows at once: its users (a company with extra users keeps the extra),
+     * its texts and texting numbers (read live; numbers beyond the new allowance are dropped, the default first). Nobody is removed.
+     *
+     * @param  array<int|string, array{name: string, users: int|null, sms_per_month: int, sms_numbers: int}>  $new
+     * @return array{companies: int, trimmed: int} how many companies were updated and how many texting numbers dropped
+     */
+    public function saveTiers(array $new): array
+    {
+        $old = collect($this->tiers())->keyBy('tier');
+        foreach (array_keys(config('plans.tiers')) as $n) {
+            $t = $new[$n] ?? $new[(string) $n] ?? null;
+            if ($t === null) {
+                continue;
+            }
+            PlatformSetting::put("plans.tier.{$n}.name", trim((string) $t['name']));
+            PlatformSetting::put("plans.tier.{$n}.users", ($t['users'] ?? null) === null ? 'unlimited' : (string) (int) $t['users']);
+            PlatformSetting::put("plans.tier.{$n}.sms", (string) (int) $t['sms_per_month']);
+            PlatformSetting::put("plans.tier.{$n}.numbers", (string) (int) $t['sms_numbers']);
+        }
+
+        return $this->followTiers($old->all());
+    }
+
+    /** Back to what config/plans.php ships with. */
+    public function resetTiers(): array
+    {
+        $old = collect($this->tiers())->keyBy('tier');
+        foreach (array_keys(config('plans.tiers')) as $n) {
+            foreach (['name', 'users', 'sms', 'numbers'] as $k) {
+                PlatformSetting::put("plans.tier.{$n}.{$k}", null);
+            }
+        }
+
+        return $this->followTiers($old->all());
+    }
+
+    /** Make every company's stored limits follow the tiers as they are now. @param array<int, array<string, mixed>> $old */
+    private function followTiers(array $old): array
+    {
+        $updated = 0;
+        $trimmed = 0;
+        foreach (Tenant::all() as $tenant) {
+            $n = (int) $tenant->tier;
+            $was = $old[$n] ?? null;
+            $now = $this->tier($n);
+            if (! $was) {
+                continue;
+            }
+            $max = $this->seatsAfter((int) $tenant->max_users, $was['users'], $now['users']);
+            $changed = $max !== (int) $tenant->max_users;
+            $changed && $tenant->update(['max_users' => $max]);
+            $drop = $this->trimNumbers($tenant, $now['sms_numbers'] + (int) $tenant->extra_numbers);
+            $trimmed += $drop;
+            ($changed || $drop) && $updated++;
+        }
+
+        return ['companies' => $updated, 'trimmed' => $trimmed];
+    }
+
+    /** A company's stored user limit after its tier changed: it follows the tier, and a company that had extra users keeps the extra. */
+    private function seatsAfter(int $max, ?int $oldUsers, ?int $newUsers): int
+    {
+        $unlimited = (int) config('plans.unlimited_users');
+        $oldBase = $oldUsers ?? $unlimited;
+        $newBase = $newUsers ?? $unlimited;
+
+        return match (true) {
+            $oldBase === $newBase => $max,
+            $max <= $oldBase || $oldBase >= $unlimited => $newBase,
+            $newBase >= $unlimited => $unlimited,
+            default => $newBase + ($max - $oldBase),
+        };
+    }
+
+    /** Drop the texting numbers a company has beyond what it is allowed now (tier plus extras): the first ones, the default, stay. */
+    public function enforceNumbers(Tenant $tenant): int
+    {
+        return $this->trimNumbers($tenant, $this->smsNumbersMax($tenant));
+    }
+
+    /** Drop texting numbers beyond `$allowed` (the first ones stay). @return int how many were dropped */
+    private function trimNumbers(Tenant $tenant, int $allowed): int
+    {
+        try {
+            return $tenant->run(fn () => app(SmsNumbers::class)->trimTo($allowed));
+        } catch (Throwable $e) {
+            report($e);
+
+            return 0;
+        }
+    }
+
+    /**
+     * What saving these tiers would do, before it is saved: how many companies are on each tier, and which companies would then be above a limit.
+     * Nothing is changed; nobody is removed when it is saved either, they are simply at a limit until they free something or move up.
+     *
+     * @param  array<int|string, array{name?: string, users: int|null, sms_per_month: int, sms_numbers: int}>  $proposed
+     * @return array{companies: array<int, int>, over: list<array{company: string, tier: string, what: string, used: int, limit: int}>}
+     */
+    public function impact(array $proposed): array
+    {
+        $over = [];
+        $counts = [];
+        foreach (Tenant::active()->get() as $tenant) {
+            $n = (int) $tenant->tier;
+            $counts[$n] = ($counts[$n] ?? 0) + 1;
+            $t = $proposed[$n] ?? $proposed[(string) $n] ?? null;
+            if (! $t) {
+                continue;
+            }
+            $name = ($t['name'] ?? '') !== '' ? $t['name'] : $this->tier($n)['name'];
+            $users = app(Seats::class)->usedFor($tenant);
+            $was = $this->tier($n);
+            $limit = ($t['users'] ?? null) === null ? null : $this->seatsAfter((int) $tenant->max_users, $was['users'], (int) $t['users']);
+            $limit !== null && $users > $limit && $over[] = ['company' => $tenant->name, 'tier' => $name, 'what' => 'active users', 'used' => $users, 'limit' => $limit];
+            $numbers = $this->numbersUsed($tenant);
+            $numLimit = (int) $t['sms_numbers'] + (int) $tenant->extra_numbers;
+            $numbers > $numLimit && $over[] = ['company' => $tenant->name, 'tier' => $name, 'what' => 'texting numbers (extra ones are dropped)', 'used' => $numbers, 'limit' => $numLimit];
+            $sms = $this->smsUsed($tenant);
+            $smsLimit = (int) $t['sms_per_month'] + $this->extraSms($tenant);
+            $sms > $smsLimit && $over[] = ['company' => $tenant->name, 'tier' => $name, 'what' => 'texts this month', 'used' => $sms, 'limit' => $smsLimit];
+        }
+
+        return ['companies' => $counts, 'over' => $over];
     }
 
     /** @return array{tier: int, name: string, users: int|null, sms_per_month: int, sms_numbers: int, price: float|null} */
@@ -102,12 +284,7 @@ class Plans
         $tenant->update(['tier' => $tier, 'max_users' => $this->seatsFor($tier)]);
 
         // a smaller tier allows fewer texting numbers: keep the first ones (the default comes first)
-        $allowed = $this->tier($tier)['sms_numbers'];
-        try {
-            $tenant->run(fn () => app(SmsNumbers::class)->trimTo($allowed));
-        } catch (Throwable $e) {
-            report($e);                                    // the numbers are a nicety: moving the company to the tier must not fail over them
-        }
+        $this->trimNumbers($tenant, $this->tier($tier)['sms_numbers'] + (int) $tenant->extra_numbers);
     }
 
     /** A new company's trial: the trial tier, ending the chosen number of months from now. */
@@ -182,14 +359,34 @@ class Plans
 
     // ---- texts ------------------------------------------------------------------------------------------------------------------------
 
+    /** Texts a month: what the tier includes plus any extra the platform gave this company. */
     public function smsLimit(Tenant $tenant): int
     {
-        return $this->tier((int) $tenant->tier)['sms_per_month'];
+        return $this->tier((int) $tenant->tier)['sms_per_month'] + $this->extraSms($tenant);
     }
 
+    /** The extra texts a company has right now: its permanent extra, plus the one-month bonus while that month lasts. */
+    public function extraSms(Tenant $tenant): int
+    {
+        return (int) $tenant->extra_sms + $this->bonusSms($tenant);
+    }
+
+    /** The one-month bonus, only while its month is the current one (it ends by itself afterwards, nothing has to run). */
+    public function bonusSms(Tenant $tenant): int
+    {
+        return (int) $tenant->bonus_sms > 0 && $tenant->bonus_sms_month === $this->currentMonth($tenant) ? (int) $tenant->bonus_sms : 0;
+    }
+
+    /** The calendar month the company is in, in its own time zone (2026-11). */
+    public function currentMonth(Tenant $tenant): string
+    {
+        return Carbon::now((string) ($tenant->run(fn () => Setting::get('app.timezone')) ?: config('app.timezone')))->format('Y-m');
+    }
+
+    /** Texting numbers: what the tier includes plus any extra the platform gave this company. */
     public function smsNumbersMax(Tenant $tenant): int
     {
-        return $this->tier((int) $tenant->tier)['sms_numbers'];
+        return $this->tier((int) $tenant->tier)['sms_numbers'] + (int) $tenant->extra_numbers;
     }
 
     /** Texts that have gone out (or are going out) in the current calendar month of the company's time zone. */
@@ -226,8 +423,9 @@ class Plans
         return [
             'tier' => $tier, 'trial' => $this->state($tenant), 'money' => $this->money(),
             'users' => ['used' => app(Seats::class)->usedFor($tenant), 'max' => self::isUnlimitedSeats((int) $tenant->max_users) ? null : (int) $tenant->max_users],
-            'sms' => ['used' => $this->smsUsed($tenant), 'max' => $tier['sms_per_month']],
-            'numbers' => ['used' => $this->numbersUsed($tenant), 'max' => $tier['sms_numbers']],
+            'sms' => ['used' => $this->smsUsed($tenant), 'max' => $this->smsLimit($tenant)],
+            'numbers' => ['used' => $this->numbersUsed($tenant), 'max' => $this->smsNumbersMax($tenant)],
+            'extras' => ['sms' => $this->extraSms($tenant), 'bonus_sms' => $this->bonusSms($tenant), 'numbers' => (int) $tenant->extra_numbers],
         ];
     }
 }

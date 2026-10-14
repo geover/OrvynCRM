@@ -12,6 +12,7 @@ use App\Services\Tenancy\Plans;
 use App\Services\Tenancy\Subscriptions;
 use App\Services\Tenancy\TenantProvisioner;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Tests\TenantTestCase;
 
@@ -42,7 +43,9 @@ class StripePaymentsTest extends TenantTestCase
     {
         $this->app['auth']->forgetGuards();
         $this->flushSession();
+        $this->defaultHeaders = [];
         $this->post('/login', ['email' => $email, 'password' => $password]);
+        $this->bearerFor($email, $password);
     }
 
     /** @param array<string, mixed> $event */
@@ -274,5 +277,130 @@ class StripePaymentsTest extends TenantTestCase
         $settings = app(PaymentSettings::class);
         $this->assertSame(['test', true, true], [$settings->mode(), $settings->requirePayment(), $settings->current()['key_set']]);
         $this->get('/platform/settings/payments')->assertOk()->assertDontSee('sk_test_abc123')->assertInertia(fn ($p) => $p->component('Platform/SettingsPayments')->where('settings.key_hint', '••••c123'));
+    }
+
+    /** @return array<int, array{name: string, users: int|null, sms_per_month: int, sms_numbers: int}> the shipped tiers, as the page sends them */
+    private function shippedTiers(): array
+    {
+        return collect(app(Plans::class)->defaults())->mapWithKeys(fn ($t) => [$t['tier'] => ['name' => $t['name'], 'users' => $t['users'], 'sms_per_month' => $t['sms_per_month'], 'sms_numbers' => $t['sms_numbers']]])->all();
+    }
+
+    private function platformAdminSignedIn(): void
+    {
+        AccountUser::create(['name' => 'Platform Admin', 'email' => 'platform@x.test', 'password' => 'Platform-Passw0rd-1', 'is_platform_admin' => true]);
+        $this->signIn('platform@x.test', 'Platform-Passw0rd-1');
+    }
+
+    public function test_the_state_of_a_tier_against_stripe_is_none_missing_synced_or_outdated(): void
+    {
+        $this->stripeOn();
+        Http::fake(['api.stripe.com/v1/products' => Http::response(['id' => 'prod_1']), 'api.stripe.com/v1/prices' => Http::response(['id' => 'price_1']), 'api.stripe.com/v1/prices/*' => Http::response(['id' => 'x'])]);
+        $subs = app(Subscriptions::class);
+
+        $this->assertSame('none', $subs->stateOf(2));
+        app(Plans::class)->saveSettings(['trial_months' => 3, 'prices' => [2 => 79]]);
+        PlatformSetting::forgetCache();
+        $this->assertSame('missing', $subs->stateOf(2));
+        $subs->syncPrices();
+        PlatformSetting::forgetCache();
+        $this->assertSame('synced', $subs->stateOf(2));
+        app(Plans::class)->saveSettings(['trial_months' => 3, 'prices' => [2 => 89]]);
+        PlatformSetting::forgetCache();
+        $this->assertSame('outdated', $subs->stateOf(2));
+    }
+
+    public function test_saving_a_changed_price_also_creates_it_on_stripe(): void
+    {
+        $this->stripeOn();
+        Http::fake(['api.stripe.com/v1/products' => Http::response(['id' => 'prod_1']), 'api.stripe.com/v1/prices' => Http::response(['id' => 'price_1'])]);
+        $this->platformAdminSignedIn();
+
+        $this->patch('/platform/settings/plans', ['trial_months' => 3, 'prices' => [1 => 30, 2 => 79], 'tiers' => $this->shippedTiers()])->assertSessionHasNoErrors()->assertSessionMissing('warning');
+
+        Http::assertSent(fn (Request $r) => str_ends_with($r->url(), '/v1/prices') && $r['unit_amount'] === 7900);
+        PlatformSetting::forgetCache();
+        $this->assertSame('price_1', app(PaymentSettings::class)->priceId(2));
+    }
+
+    public function test_the_saver_can_decline_the_stripe_update_and_nothing_is_sent(): void
+    {
+        $this->stripeOn();
+        Http::fake();
+        $this->platformAdminSignedIn();
+
+        $this->patch('/platform/settings/plans', ['trial_months' => 3, 'prices' => [2 => 79], 'tiers' => $this->shippedTiers(), 'sync_stripe' => false])->assertSessionHasNoErrors();
+
+        Http::assertNothingSent();
+        PlatformSetting::forgetCache();
+        $this->assertSame(79.0, app(Plans::class)->price(2));
+    }
+
+    public function test_when_stripe_refuses_the_price_is_still_saved_and_a_warning_says_what_to_do(): void
+    {
+        $this->stripeOn();
+        Http::fake(['api.stripe.com/*' => Http::response(['error' => ['message' => 'Invalid API Key']], 401)]);
+        $this->platformAdminSignedIn();
+
+        $response = $this->patch('/platform/settings/plans', ['trial_months' => 3, 'prices' => [2 => 79], 'tiers' => $this->shippedTiers()]);
+
+        $response->assertSessionHasNoErrors()->assertSessionHas('success');
+        $this->assertStringContainsString('Stripe refused', (string) session('warning'));
+        PlatformSetting::forgetCache();
+        $this->assertSame(79.0, app(Plans::class)->price(2));
+    }
+
+    public function test_a_live_stripe_account_needs_an_explicit_yes_before_prices_are_created_and_nothing_is_saved_without_it(): void
+    {
+        app(PaymentSettings::class)->save(['enabled' => true, 'secret_key' => 'sk_live_abc123', 'webhook_secret' => 'whsec_x']);
+        PlatformSetting::forgetCache();
+        Http::fake(['api.stripe.com/v1/products' => Http::response(['id' => 'prod_1']), 'api.stripe.com/v1/prices' => Http::response(['id' => 'price_1'])]);
+        $this->platformAdminSignedIn();
+        $form = ['trial_months' => 3, 'prices' => [2 => 79], 'tiers' => $this->shippedTiers()];
+
+        $this->patch('/platform/settings/plans', $form)->assertSessionHasErrors('confirm_live');
+        PlatformSetting::forgetCache();
+        $this->assertNull(app(Plans::class)->price(2), 'a refused save changes nothing');
+        Http::assertNothingSent();
+
+        $this->patch('/platform/settings/plans', $form + ['confirm_live' => true])->assertSessionHasNoErrors();
+        Http::assertSent(fn (Request $r) => str_ends_with($r->url(), '/v1/prices'));
+
+        $this->patch('/platform/settings/plans', ['prices' => [2 => 99]] + $form + ['sync_stripe' => false])->assertSessionHasNoErrors();   // declining Stripe needs no yes
+    }
+
+    public function test_subscribers_on_an_old_price_are_found_and_moved_from_their_next_renewal(): void
+    {
+        $this->stripeOn();
+        $this->priced();
+        app(PaymentSettings::class)->savePrice(2, 'prod_2', 'price_new', 'sig');
+        Http::fake(['api.stripe.com/v1/subscriptions/sub_1' => Http::response(['id' => 'sub_1', 'items' => ['data' => [['id' => 'si_1', 'price' => ['id' => 'price_old']]]]])]);
+        $tenant = $this->company('Acme', 'owner@acme.test');
+        CompanySubscription::create(['tenant_id' => $tenant->getTenantKey(), 'stripe_customer_id' => 'cus_1', 'stripe_subscription_id' => 'sub_1', 'status' => 'active', 'tier' => 2, 'stripe_price_id' => 'price_old']);
+        $subs = app(Subscriptions::class);
+
+        $this->assertSame(['Acme'], array_column($subs->outdatedSubscribers(), 'company'));
+
+        $result = $subs->moveSubscribers(true);
+
+        $this->assertSame(1, $result['moved']);
+        Http::assertSent(fn (Request $r) => str_ends_with($r->url(), '/v1/subscriptions/sub_1') && $r->method() === 'POST' && $r['proration_behavior'] === 'none' && $r['items'][0]['price'] === 'price_new');
+        $this->assertSame('price_new', CompanySubscription::first()->stripe_price_id);
+        $this->assertSame([], $subs->outdatedSubscribers());
+        $this->assertSame(1, $tenant->run(fn () => DB::table('notifications_feed')->where('title', 'like', '%price of%')->count()));
+    }
+
+    public function test_moving_subscribers_reports_a_refusal_per_company_and_the_page_asks_for_the_list_on_demand(): void
+    {
+        $this->stripeOn();
+        $this->priced();
+        app(PaymentSettings::class)->savePrice(2, 'prod_2', 'price_new', 'sig');
+        Http::fake(['api.stripe.com/*' => Http::response(['error' => ['message' => 'No such subscription']], 404)]);
+        $tenant = $this->company('Acme', 'owner@acme.test');
+        CompanySubscription::create(['tenant_id' => $tenant->getTenantKey(), 'stripe_customer_id' => 'cus_1', 'stripe_subscription_id' => 'sub_1', 'status' => 'active', 'tier' => 2, 'stripe_price_id' => 'price_old']);
+        $this->platformAdminSignedIn();
+
+        $this->get('/platform/settings/payments')->assertOk()->assertInertia(fn ($p) => $p->component('Platform/SettingsPayments')->missing('outdated'));
+        $this->post('/platform/settings/payments/move-subscribers', ['tell' => false])->assertRedirect()->assertSessionHas('warning');
+        $this->assertSame('price_old', CompanySubscription::first()->stripe_price_id, 'a refused move changes nothing');
     }
 }

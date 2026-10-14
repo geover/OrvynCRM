@@ -5,111 +5,60 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="528c632e-cbff-4534-8781-ee19cae56136" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.ai/mcp/mcp.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/active-tab-highlighter.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/dataSources.local.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/dataSources.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/dataSources/42ada420-b059-450a-abe7-2b53ffafc6a2.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/dataSources/42ada420-b059-450a-abe7-2b53ffafc6a2/storage_v2/_src_/schema/information_schema.FNRwLQ.meta" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/dataSources/42ada420-b059-450a-abe7-2b53ffafc6a2/storage_v2/_src_/schema/mysql.osA4Bg.meta" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/dataSources/42ada420-b059-450a-abe7-2b53ffafc6a2/storage_v2/_src_/schema/performance_schema.kIw0nw.meta" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/dataSources/42ada420-b059-450a-abe7-2b53ffafc6a2/storage_v2/_src_/schema/sys.zb4BAA.meta" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/laravel-idea.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/php.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/phpunit.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/app/Console/Commands/SendTrialReminders.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/app/Http/Controllers/Api/V1/BillingController.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/app/Http/Controllers/Api/V1/SmsNumbersController.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/app/Http/Controllers/Api/V1/StripeWebhookController.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformPaymentsController.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformPlansController.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformSubscriptionController.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/app/Http/Middleware/RedirectSignedInPlatformAdmin.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/app/Integrations/Stripe/StripeClient.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/app/Models/CompanyBilling.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/app/Models/CompanySubscription.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/app/Models/SubscriptionRequest.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/app/Services/Tenancy/CompanyAdminNotices.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/app/Services/Tenancy/PaymentSettings.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/app/Services/Tenancy/Plans.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/app/Services/Tenancy/SmsNumbers.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/app/Services/Tenancy/Subscriptions.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/app/Services/Tenancy/TrialReminders.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/config/plans.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/database/migrations/2026_11_01_000001_add_plans_trial_and_billing.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/database/migrations/2026_11_02_000001_create_company_subscriptions_table.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/database/migrations/2026_11_03_000001_add_cancellation_and_resubscribe_requests.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/database/migrations/tenant/2026_11_04_000001_add_data_object_record_to_sms_messages.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/resources/js/Components/ManualViewer.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Billing.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Manual.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/Manual.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/SettingsPayments.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/SettingsPlans.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/resources/js/lib/manual/company.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/resources/js/lib/manual/platform.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/tests/Feature/Tenancy/ManualTest.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/tests/Feature/Tenancy/PlansTest.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/tests/Feature/Tenancy/StripePaymentsTest.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/tests/Feature/Tenancy/SubscriptionCancellationTest.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/webapp/app/Services/Tenancy/TierChangeNotices.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/webapp/database/migrations/2026_11_06_000001_add_extra_texts_and_numbers_to_tenants.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/webapp/database/migrations/2026_11_07_000001_add_stripe_price_to_company_subscriptions.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/webapp/tests/Feature/Tenancy/TierEditingTest.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.ai/mcp/mcp.json" beforeDir="false" afterPath="$PROJECT_DIR$/.ai/mcp/mcp.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources.local.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.local.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/dataSources/data_sources_history.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources/data_sources_history.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/db-forest-config.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/laravel-idea.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/laravel-idea.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/php.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/php.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/.env.example" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/.env.example" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Http/Controllers/Api/V1/MessageController.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Http/Controllers/Api/V1/MessageController.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformCompanyOverviewController.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformCompanyOverviewController.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/app/Http/Controllers/Api/V1/BillingController.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Http/Controllers/Api/V1/BillingController.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformController.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformController.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformDashboardController.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformDashboardController.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformIntegrationController.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformIntegrationController.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformPaymentsController.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformPaymentsController.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformPlansController.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformPlansController.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformSeatRequestController.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformSeatRequestController.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformSettingsController.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformSettingsController.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Http/Middleware/EnsureUserIsActive.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Http/Middleware/EnsureUserIsActive.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformServicesController.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformServicesController.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/webapp/app/Http/Middleware/HandleInertiaRequests.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Http/Middleware/HandleInertiaRequests.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Integrations/Twilio/TwilioClient.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Integrations/Twilio/TwilioClient.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Jobs/SendSmsMessage.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Jobs/SendSmsMessage.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/app/Models/SeatRequest.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Models/SeatRequest.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/webapp/app/Models/Tenant.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Models/Tenant.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Services/Messaging/MessageComposer.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Services/Messaging/MessageComposer.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Services/Tenancy/MailSettings.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Services/Tenancy/MailSettings.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Services/Tenancy/Signups.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Services/Tenancy/Signups.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Services/Tenancy/SmsSettings.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Services/Tenancy/SmsSettings.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Services/Tenancy/TenantProvisioner.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Services/Tenancy/TenantProvisioner.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/bootstrap/app.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/bootstrap/app.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/config/services.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/config/services.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/database/seeders/DatabaseSeeder.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/database/seeders/DatabaseSeeder.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/app/Providers/AppServiceProvider.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Providers/AppServiceProvider.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/app/Services/Tenancy/LimitRequests.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Services/Tenancy/LimitRequests.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/app/Services/Tenancy/PaymentSettings.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Services/Tenancy/PaymentSettings.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/app/Services/Tenancy/Plans.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Services/Tenancy/Plans.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/app/Services/Tenancy/Subscriptions.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Services/Tenancy/Subscriptions.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/app/Services/Tenancy/UsageTracker.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Services/Tenancy/UsageTracker.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/webapp/docs/ARCHITECTURE.md" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/docs/ARCHITECTURE.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/webapp/docs/DEPLOYMENT.md" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/docs/DEPLOYMENT.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Components/CommandPalette.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Components/CommandPalette.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Components/SeatMeter.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Components/SeatMeter.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Components/SettingsNav.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Components/SettingsNav.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Layouts/AppLayout.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Layouts/AppLayout.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/resources/css/app.css" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/css/app.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Components/DataTable.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Components/DataTable.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Components/ImpactTable.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Components/ImpactTable.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Components/RequestOutcome.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Components/RequestOutcome.vue" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/webapp/resources/js/Layouts/PlatformLayout.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Layouts/PlatformLayout.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Admin/Twilio.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Admin/Twilio.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Contacts/partials/SmsComposer.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Contacts/partials/SmsComposer.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Admin/BlastProgress.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Admin/BlastProgress.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Admin/Phone.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Admin/Phone.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Admin/Users.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Admin/Users.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Billing.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Billing.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Contacts/partials/CommunicationTab.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Contacts/partials/CommunicationTab.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Contacts/partials/ObjectItemsTab.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Contacts/partials/ObjectItemsTab.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/Administrators.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/Administrators.vue" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/Companies.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/Companies.vue" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/CompanyOverview.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/CompanyOverview.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/Pricing.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/Pricing.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/CompanyUsers.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/CompanyUsers.vue" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/SeatRequests.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/SeatRequests.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/Settings.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/Settings.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/SettingsMail.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/SettingsMail.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/SettingsSms.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/SettingsSms.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/lib/nav.js" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/lib/nav.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/Services.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/Services.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/SettingsPayments.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/SettingsPayments.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/SettingsPlans.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/SettingsPlans.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/Signups.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/Signups.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/Usage.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/Usage.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/resources/js/lib/manual/company.js" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/lib/manual/company.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/resources/js/lib/manual/platform.js" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/lib/manual/platform.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/webapp/routes/api.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/routes/api.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/webapp/routes/console.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/routes/console.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/webapp/routes/web.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/routes/web.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/tests/Feature/Tenancy/PlatformAreaTest.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/tests/Feature/Tenancy/PlatformAreaTest.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/tests/Feature/Tenancy/PlatformSettingsTest.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/tests/Feature/Tenancy/PlatformSettingsTest.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/tests/e2e/01-auth-and-settings.spec.js" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/tests/e2e/01-auth-and-settings.spec.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/tests/e2e/08-coverage-gaps.spec.js" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/tests/e2e/08-coverage-gaps.spec.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/tests/e2e/12-multi-company.spec.js" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/tests/e2e/12-multi-company.spec.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/tests/e2e/13-platform-control.spec.js" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/tests/e2e/13-platform-control.spec.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/tests/e2e/14-announcements.spec.js" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/tests/e2e/14-announcements.spec.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/tests/e2e/15-platform-dashboard.spec.js" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/tests/e2e/15-platform-dashboard.spec.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/tests/e2e/16-user-limits.spec.js" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/tests/e2e/16-user-limits.spec.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/tests/e2e/17-platform-messages.spec.js" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/tests/e2e/17-platform-messages.spec.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/tests/e2e/18-signup.spec.js" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/tests/e2e/18-signup.spec.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/tests/e2e/helpers.js" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/tests/e2e/helpers.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/tests/e2e/serve.mjs" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/tests/e2e/serve.mjs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/tests/Feature/Tenancy/StripePaymentsTest.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/tests/Feature/Tenancy/StripePaymentsTest.php" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -121,7 +70,7 @@
     <execution />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="8205" />
+    <option name="cachedIndexableFilesCount" value="4813" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="Git.Settings">
@@ -139,61 +88,61 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.4987059654046702" />
-      <entry key="MS500" value="4.194772838718299" />
-      <entry key="S2" value="8.801034120643642" />
-      <entry key="S5" value="11.724812494141068" />
-      <entry key="S10" value="13.179045846688602" />
-      <entry key="S30" value="14.345862568428588" />
-      <entry key="S60" value="14.67521902901434" />
-      <entry key="M2" value="15.041383858175347" />
-      <entry key="M5" value="16.59199479595363" />
-      <entry key="M10" value="19.184237004885503" />
-      <entry key="M15" value="21.20655580392577" />
-      <entry key="M30" value="24.959359675164162" />
-      <entry key="H1" value="30.405829998787528" />
-      <entry key="H2" value="39.31726132538196" />
-      <entry key="H4" value="48.926472502170974" />
-      <entry key="D1" value="62.416135754691034" />
-      <entry key="W1" value="65.46610256737671" />
+      <entry key="MS100" value="1.9040386471243211" />
+      <entry key="MS500" value="3.846308454613974" />
+      <entry key="S2" value="7.05370214655969" />
+      <entry key="S5" value="13.127640887964262" />
+      <entry key="S10" value="17.702584660689393" />
+      <entry key="S30" value="22.17261487734394" />
+      <entry key="S60" value="23.5377584598706" />
+      <entry key="M2" value="24.453552526704254" />
+      <entry key="M5" value="26.336344454884575" />
+      <entry key="M10" value="29.040565601687504" />
+      <entry key="M15" value="31.10262624595726" />
+      <entry key="M30" value="34.899862757528695" />
+      <entry key="H1" value="40.37063544549113" />
+      <entry key="H2" value="49.295215150473545" />
+      <entry key="H4" value="58.913051463463525" />
+      <entry key="D1" value="72.4133378932368" />
+      <entry key="W1" value="75.4656847522061" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
       <entry key="MS500" value="0.0" />
-      <entry key="S2" value="4.75422247155987E-310" />
-      <entry key="S5" value="1.8656569924268619E-124" />
-      <entry key="S10" value="1.3658905492120738E-62" />
-      <entry key="S30" value="2.3904076317909657E-21" />
-      <entry key="S60" value="4.889179513774231E-11" />
-      <entry key="M2" value="6.992266809679266E-6" />
-      <entry key="M5" value="0.008666568952325428" />
-      <entry key="M10" value="0.09309440881344824" />
-      <entry key="M15" value="0.20540723294868646" />
-      <entry key="M30" value="0.4532187473490988" />
-      <entry key="H1" value="0.6732152310733163" />
-      <entry key="H2" value="0.8204969415380637" />
-      <entry key="H4" value="0.905812862316529" />
-      <entry key="D1" value="0.9836480768924121" />
-      <entry key="W1" value="0.9976474727776532" />
+      <entry key="S2" value="7.8906136911694E-311" />
+      <entry key="S5" value="9.095871423807592E-125" />
+      <entry key="S10" value="9.53722780676208E-63" />
+      <entry key="S30" value="2.1206746848956392E-21" />
+      <entry key="S60" value="4.605078375984098E-11" />
+      <entry key="M2" value="6.786072778849412E-6" />
+      <entry key="M5" value="0.008563423161506222" />
+      <entry key="M10" value="0.09253876572283758" />
+      <entry key="M15" value="0.20458908895050543" />
+      <entry key="M30" value="0.4523152539440884" />
+      <entry key="H1" value="0.6725438676726511" />
+      <entry key="H2" value="0.8200877194987444" />
+      <entry key="H4" value="0.9055869475090421" />
+      <entry key="D1" value="0.9836071847516544" />
+      <entry key="W1" value="0.9976415477974405" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="1.475392992117935" />
-      <entry key="MS500" value="4.1508898561759" />
-      <entry key="S2" value="8.770428916320508" />
-      <entry key="S5" value="11.708961972922689" />
-      <entry key="S10" value="13.17033208359733" />
-      <entry key="S30" value="14.342758865980073" />
-      <entry key="S60" value="14.673640057414941" />
-      <entry key="M2" value="15.04058826164749" />
-      <entry key="M5" value="16.600177733365417" />
-      <entry key="M10" value="19.276368565630445" />
-      <entry key="M15" value="21.410685588978666" />
-      <entry key="M30" value="25.41123767663854" />
-      <entry key="H1" value="31.078054951171907" />
-      <entry key="H2" value="40.13714664577422" />
-      <entry key="H4" value="49.83194176309037" />
-      <entry key="D1" value="63.3997200867498" />
-      <entry key="W1" value="66.4637407533474" />
+      <entry key="MS100" value="1.8599491670718213" />
+      <entry key="MS500" value="3.826553122699943" />
+      <entry key="S2" value="7.037188976387523" />
+      <entry key="S5" value="13.111453787589237" />
+      <entry key="S10" value="17.69105751004648" />
+      <entry key="S30" value="22.167691574187526" />
+      <entry key="S60" value="23.53513530457614" />
+      <entry key="M2" value="24.45219912129993" />
+      <entry key="M5" value="26.34419422938681" />
+      <entry key="M10" value="29.132028829336875" />
+      <entry key="M15" value="31.305863894475582" />
+      <entry key="M30" value="35.35080033656326" />
+      <entry key="H1" value="41.04217020572699" />
+      <entry key="H2" value="50.114681641869424" />
+      <entry key="H4" value="59.818289938307146" />
+      <entry key="D1" value="73.39688050951028" />
+      <entry key="W1" value="76.46331689520638" />
     </decayedShown>
   </component>
   <component name="PhpWorkspaceProjectConfiguration" interpreter_name="PHP">
@@ -456,38 +405,38 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.MCP Project settings loaded": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.laravel_idea.move_run_console_settings": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "codeWithMe.voiceChat.enabledByDefault": "false",
-    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "develop",
-    "ignore.virus.scanning.warn.message": "true",
-    "junie.onboarding.icon.badge.shown": "true",
-    "last_opened_file_path": "D:/Work/OrvynCRM",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "ml.llm.mcp",
-    "to.speed.mode.migration.done": "true",
-    "ts.external.directory.path": "C:\\Users\\GeoverZ\\AppData\\Local\\Programs\\PhpStorm\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.laravel_idea.move_run_console_settings&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;develop&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/Work/OrvynCRM&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;ml.llm.mcp&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\GeoverZ\\AppData\\Local\\Programs\\PhpStorm\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   },
-  "keyToStringList": {
-    "DatabaseDriversLRU": [
-      "mysql",
-      "sqlite"
+  &quot;keyToStringList&quot;: {
+    &quot;DatabaseDriversLRU&quot;: [
+      &quot;mysql&quot;,
+      &quot;sqlite&quot;
     ]
   }
-}]]></component>
+}</component>
   <component name="RunManager">
     <configuration name="Main" type="PHPUnitRunConfigurationType" factoryName="PHPUnit">
       <TestRunner configuration_file="$PROJECT_DIR$/webapp/phpunit.xml" scope="XML" use_alternative_configuration_file="true" />
@@ -517,7 +466,8 @@
       <workItem from="1791802913106" duration="1081000" />
       <workItem from="1791848611092" duration="3494000" />
       <workItem from="1791858902703" duration="3971000" />
-      <workItem from="1791878337255" duration="3105000" />
+      <workItem from="1791878337255" duration="3826000" />
+      <workItem from="1791944759965" duration="8553000" />
     </task>
     <servers />
   </component>

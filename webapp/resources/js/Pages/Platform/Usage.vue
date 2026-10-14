@@ -34,7 +34,7 @@ const refresh = () => router.post('/platform/usage/refresh', {}, { preserveScrol
         </button>
     </div>
 
-    <div class="card overflow-x-auto" data-testid="usage-table">
+    <div class="card table-scroll" data-testid="usage-table">
         <table class="w-full text-sm">
             <thead class="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3">Company</th><th class="px-3 py-3">Tier</th><th class="px-3 py-3">Active users</th><th class="px-3 py-3">Texts this month</th><th class="px-3 py-3">Texting numbers</th><th class="px-3 py-3"><span class="sr-only">Status</span></th></tr></thead>
             <tbody class="divide-y divide-slate-100">
