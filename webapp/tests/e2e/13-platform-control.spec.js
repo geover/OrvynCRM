@@ -251,7 +251,7 @@ test.describe('the sign-in page look', () => {
         await signIn(page, 'platform@orvyncrm.test');
         await expect(page).toHaveURL(/\/platform$/);
         await page.goto('/platform/branding');
-        await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', /\/favicon\.svg$/);
+        await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', /\/favicon\.svg(\?v=.*)?$/);
         const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
         await page.getByTestId('platform-favicon').setInputFiles({ name: 'icon.png', mimeType: 'image/png', buffer: png });
         await expect(toast(page, 'success').first()).toContainText('Favicon updated');
@@ -266,7 +266,7 @@ test.describe('the sign-in page look', () => {
         await confirm(page, 'Remove');
         await expect(toast(page, 'success').last()).toContainText('Favicon removed');
         await g.goto('/login');
-        await expect(g.locator('link[rel="icon"]')).toHaveAttribute('href', /\/favicon\.svg$/);
+        await expect(g.locator('link[rel="icon"]')).toHaveAttribute('href', /\/favicon\.svg(\?v=.*)?$/);
         await guest.close();
     });
 
@@ -277,7 +277,7 @@ test.describe('the sign-in page look', () => {
         const guest = await browser.newContext();
         const g = await guest.newPage();
         await g.goto('/login');
-        await expect(g.locator('svg[aria-label^="A team in a meeting"]')).toBeVisible();     // built-in: office, meeting, progress
+        await expect(g.locator('video[src*="/brand/background"], svg[aria-label^="A team in a meeting"]').first()).toBeAttached();     // built-in: the looping video, else the drawn office
         await expect(g.locator('img[src*="/brand/background"]')).toHaveCount(0);
 
         const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
@@ -292,7 +292,7 @@ test.describe('the sign-in page look', () => {
         await confirm(page, 'Remove');
         await expect(toast(page, 'success').last()).toContainText('Background removed');
         await g.goto('/login');
-        await expect(g.locator('svg[aria-label^="A team in a meeting"]')).toBeVisible();
+        await expect(g.locator('video[src*="/brand/background"], svg[aria-label^="A team in a meeting"]').first()).toBeAttached();
         await guest.close();
     });
 });
@@ -361,7 +361,7 @@ test.describe('company favicon', () => {
         await signIn(page, 'admin@orvyncrm.test');
         await expect(page).toHaveURL(/127\.0\.0\.1:8123\/$/);
         await page.goto('/admin/look-and-feel');
-        await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', /\/favicon\.svg$/);               // the platform's (built-in) icon
+        await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', /\/favicon\.svg(\?v=.*)?$/);               // the platform's (built-in) icon
         await expect(page.getByText('Showing the platform favicon')).toBeVisible();
         await expect(page.getByRole('button', { name: 'Use platform favicon' })).toHaveCount(0);
 
@@ -379,14 +379,14 @@ test.describe('company favicon', () => {
         const guest = await browser.newContext();
         const g = await guest.newPage();
         await g.goto('/login');
-        await expect(g.locator('link[rel="icon"]')).toHaveAttribute('href', /\/favicon\.svg$|\/brand\/favicon/);
+        await expect(g.locator('link[rel="icon"]')).toHaveAttribute('href', /\/favicon\.svg|\/brand\/favicon/);
         await expect(g.locator('link[rel="icon"]')).not.toHaveAttribute('href', /\/branding\/favicon/);
         await guest.close();
 
         await page.getByRole('button', { name: 'Use platform favicon' }).click();
         await confirm(page, 'Use platform favicon');
         await expect(toast(page, 'success').last()).toContainText('Favicon removed');
-        await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', /\/favicon\.svg$/);
+        await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', /\/favicon\.svg(\?v=.*)?$/);
     });
 });
 

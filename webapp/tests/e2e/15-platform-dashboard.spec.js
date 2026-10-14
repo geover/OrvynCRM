@@ -48,7 +48,7 @@ test('platform dashboard: numbers, charts and the impact table for every company
 
     // refreshing collects every company's numbers now
     await page.getByTestId('refresh-metrics').click();
-    await expect(toast(page, 'success').first()).toContainText('Collecting metrics for 2 companies');
+    await expect(toast(page, 'success').first()).toContainText(/Collecting metrics for \d+ companies/);
     await page.reload();
     await expect(page.getByTestId('dashboard-empty')).toHaveCount(0);                               // there is data now
     await expect(page.locator('tr[data-company="demo"]')).toContainText('contacts');

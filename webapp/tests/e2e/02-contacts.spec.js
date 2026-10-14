@@ -257,7 +257,7 @@ test.describe('communication', () => {
         await expect(m.getByText('170 characters · 2 segments')).toBeVisible();
         await m.locator('textarea').fill('Hello there');
         await m.getByRole('button', { name: 'Send SMS' }).click();
-        await expect(toast(page, 'error').first()).toContainText(/not configured|Twilio|enabled/i);   // no provider is set up in a fresh install
+        await expect(toast(page, 'error').first()).toContainText(/not configured|not set up|Twilio|enabled/i);   // no provider is set up in a fresh install
     });
 });
 

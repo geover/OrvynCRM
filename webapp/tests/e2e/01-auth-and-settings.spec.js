@@ -1,11 +1,11 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { ADMIN, api, confirm, expectSuccess, field, login, submitSignIn, toast, visit } from './helpers.js';
 
-/** Newest password-reset URL for an address, taken from storage/logs/laravel.log (log mailer). */
-async function latestResetLink(email) {
+/** Newest password-reset URL for an address, taken from storage/logs/laravel.log (log mailer), only from what was written after `from` bytes (the log keeps links of earlier runs). */
+async function latestResetLink(email, from = 0) {
     for (let i = 0; i < 20; i++) {
-        const log = readFileSync(`${process.cwd()}/storage/logs/laravel.log`, 'utf8');
+        const log = readFileSync(`${process.cwd()}/storage/logs/laravel.log`).subarray(from).toString('utf8');
         const hits = [...log.matchAll(/(http:\/\/127\.0\.0\.1:8123\/reset-password\/[A-Za-z0-9]+\?email=[^\s"'<>)]+)/g)].map((m) => m[1]).filter((u) => decodeURIComponent(u).includes(email));
         if (hits.length) return hits.at(-1).replace(/&amp;/g, '&');
         await new Promise((r) => setTimeout(r, 250));
@@ -42,13 +42,14 @@ test.describe('sign in & password flows', () => {
         expect((await api(page, 'POST', '/users', { name: 'Reset Me', email: 'reset.me@orvyncrm.test', role: 'user', password: 'Old-Passw0rd!x' })).status).toBe(201);
         await page.context().clearCookies();
 
+        const logSize = statSync(`${process.cwd()}/storage/logs/laravel.log`).size;
         await page.goto('/forgot-password');
         await page.locator('#e').fill('reset.me@orvyncrm.test');
         await page.getByRole('button', { name: 'Email me a reset link' }).click();
         await expect(page.getByTestId('reset-sent')).toBeVisible();
 
         // the e2e server uses the "log" mailer: read the link out of what was "sent"
-        const link = await latestResetLink('reset.me@orvyncrm.test');
+        const link = await latestResetLink('reset.me@orvyncrm.test', logSize);
         await page.goto(link);
         await expect(page.getByRole('heading', { name: 'Choose a new password' })).toBeVisible();
 
@@ -56,7 +57,7 @@ test.describe('sign in & password flows', () => {
         await pw.nth(0).fill('weak');
         await pw.nth(1).fill('weak');
         await page.getByRole('button', { name: 'Reset password' }).click();
-        await expect(page.getByText(/at least 10 characters|must be at least/i).first()).toBeVisible();
+        await expect(page.locator('p.text-red-600').first()).toBeVisible();      // the refusal itself (the hint about the rules is always on the page)
 
         await pw.nth(0).fill('Brand-New-Passw0rd');
         await pw.nth(1).fill('Brand-New-Passw0rd');

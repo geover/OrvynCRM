@@ -22,12 +22,16 @@ const linkFor = (email) => {
 };
 
 async function setMode(page, mode) {
+    await page.context().clearCookies();                    // the sign-in page is not shown to somebody who is signed in
     await page.goto('/login');
     await submitSignIn(page, PLATFORM, PASSWORD);
+    await page.waitForURL((u) => !u.pathname.startsWith('/login'));
     await page.goto('/platform/signups');
-    await page.getByTestId(`mode-${mode}`).locator('input').check();
-    await expect(page.locator('[role="status"], .toast, [data-toast]').first()).toBeVisible({ timeout: 5000 }).catch(() => {});
-    await page.waitForTimeout(800);
+    // wait for the server's answer to the change (not a fixed pause): signing out too early would drop it
+    await Promise.all([
+        page.waitForResponse((r) => r.url().includes('/platform/signups') && r.request().method() !== 'GET'),
+        page.getByTestId(`mode-${mode}`).locator('input').check(),
+    ]);
     await page.request.post('/logout').catch(() => {});
 }
 
@@ -58,7 +62,8 @@ test('open: ask, confirm the e-mail, choose a password and arrive in the new wor
     await page.getByTestId('signup-submit').click();
     await expect(page.getByTestId('signup-sent')).toContainText(state.email);
 
-    await page.goto(linkFor(state.email));
+    state.link = linkFor(state.email);
+    await page.goto(state.link);
     await expect(page.getByTestId('signup-complete')).toContainText(`Bakery ${state.slug}`);
     await page.getByLabel('Password', { exact: true }).fill('Bakery-Passw0rd-1');
     await page.getByLabel('Repeat the password').fill('Bakery-Passw0rd-1');
@@ -66,7 +71,7 @@ test('open: ask, confirm the e-mail, choose a password and arrive in the new wor
     await expect(page).toHaveURL(/127\.0\.0\.1:8123\/$/);
     await expect(page.locator('body')).toContainText('Ana');
 
-    await page.goto(linkFor(state.email));                                                         // the link works once
+    await page.goto(state.link);                                                         // the link works once
     await expect(page).toHaveURL(/\/$/);
 });
 
@@ -85,19 +90,21 @@ test('approval: the request waits for the platform, which approves it', async ({
     await page.getByTestId('signup-submit').click();
     await expect(page.getByTestId('signup-sent')).toBeVisible();
 
-    await page.goto(linkFor(state.email2));
+    state.link2 = linkFor(state.email2);
+    await page.goto(state.link2);
     await expect(page.getByTestId('signup-pending_approval')).toBeVisible();
 
     const boss = await (await browser.newContext()).newPage();
     await boss.goto('/login');
     await submitSignIn(boss, PLATFORM, PASSWORD);
+    await boss.waitForURL((u) => !u.pathname.startsWith('/login'));
     await boss.goto('/platform/signups');
     const row = boss.locator('tr', { hasText: `Lab ${state.slug2}` });
     await row.getByTestId('approve').click();
-    await boss.getByRole('dialog').getByRole('button', { name: 'Approve' }).click();
+    await boss.locator('div.fixed.inset-0[class*="z-[55]"]').getByRole('button', { name: 'Approve', exact: true }).click();
     await expect(row).toContainText('Approved');
 
-    await page.goto(linkFor(state.email2));
+    await page.goto(linkFor(state.email2));                                                         // approving e-mails a new link: the first one is replaced
     await page.getByLabel('Password', { exact: true }).fill('Bakery-Passw0rd-1');
     await page.getByLabel('Repeat the password').fill('Bakery-Passw0rd-1');
     await page.getByTestId('signup-create').click();

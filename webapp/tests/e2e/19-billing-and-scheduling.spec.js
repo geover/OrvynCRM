@@ -17,6 +17,7 @@ async function signIn(page, email) {
     await page.context().clearCookies();
     await page.goto('/login');
     await submitSignIn(page, email, PASSWORD);
+    await page.waitForURL((u) => !u.pathname.startsWith('/login'));
 }
 
 test('changing a tier price asks for confirmation and says who is told', async ({ page }) => {

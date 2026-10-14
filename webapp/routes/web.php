@@ -35,7 +35,10 @@ use App\Http\Controllers\ThreadAttachmentController;
 use App\Http\Controllers\TrackingController;
 use App\Http\Controllers\UpdatesController;
 use App\Http\Controllers\WebAuthController;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Inertia\Inertia;
 
 // Public pages: hosted forms (+ embed loader) and shared price lists
@@ -193,12 +196,16 @@ Route::middleware('guest')->group(function () {
 
 // Signing out must work at every stage: also from the company chooser, where the person is signed in but has no company profile yet
 Route::post('/logout', [WebAuthController::class, 'destroy']);
-Route::get('/brand/logo', [PlatformBrandingController::class, 'logo']);
-Route::get('/brand/logo-light', [PlatformBrandingController::class, 'logoLight']);
-Route::get('/brand/background', [PlatformBrandingController::class, 'background']);
-Route::get('/brand/favicon', [PlatformBrandingController::class, 'favicon']);
-Route::get('/brand/platform-logo', [PlatformBrandingController::class, 'lookLogo']);
-Route::get('/brand/platform-favicon', [PlatformBrandingController::class, 'lookFavicon']);        // the sign-in logo: public, platform-owned
+// The platform's pictures and video are public and need no session. Without one, the browser fetching the sign-in video in the background
+// cannot use up a message that is waiting to be shown ("Password updated") by being the request that comes first.
+Route::withoutMiddleware([StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class])->group(function () {
+    Route::get('/brand/logo', [PlatformBrandingController::class, 'logo']);
+    Route::get('/brand/logo-light', [PlatformBrandingController::class, 'logoLight']);
+    Route::get('/brand/background', [PlatformBrandingController::class, 'background']);
+    Route::get('/brand/favicon', [PlatformBrandingController::class, 'favicon']);
+    Route::get('/brand/platform-logo', [PlatformBrandingController::class, 'lookLogo']);
+    Route::get('/brand/platform-favicon', [PlatformBrandingController::class, 'lookFavicon']);        // the sign-in logo: public, platform-owned
+});
 
 Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/updates', [UpdatesController::class, 'index'])->name('updates');

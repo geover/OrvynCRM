@@ -4,62 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="528c632e-cbff-4534-8781-ee19cae56136" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/webapp/app/Services/Tenancy/TierChangeNotices.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/database/migrations/2026_11_06_000001_add_extra_texts_and_numbers_to_tenants.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/database/migrations/2026_11_07_000001_add_stripe_price_to_company_subscriptions.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/webapp/tests/Feature/Tenancy/TierEditingTest.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.ai/mcp/mcp.json" beforeDir="false" afterPath="$PROJECT_DIR$/.ai/mcp/mcp.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources.local.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.local.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/data_sources_history.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources/data_sources_history.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/laravel-idea.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/laravel-idea.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/php.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/php.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Http/Controllers/Api/V1/BillingController.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Http/Controllers/Api/V1/BillingController.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformController.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformController.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformPaymentsController.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformPaymentsController.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformPlansController.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformPlansController.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformSeatRequestController.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformSeatRequestController.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformServicesController.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformServicesController.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Http/Middleware/HandleInertiaRequests.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Http/Middleware/HandleInertiaRequests.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Models/SeatRequest.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Models/SeatRequest.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Models/Tenant.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Models/Tenant.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Providers/AppServiceProvider.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Providers/AppServiceProvider.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Services/Tenancy/LimitRequests.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Services/Tenancy/LimitRequests.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Services/Tenancy/PaymentSettings.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Services/Tenancy/PaymentSettings.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Services/Tenancy/Plans.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Services/Tenancy/Plans.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Services/Tenancy/Subscriptions.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Services/Tenancy/Subscriptions.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/app/Services/Tenancy/UsageTracker.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Services/Tenancy/UsageTracker.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/docs/ARCHITECTURE.md" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/docs/ARCHITECTURE.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/docs/DEPLOYMENT.md" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/docs/DEPLOYMENT.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/css/app.css" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/css/app.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Components/DataTable.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Components/DataTable.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Components/ImpactTable.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Components/ImpactTable.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Components/RequestOutcome.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Components/RequestOutcome.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Layouts/PlatformLayout.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Layouts/PlatformLayout.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Admin/BlastProgress.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Admin/BlastProgress.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Admin/Phone.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Admin/Phone.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Admin/Users.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Admin/Users.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Billing.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Billing.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Contacts/partials/CommunicationTab.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Contacts/partials/CommunicationTab.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Contacts/partials/ObjectItemsTab.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Contacts/partials/ObjectItemsTab.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/Administrators.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/Administrators.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/Companies.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/Companies.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/CompanyOverview.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/CompanyOverview.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/CompanyUsers.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/CompanyUsers.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/SeatRequests.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/SeatRequests.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/Services.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/Services.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/SettingsPayments.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/SettingsPayments.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/SettingsPlans.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/SettingsPlans.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/Signups.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/Signups.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/Usage.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/Usage.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/lib/manual/company.js" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/lib/manual/company.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/resources/js/lib/manual/platform.js" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/lib/manual/platform.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/routes/api.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/routes/api.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/routes/console.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/routes/console.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/routes/web.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/routes/web.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webapp/tests/Feature/Tenancy/StripePaymentsTest.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/tests/Feature/Tenancy/StripePaymentsTest.php" afterDir="false" />
-    </list>
+    <list default="true" id="528c632e-cbff-4534-8781-ee19cae56136" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -467,7 +412,7 @@
       <workItem from="1791848611092" duration="3494000" />
       <workItem from="1791858902703" duration="3971000" />
       <workItem from="1791878337255" duration="3826000" />
-      <workItem from="1791944759965" duration="8553000" />
+      <workItem from="1791944759965" duration="9218000" />
     </task>
     <servers />
   </component>
