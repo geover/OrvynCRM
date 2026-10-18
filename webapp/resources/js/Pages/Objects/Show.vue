@@ -20,17 +20,18 @@ const showFilter = ref(false);
 const modal = ref(null);          // {record|null}
 const loading = ref(true);
 const selected = ref([]);
+const sort = ref('');
 
 const listFields = computed(() => {
     const f = object.value?.fields.filter((x) => x.show_in_list) ?? [];
     return f.length ? f : (object.value?.fields.slice(0, 5) ?? []);
 });
-const columns = computed(() => [...listFields.value.map((f, i) => ({ key: `f:${f.key}`, label: f.label, title: i === 0 })), { key: 'contacts', label: 'Contacts' }]);
+const columns = computed(() => [...listFields.value.map((f, i) => ({ key: `f:${f.key}`, label: f.label, sort: f.key, title: i === 0 })), { key: 'contacts', label: 'Contacts' }]);
 const activeRules = computed(() => (filter.value.rules ?? []).filter((r) => r.rules || (r.field && (['empty', 'not_empty'].includes(r.op) || (r.value !== '' && r.value !== null)))));
 
 async function load(reset = true) {
     loading.value = true;
-    const params = { q: q.value, cursor: reset ? undefined : next.value };
+    const params = { q: q.value, sort: sort.value || undefined, cursor: reset ? undefined : next.value };
     if (activeRules.value.length) { params['filter[match]'] = filter.value.match; activeRules.value.forEach((r, i) => { if (!r.rules) { params[`filter[rules][${i}][field]`] = r.field; params[`filter[rules][${i}][op]`] = r.op; const v = r.value; Array.isArray(v) ? v.forEach((x, j) => (params[`filter[rules][${i}][value][${j}]`] = x)) : (params[`filter[rules][${i}][value]`] = v); } }); }
     try {
         const res = await api.get(`/data-objects/${props.objectId}/records`, params);
@@ -41,6 +42,7 @@ async function load(reset = true) {
 }
 onMounted(async () => { object.value = (await api.get(`/data-objects/${props.objectId}`)).data; load(); });
 let t;
+watch(sort, () => load());
 watch(q, () => { clearTimeout(t); t = setTimeout(load, 300); });
 
 async function remove(r) {
@@ -77,7 +79,7 @@ const show = (v) => (Array.isArray(v) ? v.join(', ') : typeof v === 'boolean' ? 
             </div>
         </div>
 
-        <DataTable v-model:selected="selected" :columns="columns" :rows="rows" :loading="loading" selectable row-clickable noun="item" :storage-key="`object-${objectId}`" :empty-text="`No items${activeRules.length || q ? ' match your search' : ' yet'}.`" @row-click="(r) => (modal = { record: r })">
+        <DataTable v-model:selected="selected" v-model:sort="sort" :columns="columns" :rows="rows" :loading="loading" selectable row-clickable noun="item" :storage-key="`object-${objectId}`" :empty-text="`No items${activeRules.length || q ? ' match your search' : ' yet'}.`" @row-click="(r) => (modal = { record: r })">
             <template v-for="f in listFields" :key="f.key" #[`cell-f:${f.key}`]="{ row: r }">{{ show(r.data[f.key]) }}</template>
             <template #cell-contacts="{ row: r }"><span @click.stop><Link v-for="c in r.contacts" :key="c.id" :href="`/contacts/${c.id}`" class="badge mr-1 hover:bg-brand-50">{{ c.name }}</Link></span></template>
             <template #bulk><button class="btn-outline !py-1.5 !text-red-600 hover:!bg-red-50" @click="removeSelected"><Trash2 class="size-4" /> Delete</button></template>

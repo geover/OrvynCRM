@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { BookOpen, Building2, Gauge, Inbox, MessageSquare, LayoutDashboard, LogOut, Megaphone, Menu, Moon, Settings, Sun, SunMoon, UserCog, X } from 'lucide-vue-next';
+import { BookOpen, Building2, Database, Gauge, Inbox, KeyRound, MessageSquare, LayoutDashboard, LogOut, Megaphone, Menu, Moon, Settings, Sun, SunMoon, UserCog, WalletCards, X } from 'lucide-vue-next';
 import Hosts from '@/Components/Hosts.vue';
 import { useFavicon } from '@/lib/favicon';
 import { applyBrandColor } from '@/lib/brand';
@@ -33,6 +33,7 @@ const groups = [
     { title: 'Manage', items: [
         { href: '/platform', label: 'Companies', icon: Building2, badge: 'inactiveCompanies' },
         { href: '/platform/usage', label: 'Usage', icon: Gauge },
+        { href: '/platform/standing', label: 'Account standing', icon: WalletCards, badge: 'paymentsFailing' },
         { href: '/platform/administrators', label: 'Administrators', icon: UserCog },
         { href: '/platform/seat-requests', label: 'Requests', icon: Inbox, badge: 'seatRequestsPending' },
     ] },
@@ -42,6 +43,7 @@ const groups = [
     ] },
     { title: 'Operations', items: [
         { href: '/platform/settings', label: 'Settings', icon: Settings, also: ['/platform/services', '/platform/pricing', '/platform/branding', '/platform/look'] },
+        { href: '/platform/database', label: 'Database viewer', icon: Database },
         { href: '/platform/manual', label: 'Manual', icon: BookOpen },
     ] },
 ];
@@ -77,6 +79,7 @@ const themes = [['system', 'System', SunMoon], ['light', 'Light', Sun], ['dark',
                 </div>
                 <DarkStylePicker v-if="platformTheme !== 'light'" v-model="platformDarkStyle" />
                 <div v-if="identity" class="min-w-0"><div class="truncate font-medium">{{ identity.name }}</div><div class="truncate text-xs text-slate-500">{{ identity.email }}</div></div>
+                <Link href="/platform/security" class="btn-ghost w-full !justify-start" data-testid="platform-my-security"><KeyRound class="size-4" /> Sign-in security</Link>
                 <button class="btn-ghost w-full !justify-start" @click="logout"><LogOut class="size-4" /> Sign out</button>
             </div>
         </aside>

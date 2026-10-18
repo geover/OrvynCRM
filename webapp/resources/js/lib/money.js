@@ -7,4 +7,6 @@ export function fmtMoney(amount, currency = 'USD') {
     }
 }
 
+// the smallest unit of a currency: 100 to the dollar, but the yen has none
+export const minorToMajor = (amount, currency = 'USD') => (amount ?? 0) / (['JPY', 'KRW', 'VND', 'CLP'].includes(String(currency).toUpperCase()) ? 1 : 100);
 export const periodLabel = (period) => (period === 'year' ? 'year' : 'month');

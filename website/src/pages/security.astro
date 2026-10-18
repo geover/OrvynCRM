@@ -8,6 +8,8 @@ import Icon from '../components/Icon.astro';
 const glance = [
     ['Where your data lives', 'In a database that belongs to your company alone, separate from every other company.'],
     ['Passwords and secrets', 'Passwords are stored only as one-way hashes. Integration credentials and tokens are encrypted when stored.'],
+    ['Signing in', 'Two-step verification, passkeys and sign-in with Google, Microsoft, GitHub or your own provider. Each person sets up their own, and it can be made mandatory.'],
+    ['In the browser', 'Every page carries a content security policy and the usual browser protections, and sign-in attempts are rate limited.'],
     ['Who can see what', 'Permission templates set what each user can see and do. Administrators add and remove people.'],
     ['Support access', 'Our team can open a workspace in support mode to help with a problem, for support and security only.'],
     ['Your data, your exit', 'Export your data any time. When an account ends, the workspace is deleted or anonymised as the Privacy Policy describes.'],
@@ -28,7 +30,7 @@ const shared = {
             <p class="eyebrow">At a glance</p>
             <h2 class="mt-2 text-3xl font-semibold sm:text-4xl">Data handling in plain words</h2>
         </div>
-        <dl class="mx-auto mt-12 grid max-w-4xl gap-px overflow-hidden rounded-2xl border border-stone-200 bg-stone-200 sm:grid-cols-2">
+        <dl class="mt-12 grid gap-px overflow-hidden rounded-2xl border border-stone-200 bg-stone-200 sm:grid-cols-2">
             {glance.map(([t, d]) => <div class="bg-white p-6"><dt class="font-semibold text-ink">{t}</dt><dd class="mt-1.5 text-sm leading-relaxed text-stone-600">{d}</dd></div>)}
         </dl>
     </section>
@@ -40,7 +42,7 @@ const shared = {
                 <h2 class="mt-2 text-3xl font-semibold sm:text-4xl">What we do, and what you do</h2>
                 <p class="mt-4 text-stone-600">Good security is a partnership. Here is how we split it.</p>
             </div>
-            <div class="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-2">
+            <div class="mt-12 grid gap-6 md:grid-cols-2">
                 {[['We take care of', shared.us, 'shield'], ['You take care of', shared.you, 'users']].map(([title, items, icon]) => (
                     <div class="rounded-2xl border border-stone-200 bg-white p-7 shadow-sm">
                         <span class="grid size-11 place-items-center rounded-xl bg-brand-50 text-brand-600"><Icon name={icon as string} class="size-5" /></span>

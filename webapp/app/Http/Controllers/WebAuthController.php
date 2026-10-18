@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\AccountUser;
 use App\Models\Tenant;
+use App\Services\Auth\SignIn;
+use App\Services\Auth\SignInSecurity;
+use App\Services\Auth\SocialProviders;
 use App\Services\Tenancy\CompanySession;
 use App\Services\Tenancy\Recaptcha;
 use App\Support\LoginThrottle;
@@ -12,19 +15,18 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /** The one sign-in page for every company: credentials are checked centrally, then the person picks (or is given) a company. */
 class WebAuthController extends Controller
 {
-    public function create(): Response
+    public function create(SocialProviders $providers, SignInSecurity $security): Response
     {
-        return Inertia::render('Auth/Login');
+        return Inertia::render('Auth/Login', ['providers' => $providers->offered(), 'passkeys' => $security->passkeysEnabled()]);
     }
 
-    public function store(Request $request, CompanySession $companies, Recaptcha $recaptcha): RedirectResponse
+    public function store(Request $request, SignIn $signIn, Recaptcha $recaptcha): RedirectResponse
     {
         $credentials = $request->validate(['email' => ['required', 'email'], 'password' => ['required']]);
         LoginThrottle::ensureNotLocked($request);
@@ -42,33 +44,8 @@ class WebAuthController extends Controller
         }
 
         LoginThrottle::succeed($request);
-        $request->session()->regenerate();
-        $request->session()->put('identity_id', $identity->id);
-        $remember = $request->boolean('remember');
 
-        $mine = $companies->companiesFor($identity);
-        if ($mine->count() === 1) {
-            try {
-                return $companies->enter($request, $identity, $mine->first(), $remember);
-            } catch (ValidationException $e) {
-                // e.g. suspended in their one company: the sign-in page only shows the email field's error, so say it there
-                $request->session()->forget('identity_id');
-
-                return back()->withErrors(['email' => collect($e->errors())->flatten()->first()])->onlyInput('email');
-            }
-        }
-        if ($mine->isEmpty()) {
-            if ($identity->is_platform_admin) {
-                return redirect('/platform');
-            }
-            $request->session()->forget('identity_id');
-
-            return back()->withErrors(['email' => 'Your account does not belong to an active company. Ask your administrator.'])->onlyInput('email');
-        }
-
-        $request->session()->put('remember', $remember);
-
-        return redirect('/choose-company');
+        return $signIn->proven($request, $identity, $request->boolean('remember'));
     }
 
     /** Pick one of your companies (several memberships) or switch to another one. */

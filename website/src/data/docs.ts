@@ -59,7 +59,7 @@ export const docs: DocPage[] = [
                             '**Sign in.** Enter your work e-mail, then your password. If your e-mail belongs to more than one company you pick one, and you can switch later from your account menu.',
                         ],
                     },
-                    { tip: 'A new workspace starts with a free trial on the first plan. You can enter your billing details at any time, even on day one. See Plans and billing.' },
+                    { tip: 'A new workspace starts with a free trial on the first plan. No credit card is needed to start: billing details are only asked for when the trial ends and you want to continue (you can add them earlier if you like). See Plans and billing.' },
                 ],
             },
             {
@@ -89,6 +89,7 @@ export const docs: DocPage[] = [
                 blocks: [
                     {
                         steps: [
+                            '**Follow the checklist.** Administrators see a *Get your workspace ready* card on the Dashboard with these steps, ticked off as you go. Hide it any time.',
                             '**Make it yours.** Under Admin settings, *App details* and *Look & feel*, set the company name, your time zone, your logo and your colours.',
                             '**Describe your business.** In *Data Objects*, create the record types you really have (for example Deals or Properties) and add their fields. See Your data.',
                             '**Bring your people.** Import contacts from a CSV, or sync them from Keap. See Contacts.',
@@ -111,6 +112,8 @@ export const docs: DocPage[] = [
                                 ['Sidebar', 'Dashboard, Contacts, Data Objects, Workflow Boards, My Tasks, Schedules and, for administrators, Admin Settings.'],
                                 ['Search box', 'Searches contacts and records as you type. Press **Ctrl+K** (**Cmd+K** on a Mac) for the command palette: jump to any page, find a contact, or create a contact or task.'],
                                 ['Bell', 'Your notifications: tasks, import and export results, notices about your company.'],
+                                ['Admin settings', 'Every settings page has the same grouped menu on the left, with a filter box, and an overview of cards showing live facts such as your plan and how many users you use.'],
+                                ['Add contact', 'The person-with-a-plus button in the top bar opens the new-contact form from any page. The Contacts page has its own New contact button, so it is left out there.'],
                                 ['Account menu', 'User settings, switch company, light or dark theme, Admin settings and Sign out.'],
                             ],
                         },
@@ -135,8 +138,10 @@ export const docs: DocPage[] = [
                     {
                         list: [
                             'Search by name, e-mail, company or phone as you type.',
-                            'Filter by **tag** or **owner**, and sort by newest, last name, company or recently updated.',
+                            'Filter by **tag** or **owner**. Click any column heading to sort by it, ascending and then descending, with an arrow showing the order.',
                             '**Columns** chooses what the table shows; **Views** switches between your saved views.',
+                            'Numbered pages with a rows-per-page choice (25, 50 or 100) sit at the foot of the table, which fills the height of the window.',
+                            'Each row has quick actions: **Email** and **Text** open the message windows right on the list (sent from the CRM and recorded on the contact), **Call** opens your phone, and **Edit** opens the contact form.',
                             '**Advanced search** builds precise searches from conditions and saves them as queries (see Saved queries below).',
                         ],
                     },
@@ -645,11 +650,26 @@ export const docs: DocPage[] = [
                             'Set a password, or leave it empty so they receive an invitation to choose their own.',
                         ],
                     },
-                    { p: 'If the e-mail already belongs to a person with an account, they are simply added to your company and keep their own password. You can edit a user, send a reset link, or remove them: their contact record, notes and tasks stay.' },
+                    { p: 'If the e-mail already belongs to a person with an account, they are simply added to your company and keep their own password. You can edit a user, send a reset link, reset two-step verification for someone who lost their phone, or remove them: their contact record, notes and tasks stay.' },
                     { h: 'Permission templates' },
                     { p: 'A template is a named set of permissions you give to several people. It decides:' },
                     { list: ['Contacts: view, create, edit, delete and merge.', 'Parts of a contact: notes and tasks, communication, relationships, attachments.', 'Interface: query widgets, workflow boards, and which sidebar tabs and data-object sections are visible.'] },
                     { note: 'Passwords need at least 10 characters with upper and lower case letters and a number. After a password is changed or reset, the person’s API tokens are revoked.' },
+                ],
+            },
+            {
+                id: 'sign-in-security',
+                title: 'Sign-in security',
+                blocks: [
+                    { p: 'Everyone can protect their own account beyond the password, and the platform decides which options are offered and who must use them.' },
+                    { h: 'Two-step verification' },
+                    { steps: ['Open **Sign-in security** in the account menu and press **Set up two-step verification**.', 'Scan the QR code with an authenticator app (Google Authenticator, Microsoft Authenticator, 1Password, Authy…).', 'Type the 6-digit code to turn it on, and keep your **recovery codes**: they are shown once and each works once.'] },
+                    { p: 'After that, signing in asks for the password and then a code. It is one setting per person and covers every company they belong to. An administrator can reset it for someone who lost their phone and recovery codes.' },
+                    { h: 'Passkeys' },
+                    { p: 'Where the platform offers them, add a passkey on each device and sign in with a fingerprint, face or device PIN: no password and no code. Nothing secret is stored; a passkey cannot be phished.' },
+                    { h: 'Continue with Google, Microsoft, GitHub or single sign-on' },
+                    { p: 'Where the platform offers them, connect an account you already have and sign in with one click. People are matched to an existing account by a **verified** e-mail address; nobody can create an account this way.' },
+                    { note: 'The platform can require two-step verification for administrators or for everybody. A person it applies to is taken to their security page first and can do nothing else until it is set up.' },
                 ],
             },
             {
@@ -682,7 +702,7 @@ export const docs: DocPage[] = [
                 id: 'trial',
                 title: 'The free trial',
                 blocks: [
-                    { p: 'A workspace created through sign-up starts with a free trial on the first plan. The banner and the Billing page show how many days are left, and you are reminded by e-mail and in the bell 14 days, 7 days and 1 day before it ends. You can enter your billing information at any time, even on day one.' },
+                    { p: 'A workspace created through sign-up starts with a free trial on the first plan. The banner and the Billing page show how many days are left, and you are reminded by e-mail and in the bell 14 days, 7 days and 1 day before it ends. **No credit card is needed** to start or during the trial. Billing information is only required when the trial ends and you want to continue; you can enter it earlier, even on day one, if you prefer.' },
                     { warn: 'When the trial ends and no billing information is on file, only the Billing page (and the manual) stays open until an administrator enters it. Nothing is deleted.' },
                 ],
             },
@@ -716,7 +736,7 @@ export const docs: DocPage[] = [
                         list: [
                             '**Manage card & invoices** opens Stripe’s portal: change the card, download invoices, or cancel.',
                             'Changing plan changes the subscription at once; Stripe charges or credits the difference for the rest of the period.',
-                            'If a payment fails you are told by e-mail and in the bell, and Stripe tries again.',
+                            'If a payment fails you are told by e-mail and in the bell, administrators see a red banner until it goes through, and Stripe tries again.',
                             'Some platforms invoice you instead. Fill in your billing information (legal name, contact, address, tax number, purchase order) and they invoice from it.',
                         ],
                     },
@@ -780,6 +800,7 @@ export const docs: DocPage[] = [
                     },
                     { code: { label: 'Response', text: '{\n  "token": "1|a8Gk…",\n  "user": { "id": 4, "name": "Ana Reyes", "email": "you@yourcompany.com", "role": "admin" },\n  "company": "your-company-slug"\n}' } },
                     { p: 'Send it on every request as `Authorization: Bearer 1|a8Gk…`. Sign-in tokens last 30 days. You can also create a named token for a script with `POST /me/tokens`, and list or revoke yours with `GET /me/tokens` and `DELETE /me/tokens/{id}`. Resetting or changing a password revokes all of a person’s tokens.' },
+                    { p: 'If the person uses two-step verification, add `"otp": "123456"` (the code from the authenticator app, or a recovery code) to that request. Without it the answer is `422` with `"two_factor_required": true`. If the platform requires two-step verification and it is not set up yet, the answer is `403`: sign in to the app and set it up first.' },
                     { warn: 'Treat a token like a password. Keep it out of web pages and code you share, and revoke it when it is no longer needed.' },
                 ],
             },

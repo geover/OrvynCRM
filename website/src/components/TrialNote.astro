@@ -1,0 +1,55 @@
+---
+interface Props {
+    /** "dark" for use on the dark call-to-action band. */
+    tone?: 'light' | 'dark';
+    /** Left-align (the home hero on wide screens) instead of centring. */
+    align?: 'center' | 'start';
+    /** Title only, for tight spaces such as the home hero. */
+    compact?: boolean;
+    /** Fill the whole page width (a section of its own) instead of a centred column. */
+    wide?: boolean;
+}
+const { tone = 'light', align = 'center', compact = false, wide = false } = Astro.props;
+const dark = tone === 'dark';
+const start = align === 'start';
+// Drawn in the site's palette: denim, gold and a green for "done". Solid fills only, so the same picture can sit twice on a page.
+const points = [
+    { key: 'card', title: 'No credit card required', text: 'Start without entering any payment details.' },
+    { key: 'clock', title: 'Ready in minutes', text: 'Confirm your e-mail and your workspace is set up.' },
+    { key: 'export', title: 'Export your data any time', text: 'Your records are yours to take with you.' },
+];
+---
+<ul class:list={['grid gap-3', compact ? 'grid-cols-3' : 'sm:grid-cols-3', start ? 'text-center lg:text-left' : wide ? 'text-center' : 'mx-auto max-w-3xl text-center']} data-testid="trial-note" aria-label="About the free trial">
+    {points.map((p) => (
+        <li class:list={['flex gap-3 rounded-2xl', compact ? 'flex-col items-center gap-2 p-3 sm:gap-3 sm:p-5' : 'flex-row items-center p-4 text-left sm:flex-col sm:gap-3 sm:p-5 sm:text-center', start && 'lg:items-start lg:text-left', dark ? 'bg-white/10 ring-1 ring-white/20 backdrop-blur' : 'bg-white shadow-md shadow-brand-900/5 ring-1 ring-stone-200']}>
+            <svg viewBox="0 0 64 64" class:list={['shrink-0', compact ? 'size-10 sm:size-14' : 'size-12 sm:size-14']} role="img" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="32" cy="32" r="31" fill={dark ? '#ffffff' : '#f6ecd5'} opacity={dark ? '.95' : '1'} />
+                {p.key === 'card' && (<g>
+                    <rect x="9" y="19" width="46" height="30" rx="6" fill="#dce6f1" stroke="#5f86b0" stroke-width="2" />
+                    <rect x="9" y="26" width="46" height="6" fill="#5f86b0" />
+                    <rect x="15" y="38" width="14" height="4" rx="2" fill="#9db8d6" /><rect x="33" y="38" width="8" height="4" rx="2" fill="#9db8d6" />
+                    <path d="M12 52L52 16" stroke="#ffffff" stroke-width="9" stroke-linecap="round" />
+                    <path d="M12 52L52 16" stroke="#b45309" stroke-width="4" stroke-linecap="round" />
+                </g>)}
+                {p.key === 'clock' && (<g>
+                    <rect x="27" y="9" width="10" height="5" rx="2" fill="#5f86b0" />
+                    <circle cx="32" cy="35" r="19" fill="#ffffff" stroke="#3b5a80" stroke-width="3" />
+                    <path d="M32 35V23M32 35l8 5" stroke="#3b5a80" stroke-width="3" stroke-linecap="round" fill="none" />
+                    <circle cx="32" cy="35" r="2.5" fill="#c9a45c" />
+                    <path d="M49 10l-7 11h6l-3 10 10-13h-6z" fill="#c9a45c" stroke="#ffffff" stroke-width="1.5" stroke-linejoin="round" />
+                </g>)}
+                {p.key === 'export' && (<g>
+                    <rect x="20" y="9" width="24" height="30" rx="3" fill="#ffffff" stroke="#9db8d6" stroke-width="2" />
+                    <path d="M25 17h14M25 23h14M25 29h9" stroke="#c3d3e6" stroke-width="2.5" stroke-linecap="round" />
+                    <path d="M12 38v10a4 4 0 0 0 4 4h32a4 4 0 0 0 4-4V38" fill="none" stroke="#3b5a80" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+                    <circle cx="32" cy="34" r="9" fill="#10b981" stroke="#ffffff" stroke-width="2" />
+                    <path d="M32 29.5v8M28.5 34.5l3.5 3.5 3.5-3.5" stroke="#ffffff" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                </g>)}
+            </svg>
+            <div>
+                <p class:list={['font-semibold leading-snug', compact ? 'text-xs sm:text-base' : 'text-base', dark ? 'text-white' : 'text-ink']}>{p.title}</p>
+                {!compact && <p class:list={['mt-1 text-sm leading-snug', dark ? 'text-brand-100' : 'text-stone-600']}>{p.text}</p>}
+            </div>
+        </li>
+    ))}
+</ul>

@@ -1,18 +1,23 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
-import { Bookmark, Download, Mail, Phone, Plus, Search, Tag, Trash2, UserCog, X } from 'lucide-vue-next';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Bookmark, Download, Mail, MessageSquare, Pencil, Phone, Plus, Search, Tag, Trash2, UserCog, X } from 'lucide-vue-next';
 import DataTable from '@/Components/DataTable.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import Modal from '@/Components/Modal.vue';
 import PageHeader from '@/Components/PageHeader.vue';
+import TablePagination from '@/Components/TablePagination.vue';
 import ContactForm from './partials/ContactForm.vue';
+import EmailComposer from './partials/EmailComposer.vue';
+import SmsComposer from './partials/SmsComposer.vue';
 import { api } from '@/lib/api';
 import { useStored } from '@/lib/stored';
 import { confirmDialog, fmtDate, run } from '@/lib/ui';
 
 const rows = ref([]);
-const next = ref(null);
+const meta = ref(null);            // the page being shown: {current_page, last_page, per_page, total, from, to}
+const page = ref(1);
+const perPage = useStored('perpage:contacts', 25);
 const loading = ref(true);
 const q = ref('');
 const tag = ref('');
@@ -20,34 +25,47 @@ const owner = ref('');
 const sort = ref('-created_at');
 const users = ref([]);
 const showNew = ref(false);
+const auth = usePage().props.auth.user;
+const canEdit = auth.is_admin || (auth.permissions?.contacts ?? []).includes('edit');
+const acting = ref(null);          // {type: 'email' | 'sms' | 'edit', contact}: the row action that is open
+const openAction = async (type, c) => {
+    if (type !== 'edit') { acting.value = { type, contact: c }; return; }
+    await run(async () => { acting.value = { type, contact: (await api.get(`/contacts/${c.id}`)).data }; });   // the form needs every field, the list only has some
+};
+const edited = (c) => { acting.value = null; const i = rows.value.findIndex((r) => r.id === c.id); if (i >= 0) rows.value[i] = { ...rows.value[i], ...c }; };
 const selected = ref([]);
 const bulk = ref(null);            // {type: 'add_tag' | 'remove_tag' | 'set_owner', value}
 const views = useStored('views:contacts', []);
 const viewName = ref('');
 
 const columns = [
-    { key: 'full_name', label: 'Name', title: true },
-    { key: 'email', label: 'Email' },
-    { key: 'phone', label: 'Phone', hideBelow: 'lg' },
-    { key: 'company_name', label: 'Company', hideBelow: 'lg' },
-    { key: 'owner', label: 'Owner', hideBelow: 'xl' },
+    { key: 'full_name', label: 'Name', title: true, sort: 'full_name' },
+    { key: 'email', label: 'Email', sort: 'email' },
+    { key: 'phone', label: 'Phone', sort: 'phone', hideBelow: 'lg' },
+    { key: 'company_name', label: 'Company', sort: 'company_name', hideBelow: 'lg' },
+    { key: 'owner', label: 'Owner', sort: 'owner', hideBelow: 'xl' },
     { key: 'tags', label: 'Tags', hideBelow: '2xl' },
-    { key: 'created_at', label: 'Added', hideBelow: '2xl' },
+    { key: 'created_at', label: 'Added', sort: 'created_at', hideBelow: '2xl' },
 ];
+const SORT_CHOICES = ['-created_at', 'last_name', 'company_name', '-updated_at'];
 const filtered = computed(() => !!(q.value || tag.value || owner.value));
 
-async function load(reset = true) {
+async function load() {
     loading.value = true;
     try {
-        const res = await api.get('/contacts', { 'filter[q]': q.value, 'filter[tag]': tag.value, 'filter[owner_id]': owner.value, sort: sort.value, cursor: reset ? undefined : next.value });
-        rows.value = reset ? res.data : [...rows.value, ...res.data];
-        next.value = res.meta?.next_cursor ?? null;
-        if (reset) selected.value = [];
+        const res = await api.get('/contacts', { 'filter[q]': q.value, 'filter[tag]': tag.value, 'filter[owner_id]': owner.value, sort: sort.value, page: page.value, per_page: perPage.value });
+        if (res.meta.last_page && page.value > res.meta.last_page) { page.value = res.meta.last_page; return load(); }   // the last page emptied (deleted rows)
+        rows.value = res.data;
+        meta.value = res.meta;
+        selected.value = [];
     } finally { loading.value = false; }
 }
+const goTo = (n) => { page.value = n; load(); window.scrollTo({ top: 0 }); };
+const resize = (n) => { perPage.value = n; goTo(1); };
+const fromStart = () => { page.value = 1; load(); };      // a new search, filter or order starts on page 1
 let t;
-watch([q, tag], () => { clearTimeout(t); t = setTimeout(load, 300); });
-watch([sort, owner], () => load());
+watch([q, tag], () => { clearTimeout(t); t = setTimeout(fromStart, 300); });
+watch([sort, owner], fromStart);
 onMounted(async () => { if (new URLSearchParams(location.search).get('new')) showNew.value = true; load(); users.value = (await api.get('/users')).data; });
 const created = (c) => { showNew.value = false; router.visit(`/contacts/${c.id}`); };
 const clearFilters = () => { q.value = ''; tag.value = ''; owner.value = ''; };
@@ -95,12 +113,12 @@ function exportSelected() {
         <button class="btn-primary" @click="showNew = true"><Plus class="size-4" /> New contact</button>
     </PageHeader>
 
-    <DataTable v-model:selected="selected" :columns="columns" :rows="rows" :loading="loading" selectable noun="contact" storage-key="contacts" empty-text="No contacts found.">
+    <DataTable v-model:selected="selected" v-model:sort="sort" :columns="columns" :rows="rows" :loading="loading" selectable noun="contact" storage-key="contacts" empty-text="No contacts found.">
         <template #toolbar>
             <div class="relative"><Search class="pointer-events-none absolute left-3 top-2.5 size-4 text-slate-400" /><input v-model="q" class="input !w-64 !pl-9" placeholder="Search name, email, company, phone…" /></div>
             <input v-model="tag" class="input !w-36" placeholder="Tag" />
             <select v-model="owner" class="input !w-44"><option value="">All owners</option><option v-for="u in users" :key="u.id" :value="u.id">{{ u.name }}</option></select>
-            <select v-model="sort" class="input !w-40"><option value="-created_at">Newest</option><option value="last_name">Last name</option><option value="company_name">Company</option><option value="-updated_at">Recently updated</option></select>
+            <select v-model="sort" class="input !w-40"><option value="-created_at">Newest</option><option value="last_name">Last name</option><option value="company_name">Company</option><option value="-updated_at">Recently updated</option><option v-if="!SORT_CHOICES.includes(sort)" :value="sort">Column order</option></select>
             <button v-if="filtered" type="button" class="btn-ghost" @click="clearFilters"><X class="size-4" /> Clear filters</button>
             <Dropdown align="left" width="w-72">
                 <template #trigger="{ toggle }"><button type="button" class="btn-outline" @click="toggle"><Bookmark class="size-4" /> Views<span v-if="views.length" class="badge ml-1">{{ views.length }}</span></button></template>
@@ -137,8 +155,10 @@ function exportSelected() {
         <template #cell-created_at="{ row: c }"><span class="text-slate-400">{{ fmtDate(c.created_at) }}</span></template>
         <template #actions="{ row: c }">
             <span class="inline-flex gap-0.5 opacity-0 transition focus-within:opacity-100 group-hover:opacity-100 max-md:opacity-100">
-                <a v-if="c.email" :href="`mailto:${c.email}`" class="btn-ghost !px-1.5 text-slate-500" :title="`Email ${c.full_name}`" :aria-label="`Email ${c.full_name}`"><Mail class="size-4" /></a>
+                <button v-if="c.email" type="button" class="btn-ghost !px-1.5 text-slate-500" :title="`Email ${c.full_name}`" :aria-label="`Email ${c.full_name}`" @click="openAction('email', c)"><Mail class="size-4" /></button>
+                <button v-if="c.phone" type="button" class="btn-ghost !px-1.5 text-slate-500" :title="`Text ${c.full_name}`" :aria-label="`Text ${c.full_name}`" @click="openAction('sms', c)"><MessageSquare class="size-4" /></button>
                 <a v-if="c.phone" :href="`tel:${c.phone}`" class="btn-ghost !px-1.5 text-slate-500" :title="`Call ${c.full_name}`" :aria-label="`Call ${c.full_name}`"><Phone class="size-4" /></a>
+                <button v-if="canEdit" type="button" class="btn-ghost !px-1.5 text-slate-500" :title="`Edit ${c.full_name}`" :aria-label="`Edit ${c.full_name}`" @click="openAction('edit', c)"><Pencil class="size-4" /></button>
             </span>
         </template>
         <template #empty>
@@ -146,10 +166,14 @@ function exportSelected() {
                 <p class="mt-1 text-sm">{{ filtered ? 'Try different filters, or clear them to see everyone.' : 'Add your first contact to get started.' }}</p>
                 <button v-if="filtered" class="btn-outline mt-4" @click="clearFilters">Clear filters</button><button v-else class="btn-primary mt-4" @click="showNew = true"><Plus class="size-4" /> New contact</button></div>
         </template>
-        <template #footer><div v-if="next" class="border-t border-slate-100 p-3 text-center"><button class="btn-outline" :disabled="loading" @click="load(false)">Load more</button></div></template>
+        <template #footer><TablePagination :meta="meta" :loading="loading" @page="goTo" @size="resize" /></template>
     </DataTable>
 
     <Modal v-if="showNew" title="New contact" width="max-w-3xl" @close="showNew = false"><ContactForm @saved="created" @cancel="showNew = false" /></Modal>
+
+    <EmailComposer v-if="acting?.type === 'email'" :contact="acting.contact" @close="acting = null" @sent="acting = null" />
+    <SmsComposer v-if="acting?.type === 'sms'" :contact="acting.contact" @close="acting = null" @sent="acting = null" />
+    <Modal v-if="acting?.type === 'edit'" title="Edit contact" width="max-w-3xl" @close="acting = null"><ContactForm :contact="acting.contact" @saved="edited" @cancel="acting = null" /></Modal>
 
     <Modal v-if="bulk" :title="{ add_tag: 'Add a tag', remove_tag: 'Remove a tag', set_owner: 'Assign an owner' }[bulk.type]" @close="bulk = null">
         <form id="bulkf" class="space-y-3" @submit.prevent="bulkRun(bulk.type, bulk.value, bulk.type === 'set_owner' ? 'Owner updated' : bulk.type === 'add_tag' ? 'Tag added' : 'Tag removed')">

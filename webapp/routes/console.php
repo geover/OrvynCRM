@@ -38,6 +38,9 @@ Schedule::command('orvyn:scan-inactive')->cron($frequency->cron('inactivity'))->
 // How much of its plan each company uses (users, texts, texting numbers): a record per month, and a warning at 80 and 100 percent
 Schedule::command('orvyn:track-usage')->cron($frequency->cron('usage'))->name('companies:usage')->withoutOverlapping(30);
 
+// Payments that failed and are still unpaid: remind the company after 3 days and again after 7, and tell the platform
+Schedule::command('orvyn:payment-followups')->dailyAt('05:00')->name('companies:payment-followups')->withoutOverlapping(30);
+
 // Free trials running out: remind the administrators 14, 7 and 1 days before, and once when it has ended
 Schedule::command('orvyn:trial-reminders')->cron($frequency->cron('trial-reminders'))->name('companies:trial-reminders')->withoutOverlapping(30);
 

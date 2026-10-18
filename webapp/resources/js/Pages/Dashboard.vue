@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { Activity, ArrowDownRight, ArrowUpRight, Download, FileUp, ListPlus, Mail, MessageSquare, Pencil, Plus, RefreshCw, Trash2, UserPlus } from 'lucide-vue-next';
 import Modal from '@/Components/Modal.vue';
+import GettingStarted from '@/Components/GettingStarted.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import { api } from '@/lib/api';
 import { confirmDialog, fmtDate, fmtDue, fmtRelative, run } from '@/lib/ui';
@@ -77,6 +78,7 @@ const cell = (v) => (Array.isArray(v) ? v.join(', ') : v);
         <div v-for="n in 6" :key="n" class="card space-y-3 p-4"><span class="block h-3 w-2/3 animate-pulse rounded bg-slate-100" /><span class="block h-7 w-1/3 animate-pulse rounded bg-slate-100" /></div>
     </div>
     <template v-else>
+        <GettingStarted v-if="d.setup" :setup="d.setup" @hide="d.setup = null" />
         <nav class="mb-5 flex flex-wrap gap-2" aria-label="Quick actions">
             <Link href="/contacts?new=1" class="btn-outline"><UserPlus class="size-4" /> Create contact</Link>
             <Link href="/tasks?new=1" class="btn-outline"><ListPlus class="size-4" /> Create task</Link>

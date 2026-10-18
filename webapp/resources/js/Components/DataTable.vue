@@ -1,6 +1,6 @@
 <script setup>
-import { computed } from 'vue';
-import { Columns3, X } from 'lucide-vue-next';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { ArrowDown, ArrowUp, ArrowUpDown, Columns3, X } from 'lucide-vue-next';
 import Dropdown from '@/Components/Dropdown.vue';
 import { useStored } from '@/lib/stored';
 
@@ -9,6 +9,8 @@ import { useStored } from '@/lib/stored';
  * a sticky header, skeleton rows while loading and a card layout on phones.
  *
  * columns: [{ key, label, hideBelow?: 'lg'|'xl'|'2xl' (hidden on narrower desktops), title?: true (primary column, always shown), off?: true (hidden by default) }]
+ * Sorting: a column with `sort: '<api key>'` has a clickable header (ascending, then descending, then ascending again); `sort` (v-model:sort) is the current
+ * order as the API takes it, '-key' for descending.
  * Cell content: slot `cell-<key>` ({row}); default is row[key]. Row actions: slot `actions` ({row}). Bulk actions: slot `bulk`.
  */
 const props = defineProps({
@@ -21,8 +23,11 @@ const props = defineProps({
     emptyText: { type: String, default: 'Nothing here yet.' },
     rowClickable: Boolean,
     noun: { type: String, default: 'item' },
+    sort: { type: String, default: '' },
 });
-const emit = defineEmits(['update:selected', 'row-click']);
+const emit = defineEmits(['update:selected', 'row-click', 'update:sort']);
+const direction = (c) => (props.sort === c.sort ? 'ascending' : props.sort === `-${c.sort}` ? 'descending' : 'none');
+const sortBy = (c) => emit('update:sort', props.sort === c.sort ? `-${c.sort}` : c.sort);
 
 const hidden = useStored(`cols:${props.storageKey}`, props.columns.filter((c) => c.off).map((c) => c.key));
 const visible = computed(() => props.columns.filter((c) => !hidden.value.includes(c.key)));
@@ -35,6 +40,18 @@ const toggleAll = () => emit('update:selected', allOn.value ? [] : [...allIds.va
 const toggleOne = (id) => emit('update:selected', props.selected.includes(id) ? props.selected.filter((x) => x !== id) : [...props.selected, id]);
 const band = (c) => ({ lg: 'md:max-lg:hidden', xl: 'md:max-xl:hidden', '2xl': 'md:max-2xl:hidden' })[c.hideBelow] ?? '';
 const clickRow = (r) => props.rowClickable && emit('row-click', r);
+
+// The card stretches to the bottom of the window (a short list no longer leaves an empty strip under it); on phones it is as tall as its cards.
+const card = ref(null);
+const fit = () => {
+    if (!card.value) return;
+    const wide = window.matchMedia('(min-width: 768px)').matches;
+    const top = card.value.getBoundingClientRect().top + window.scrollY;
+    card.value.style.minHeight = wide ? `${Math.max(0, window.innerHeight - top - 32)}px` : '';
+};
+onMounted(() => { fit(); window.addEventListener('resize', fit); });
+onBeforeUnmount(() => window.removeEventListener('resize', fit));
+watch(() => [props.selected.length, props.loading], () => nextTick(fit), { flush: 'post' });
 </script>
 
 <template>
@@ -58,18 +75,23 @@ const clickRow = (r) => props.rowClickable && emit('row-click', r);
             <button type="button" class="btn-ghost !px-2" title="Clear selection" @click="emit('update:selected', [])"><X class="size-4" /></button>
         </div>
 
-        <div class="card max-md:overflow-hidden">
+        <div ref="card" class="card flex flex-col max-md:overflow-hidden">
             <div v-if="loading && !rows.length" class="divide-y divide-slate-100" aria-busy="true" aria-label="Loading">
                 <div v-for="n in 6" :key="n" class="flex items-center gap-6 px-5 py-4">
                     <span class="h-4 w-1/5 animate-pulse rounded bg-slate-100" /><span class="h-4 w-1/4 animate-pulse rounded bg-slate-100" /><span class="hidden h-4 w-1/6 animate-pulse rounded bg-slate-100 md:block" /><span class="hidden h-4 w-1/6 animate-pulse rounded bg-slate-100 lg:block" />
                 </div>
             </div>
-            <div v-else class="table-scroll max-md:max-h-none max-md:overflow-visible">
+            <div v-else class="table-scroll flex-1 max-md:max-h-none max-md:overflow-visible">
             <table class="w-full text-sm max-md:block">
                 <thead class="max-md:hidden">
                     <tr class="text-left text-xs uppercase tracking-wide text-slate-500">
                         <th v-if="selectable" class="sticky top-[65px] z-10 w-10 rounded-tl-xl border-b border-slate-100 bg-white px-5 py-3"><input type="checkbox" class="rounded" aria-label="Select all rows" :checked="allOn" @change="toggleAll" /></th>
-                        <th v-for="c in visible" :key="c.key" :class="band(c)" class="sticky top-[65px] z-10 border-b border-slate-100 bg-white px-5 py-3 font-semibold">{{ c.label }}</th>
+                        <th v-for="c in visible" :key="c.key" :class="band(c)" class="sticky top-[65px] z-10 border-b border-slate-100 bg-white px-5 py-3 font-semibold" :aria-sort="c.sort ? direction(c) : undefined">
+                            <button v-if="c.sort" type="button" class="-mx-1 inline-flex items-center gap-1 rounded px-1 uppercase tracking-wide hover:text-slate-800" :class="direction(c) !== 'none' && 'text-brand-700'" :data-sort="c.sort" :title="`Sort by ${c.label}`" @click="sortBy(c)">
+                                {{ c.label }}<ArrowUp v-if="direction(c) === 'ascending'" class="size-3.5" /><ArrowDown v-else-if="direction(c) === 'descending'" class="size-3.5" /><ArrowUpDown v-else class="size-3 opacity-40" />
+                            </button>
+                            <template v-else>{{ c.label }}</template>
+                        </th>
                         <th v-if="$slots.actions" class="sticky top-[65px] z-10 rounded-tr-xl border-b border-slate-100 bg-white px-5 py-3"><span class="sr-only">Actions</span></th>
                     </tr>
                 </thead>

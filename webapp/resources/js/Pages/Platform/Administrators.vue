@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { KeyRound, Pencil, Plus, UserMinus } from 'lucide-vue-next';
+import { KeyRound, Pencil, Plus, ShieldOff, UserMinus } from 'lucide-vue-next';
 import Modal from '@/Components/Modal.vue';
 import PasswordField from '@/Components/PasswordField.vue';
 import PageHeader from '@/Components/PageHeader.vue';
@@ -34,6 +34,7 @@ function demote() {
         onSuccess: () => { toast(page.props.flash.success ?? 'Done'); demoting.value = null; keepIn.value = ''; },
     });
 }
+const resetTwoFactor = (a) => router.post(`/platform/administrators/${a.id}/reset-two-factor`, {}, { preserveScroll: true, onSuccess: () => toast('Two-step verification reset') });
 const sendReset = (a) => router.post(`/platform/administrators/${a.id}/reset-password`, {}, { preserveScroll: true, onSuccess: () => toast('Password reset link sent') });
 </script>
 
@@ -48,12 +49,13 @@ const sendReset = (a) => router.post(`/platform/administrators/${a.id}/reset-pas
             <thead class="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Name</th><th class="px-5 py-3">Email</th><th class="px-5 py-3">Status</th><th /></tr></thead>
             <tbody class="divide-y divide-slate-100">
                 <tr v-for="a in administrators" :key="a.id" :data-admin="a.email">
-                    <td class="px-5 py-3 font-medium">{{ a.name }} <span v-if="a.is_me" class="badge ml-1">you</span></td>
+                    <td class="px-5 py-3 font-medium">{{ a.name }} <span v-if="a.is_me" class="badge ml-1">you</span> <span v-if="a.two_factor" class="badge ml-1 !bg-emerald-50 !text-emerald-700" data-testid="admin-two-factor">2-step</span></td>
                     <td class="px-5 py-3 text-slate-600">{{ a.email }}</td>
                     <td class="px-5 py-3"><span class="badge" :class="a.status === 'active' ? '!bg-emerald-50 !text-emerald-700' : '!bg-amber-50 !text-amber-700'">{{ a.status }}</span></td>
                     <td class="whitespace-nowrap px-5 py-3 text-right">
                         <button class="btn-ghost !py-1.5" @click="edit(a)"><Pencil class="size-4" /> Edit</button>
                         <button class="btn-ghost !py-1.5" @click="sendReset(a)"><KeyRound class="size-4" /> Reset password</button>
+                        <button v-if="a.two_factor && !a.is_me" class="btn-ghost !py-1.5" data-testid="admin-reset-two-factor" @click="resetTwoFactor(a)"><ShieldOff class="size-4" /> Reset 2-step</button>
                         <button class="btn-ghost !py-1.5" :disabled="a.is_me" :title="a.is_me ? 'You cannot demote yourself' : 'Demote'" @click="demoting = a"><UserMinus class="size-4" /> Demote</button>
                     </td>
                 </tr>

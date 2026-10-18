@@ -31,7 +31,36 @@ class DataObjectRecordController extends Controller
             $query->whereIn('data_object_records.id', fn ($q) => $q->select('record_id')->from('data_object_record_contact')->where('contact_id', $contactId));
         }
 
+        $this->applySort($query, $dataObject, $request->string('sort')->toString());
+
         return RecordResource::collection($query->with('contacts:id,first_name,last_name')->orderByDesc('data_object_records.id')->cursorPaginate(min($request->integer('per_page', 25), 100)));
+    }
+
+    /**
+     * Sorts by one of the object's fields (`?sort=amount`, `?sort=-amount` for descending). Indexed fields sort through their typed index
+     * rows; any other field sorts by its stored value. An unknown field is ignored, so the newest records come first.
+     */
+    private function applySort($query, DataObject $dataObject, string $sort): void
+    {
+        $field = $sort === '' ? null : $dataObject->fields->firstWhere('key', ltrim($sort, '-'));
+        if (! $field) {
+            return;
+        }
+        $direction = str_starts_with($sort, '-') ? 'desc' : 'asc';
+        $query->select('data_object_records.*');
+        if ($field->is_indexed) {
+            $column = match (true) {
+                $field->type === 'number' => 'value_number',
+                in_array($field->type, ['date', 'datetime'], true) => 'value_date',
+                default => 'value_string',
+            };
+            $query->leftJoin('data_object_field_index as sort_index', fn ($join) => $join->on('sort_index.record_id', '=', 'data_object_records.id')->where('sort_index.field_id', $field->id))
+                ->addSelect("sort_index.{$column} as sort_value");
+        } else {
+            $path = $query->getQuery()->getGrammar()->wrap('data_object_records.data->'.preg_replace('/[^A-Za-z0-9_]/', '', $field->key));
+            $query->selectRaw("{$path} as sort_value");
+        }
+        $query->orderBy('sort_value', $direction);
     }
 
     public function show(Request $request, DataObject $dataObject, DataObjectRecord $record): RecordResource

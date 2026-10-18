@@ -49,7 +49,7 @@ const reviewed = computed(() => props.mode === 'approval');
         <form v-else class="relative w-full max-w-md space-y-4 rounded-2xl border border-slate-200/80 bg-white p-7 shadow-xl shadow-brand-900/5 ring-1 ring-black/[0.03] sm:p-8" data-testid="signup-form" @submit.prevent="submit">
             <div>
                 <h2 class="page-title">Create your account</h2>
-                <p class="mt-1 text-sm text-slate-500">{{ reviewed ? 'Tell us about your company. We review each request, then e-mail you.' : 'Set up a workspace for your company in a minute.' }}</p>
+                <p class="mt-1 text-sm text-slate-500">{{ reviewed ? 'Tell us about your company. We review each request, then e-mail you.' : 'Set up a workspace for your company in a minute. It starts with a free trial and needs no credit card.' }}</p>
             </div>
 
             <div>

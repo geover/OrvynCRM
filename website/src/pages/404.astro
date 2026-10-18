@@ -6,4 +6,12 @@ import Base from '../layouts/Base.astro';
     <PageHero eyebrow="404" title="We could not" highlight="find that page" lead="It may have moved, or the address may be mistyped.">
         <a href="/" class="btn-primary">Back to the home page</a>
     </PageHero>
+    <section class="container-page pb-20">
+        <p class="text-center text-sm font-medium text-stone-500">Or try one of these</p>
+        <div class="mx-auto mt-4 grid max-w-3xl gap-3 sm:grid-cols-4">
+            {[['Features', '/features'], ['Pricing', '/pricing'], ['Documentation', '/docs'], ['Contact', '/contact']].map(([label, href]) => (
+                <a href={href} class="rounded-xl border border-stone-200 bg-white px-4 py-3 text-center text-sm font-semibold text-ink shadow-sm transition hover:border-brand-200 hover:text-brand-700 hover:shadow-md">{label}</a>
+            ))}
+        </div>
+    </section>
 </Base>

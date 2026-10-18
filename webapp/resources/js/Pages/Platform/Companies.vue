@@ -1,12 +1,13 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { Building2, Check, ExternalLink, Hourglass, Pause, Pencil, Play, Plus, Power, Users } from 'lucide-vue-next';
+import { Building2, Check, Database, ExternalLink, Hourglass, Pause, Pencil, Play, Plus, Power, Users } from 'lucide-vue-next';
 import { Link } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
 import PasswordField from '@/Components/PasswordField.vue';
 import SeatMeter from '@/Components/SeatMeter.vue';
 import PageHeader from '@/Components/PageHeader.vue';
+import TierChangeDialog from '@/Components/company/TierChangeDialog.vue';
 import { confirmDialog, fmtDate, fmtRelative, toast } from '@/lib/ui';
 
 const props = defineProps({ companies: Array, email: String, inactivity: Object, tiers: Array, trial_months: Number });
@@ -52,11 +53,26 @@ function edit(c) {
     editForm.tier = c.tier; editForm.trial_ends_at = dayOf(c.trial.ends_at);
     editForm.clearErrors();
 }
-function saveEdit() {
+// A change of tier is explained first (what changes, what it does to the company's billing) and only goes through once it is confirmed.
+const tierDialog = ref(null);
+const tierError = ref('');
+async function saveEdit() {
+    const c = editing.value;
+    if (editForm.tier === c.tier) return send({});
+    try {
+        const r = await fetch(`/platform/companies/${c.id}/tier-preview?tier=${editForm.tier}`, { headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' });
+        if (!r.ok) throw new Error(String(r.status));
+        tierError.value = '';
+        tierDialog.value = (await r.json()).data;
+    } catch { toast('Could not load what this change would do. Try again.', 'error'); }
+}
+function send(extra) {
     const c = editing.value;
     // the tier and the trial end are only sent when they were changed
-    editForm.transform(({ tier, trial_ends_at, slug, ...d }) => ({ ...d, plan: d.plan || null, ...(slug !== c.slug ? { slug } : {}), ...(tier !== c.tier ? { tier } : {}), ...(trial_ends_at !== dayOf(c.trial.ends_at) ? { trial_ends_at: trial_ends_at || null } : {}) })).patch(`/platform/companies/${editing.value.id}`, {
-        preserveScroll: true, onSuccess: () => { editing.value = null; toast('Saved'); },
+    editForm.transform(({ tier, trial_ends_at, slug, ...d }) => ({ ...d, plan: d.plan || null, ...(slug !== c.slug ? { slug } : {}), ...(tier !== c.tier ? { tier, ...extra } : {}), ...(trial_ends_at !== dayOf(c.trial.ends_at) ? { trial_ends_at: trial_ends_at || null } : {}) })).patch(`/platform/companies/${editing.value.id}`, {
+        preserveScroll: true,
+        onSuccess: () => { tierDialog.value = null; editing.value = null; toast(page.props.flash.success ?? 'Saved'); },
+        onError: (e) => { tierError.value = e.tier_billing ?? ''; if (!tierError.value) { tierDialog.value = null; toast(Object.values(e).find((v) => v) ?? 'Could not save', 'error'); } },
     });
 }
 
@@ -102,7 +118,7 @@ const open = (c) => router.post(`/platform/companies/${c.id}/open`);
             <tbody class="divide-y divide-slate-100">
                 <tr v-for="c in rows" :key="c.id" :data-company="c.slug" :class="c.inactive && 'bg-amber-50/40'">
                     <td class="px-4 py-3"><div class="flex items-center gap-3"><span class="hidden size-9 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600 sm:grid"><Building2 class="size-4" /></span>
-                        <div class="min-w-0"><Link :href="`/platform/companies/${c.id}`" class="block truncate font-medium hover:underline" :data-overview="c.slug">{{ c.name }}</Link><div class="truncate text-xs text-slate-400">{{ c.slug }}</div></div></div></td>
+                        <div class="min-w-0"><Link :href="`/platform/companies/${c.id}`" class="block truncate font-medium hover:underline" :data-overview="c.slug">{{ c.name }}</Link><div class="truncate text-xs text-slate-400">{{ c.slug }}</div><div class="truncate font-mono text-[11px] text-slate-400" :title="`Database: ${c.database}`" data-testid="company-database"><Database class="mr-1 inline size-3 align-[-1px]" />{{ c.database }}</div></div></div></td>
                     <td class="px-3 py-3"><span class="badge" :class="c.status === 'active' ? '!bg-emerald-50 !text-emerald-700' : c.status === 'closed' ? '!bg-slate-200 !text-slate-700' : '!bg-amber-50 !text-amber-700'">{{ c.status }}</span><div v-if="c.status_note && c.status !== 'active'" class="mt-1 max-w-40 truncate text-xs text-slate-400" :title="c.status_note">{{ c.status_note }}</div>
                         <div class="mt-1 whitespace-nowrap text-xs text-slate-500" data-cell="plan">Tier {{ c.tier }}<span v-if="c.trial.state === 'trial'" class="ml-1 text-sky-700" data-testid="trial-badge">· trial, {{ c.trial.days_left }}d left</span><span v-else-if="c.trial.state === 'expired'" class="ml-1 font-medium text-red-600" data-testid="trial-ended-badge">· trial ended</span><Link v-if="c.usage_level !== 'ok'" href="/platform/usage" class="ml-1 rounded-full px-1.5 py-0.5 text-[11px] font-medium" :class="c.usage_level === 'at' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'" :data-testid="`usage-${c.usage_level}`" :title="c.usage_level === 'at' ? 'At a limit of its plan' : 'Near a limit of its plan (80% or more)'">{{ c.usage_level === 'at' ? 'at limit' : 'near limit' }}</Link><span v-if="c.subscription" class="ml-1" :class="['active', 'trialing'].includes(c.subscription) ? 'text-emerald-700' : 'text-amber-700'" data-testid="subscription-badge">· {{ { active: 'paying', trialing: 'subscribed', past_due: 'payment late', canceled: 'cancelled', unpaid: 'unpaid' }[c.subscription] ?? c.subscription }}</span></div></td>
                     <td class="px-3 py-3"><SeatMeter :used="c.users" :max="c.max_users" compact /><Link v-if="c.pending_user_requests" href="/platform/seat-requests" class="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800" data-testid="company-request-badge">asks for more</Link><Link v-if="c.pending_other_requests" href="/platform/seat-requests" class="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800 xl:hidden" data-testid="company-request-badge-narrow">asks for more</Link></td>
@@ -118,6 +134,7 @@ const open = (c) => router.post(`/platform/companies/${c.id}/open`);
                     </td>
                     <td class="whitespace-nowrap px-3 py-3 text-right">
                         <div class="inline-flex items-center gap-0.5">
+                            <Link :href="`/platform/companies/${c.id}/database`" class="btn-ghost !p-2" :title="`Database of ${c.name}`" :aria-label="`Database of ${c.name}`" data-testid="company-database-link"><Database class="size-4" /></Link>
                             <Link :href="`/platform/companies/${c.id}/users`" class="btn-ghost !p-2" :title="`People of ${c.name}`" :aria-label="`Users of ${c.name}`"><Users class="size-4" /></Link>
                             <button class="btn-ghost !p-2" :title="`Edit ${c.name}`" aria-label="Edit" @click="edit(c)"><Pencil class="size-4" /></button>
                             <button class="btn-ghost !p-2 disabled:opacity-40" :disabled="c.status !== 'active'" :title="`Open ${c.name} as an administrator`" aria-label="Open" @click="open(c)"><ExternalLink class="size-4" /></button>
@@ -198,4 +215,7 @@ const open = (c) => router.post(`/platform/companies/${c.id}/open`);
         </form>
         <template #footer><button class="btn-ghost" @click="editing = null">Cancel</button><button class="btn-primary" form="company-edit" :disabled="editForm.processing">Save</button></template>
     </Modal>
+
+    <!-- after the edit window, so it opens on top of it -->
+    <TierChangeDialog v-if="tierDialog" :data="tierDialog" :processing="editForm.processing" :error="tierError" @cancel="tierDialog = null" @confirm="send" />
 </template>

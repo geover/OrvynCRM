@@ -6,6 +6,8 @@ use App\Models\AccountUser;
 use App\Models\PlatformSetting;
 use App\Models\Signup;
 use App\Models\Tenant;
+use App\Services\Auth\SignInSecurity;
+use App\Services\Auth\SocialProviders;
 use App\Services\Tenancy\CallSettings;
 use App\Services\Tenancy\CompanyServices;
 use App\Services\Tenancy\InactiveCompanies;
@@ -47,6 +49,7 @@ class PlatformSettingsController extends Controller
             'plans' => ['trial_months' => app(Plans::class)->trialMonths(), 'priced' => collect(app(Plans::class)->tiers())->whereNotNull('price')->count(), 'tiers' => count(config('plans.tiers')), 'trials_ending' => Tenant::whereNotNull('trial_ends_at')->where('trial_ends_at', '>', now())->count()],
             'inactivity' => ['enabled' => app(InactiveCompanies::class)->enabled(), 'days' => app(InactiveCompanies::class)->days(), 'flagged' => Tenant::active()->whereNotNull('inactive_since')->count()],
             'website' => ['set' => count(array_filter(app(WebsiteSettings::class)->publicValues())), 'hook' => app(WebsiteSettings::class)->hook() !== null],
+            'security' => ['policy' => app(SignInSecurity::class)->policy(), ...app(SignInSecurity::class)->adoption(), 'passkeys' => app(SignInSecurity::class)->passkeysEnabled(), 'providers' => count(app(SocialProviders::class)->offered())],
             'recaptcha' => ['active' => app(Recaptcha::class)->active(), 'enabled' => app(Recaptcha::class)->current()['enabled']],
             'signup' => ['mode' => app(SignupSettings::class)->mode(), 'waiting' => Signup::where('status', Signup::PENDING_APPROVAL)->count()],
             'platform_look' => collect(Company::platformAreaBranding())->only(['name', 'color'])->all(),

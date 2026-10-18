@@ -29,6 +29,7 @@ Route::prefix('v1')->group(function () {
         Route::get('me', [V1\AuthController::class, 'me']);
         Route::post('auth/logout', [V1\AuthController::class, 'logout']);
         Route::get('dashboard', V1\DashboardController::class);
+        Route::post('dashboard/setup/dismiss', [V1\DashboardController::class, 'dismissSetup']);
         Route::get('search', V1\SearchController::class)->middleware('throttle:120,1');
 
         // Profile, tokens, notifications
@@ -194,6 +195,7 @@ Route::prefix('v1')->group(function () {
         Route::post('integrations/keap/test', [V1\KeapIntegrationController::class, 'test'])->middleware('throttle:10,1');
         Route::post('integrations/keap/sync', [V1\KeapIntegrationController::class, 'sync'])->middleware('throttle:10,1');
         Route::post('users/{user}/reset-password', [V1\UserController::class, 'sendReset']);
+        Route::post('users/{user}/reset-two-factor', [V1\UserController::class, 'resetTwoFactor']);
         Route::apiResource('users', V1\UserController::class)->except('show');
     });
 });

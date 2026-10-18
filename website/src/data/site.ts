@@ -38,17 +38,18 @@ export const nav: NavItem[] = [
 /** What the product connects to. Names are shown as plain text, not as partner logos. */
 export const integrations = [
     { name: 'Keap', kind: 'Contact sync', text: 'Pull your contacts from Keap into OrvynCRM on a schedule, using your own key.', icon: 'users' },
-    { name: 'Twilio', kind: 'Text messages and calls', text: 'Send and track SMS through the shared account, or connect your own Twilio account and numbers.', icon: 'mail' },
-    { name: 'SendGrid', kind: 'E-mail delivery', text: 'Send through SendGrid and get bounces, spam reports, unsubscribes and clicks back.', icon: 'mail' },
-    { name: 'Any SMTP server', kind: 'E-mail delivery', text: 'Use the mail server you already have. Set it once; every company can send through it.', icon: 'mail' },
+    { name: 'Twilio', kind: 'Text messages and calls', text: 'Send and track SMS through the shared account, or connect your own Twilio account and numbers.', icon: 'chat' },
+    { name: 'SendGrid', kind: 'E-mail delivery', text: 'Send through SendGrid and get bounces, spam reports, unsubscribes and clicks back.', icon: 'send' },
+    { name: 'Any SMTP server', kind: 'E-mail delivery', text: 'Use the mail server you already have. Set it once; every company can send through it.', icon: 'server' },
     { name: 'Webhooks', kind: 'Anything else', text: 'Let an automation call another system over HTTPS, and receive reports from your providers.', icon: 'link' },
-    { name: 'CSV', kind: 'Import and export', text: 'Bring your contacts in from a spreadsheet and take your data out again whenever you like.', icon: 'form' },
+    { name: 'CSV', kind: 'Import and export', text: 'Bring your contacts in from a spreadsheet and take your data out again whenever you like.', icon: 'table' },
 ];
 
 /** Plain statements about how the product handles data. Each one is true of the product today. */
 export const securityPoints = [
     { icon: 'boxes', title: 'A database of its own for every company', text: 'Records are not stored side by side with another company\'s. Each workspace has its own people, data model and database.' },
     { icon: 'shield', title: 'Secrets stay encrypted', text: 'Integration credentials, API tokens and mail passwords are encrypted when stored and are never shown again after you save them.' },
+    { icon: 'key', title: 'Strong sign-in, your way', text: 'Two-step verification, passkeys, and sign-in with Google, Microsoft, GitHub or your own provider. Can be required of administrators.' },
     { icon: 'users', title: 'Permissions that match your team', text: 'Permission templates decide who can see and do what. Administrators control who is in the workspace.' },
     { icon: 'calendar', title: 'A record of what happened', text: 'Records keep their history, and every automation run and message delivery is written down, so you can see what happened and when.' },
     { icon: 'shield', title: 'Protected in the browser and at sign-in', text: 'Every page carries a content security policy and the usual browser protections. Sign-in is rate limited, can be protected by reCAPTCHA, and a password reset signs out every API token.' },
@@ -73,7 +74,7 @@ export const reasons: Reason[] = [
     { icon: 'shield', title: 'Your data stays yours, and apart',
         text: 'Every company has its own database, its own people and its own data model. One company can never see another\'s records.',
         points: ['A separate database for every company', 'Permission templates decide who sees and does what', 'Your own logo, colours and time zone'] },
-    { icon: 'calendar', title: 'Clear limits, no surprises',
+    { icon: 'plans', title: 'Clear limits, no surprises',
         text: 'You always see how much you use: users, record types, automations and texts. Need more? Ask inside the app and see the price before you confirm.',
         points: ['"3 of 5" meters for every limit', 'Warnings at 80% and 100%', 'Requests for more, with the price shown'] },
     { icon: 'link', title: 'Plays well with what you already use',
@@ -115,11 +116,11 @@ export const features: Feature[] = [
         points: ['My tasks and overdue digests', 'A calendar of the dates that matter', 'Dashboard widgets from your own queries'] },
     { icon: 'shield', title: 'Control for administrators',
         text: 'Decide who sees and does what, and keep the workspace looking like your company.',
-        points: ['Users and permission templates', 'Your logo, colours and time zone', 'Meters for users, texts and numbers, and a way to ask for more'] },
-    { icon: 'calendar', title: 'Plans that grow with you',
+        points: ['Users and permission templates', 'Two-step verification, passkeys and single sign-on', 'Your logo, colours and time zone', 'Meters for users, texts and numbers, and a way to ask for more'] },
+    { icon: 'plans', title: 'Plans that grow with you',
         text: 'Start with a free trial, pay by card or by invoice, and move up a plan whenever you need more room.',
         points: ['Five plans from a small team to unlimited users', 'Card payment on Stripe, invoices and receipts', 'Warnings at 80% and 100% of every limit'] },
-    { icon: 'zap', title: 'Built to be connected',
+    { icon: 'api', title: 'Built to be connected',
         text: 'A JSON API, signed webhooks and forms let your own systems talk to OrvynCRM, with the same permissions as the person using them.',
         points: ['Token sign-in and a full REST API', 'Webhooks signed with HMAC-SHA256', 'Documentation with examples to copy'] },
     { icon: 'link', title: 'Connects to what you use',
@@ -196,7 +197,7 @@ export const planLimits = {
 };
 
 export const faq = [
-    { q: 'Is there a free trial?', a: 'Yes. A workspace you create yourself starts with a free trial on the first plan. The app shows how many days are left and reminds you 14, 7 and 1 day before it ends. You can enter your billing details at any time.' },
+    { q: 'Is there a free trial?', a: 'Yes. A workspace you create yourself starts with a free trial on the first plan. The app shows how many days are left and reminds you 14, 7 and 1 day before it ends. No credit card is needed to start or during the trial. Billing details are only asked for when the trial ends and you want to keep going; you can also add them earlier if you prefer.' },
     { q: 'Can I add more users, data objects, automations or texts later?', a: 'Yes. Administrators see how much of each limit is used and can ask for more at any time, with the price shown. A bigger plan raises the limits at once. Extra texts can be given for every month, or for one month only.' },
     { q: 'How do I pay?', a: 'By card on Stripe\'s own secure page, so OrvynCRM never sees your card number, or by invoice if your platform invoices you. You can change the card, download invoices and cancel from the billing page.' },
     { q: 'What happens when I reach a limit?', a: 'You are told at 80% and again at 100%. At the user limit you cannot add more people until you free a seat or move up. At the text limit, further texts are not sent and show as failed with an explanation, until the next month or a bigger plan.' },

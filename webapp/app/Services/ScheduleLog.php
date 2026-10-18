@@ -18,6 +18,7 @@ class ScheduleLog
         'companies:tick' => 'Hand every company its due work (messages, automations, syncs)',
         'companies:inactivity' => 'Look for abandoned companies',
         'companies:usage' => 'Measure each company against its plan',
+        'companies:payment-followups' => 'Remind companies whose payment failed',
         'companies:trial-reminders' => 'Remind companies their free trial is running out',
         'queue:prune-batches' => 'Clean up old job batches',
         'queue:prune-failed' => 'Clean up old failed jobs',

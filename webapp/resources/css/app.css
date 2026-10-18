@@ -38,7 +38,7 @@
 
 /* A table that can grow long: scrolls inside its own box (both ways) and keeps its column names in view */
 @utility table-scroll {
-    max-height: min(34rem, 70vh);
+    max-height: max(34rem, calc(100vh - 15rem));
     overflow: auto;
     & thead th {
         position: sticky;

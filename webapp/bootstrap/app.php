@@ -5,6 +5,7 @@ use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\RedirectSignedInPlatformAdmin;
+use App\Http\Middleware\RequireTwoFactor;
 use App\Http\Middleware\ResolvePublicTenant;
 use App\Http\Middleware\ResolveTenant;
 use App\Http\Middleware\SecurityHeaders;
@@ -28,8 +29,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
         // The company database is opened right after the session starts and before anything reads the user or any data.
-        $middleware->web(append: [ResolveTenant::class, HandleInertiaRequests::class]);
-        $middleware->api(append: [ResolveTenant::class]);
+        $middleware->web(append: [ResolveTenant::class, RequireTwoFactor::class, HandleInertiaRequests::class]);
+        $middleware->api(append: [ResolveTenant::class, RequireTwoFactor::class]);
         $middleware->prependToPriorityList(before: AuthenticatesRequests::class, prepend: ResolveTenant::class);
         $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: ResolvePublicTenant::class);
         $middleware->alias([

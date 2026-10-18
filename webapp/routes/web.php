@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\AccountSecurityController;
+use App\Http\Controllers\AdminOverviewController;
 use App\Http\Controllers\Api\V1\ContactAttachmentController;
 use App\Http\Controllers\Api\V1\ContactController;
 use App\Http\Controllers\Api\V1\DataObjectItemExtrasController;
@@ -7,6 +9,7 @@ use App\Http\Controllers\Api\V1\DataTransferController;
 use App\Http\Controllers\Api\V1\PriceListController;
 use App\Http\Controllers\Api\V1\WidgetController;
 use App\Http\Controllers\BrandingController;
+use App\Http\Controllers\PasskeyController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PlatformAdministratorController;
 use App\Http\Controllers\PlatformAnnouncementController;
@@ -16,24 +19,31 @@ use App\Http\Controllers\PlatformCompanyOverviewController;
 use App\Http\Controllers\PlatformCompanyUsersController;
 use App\Http\Controllers\PlatformController;
 use App\Http\Controllers\PlatformDashboardController;
+use App\Http\Controllers\PlatformDatabaseController;
 use App\Http\Controllers\PlatformInactivityController;
 use App\Http\Controllers\PlatformIntegrationController;
+use App\Http\Controllers\PlatformManualInvoiceController;
 use App\Http\Controllers\PlatformMessageController;
 use App\Http\Controllers\PlatformObjectLimitController;
 use App\Http\Controllers\PlatformPaymentsController;
 use App\Http\Controllers\PlatformPlansController;
 use App\Http\Controllers\PlatformPricingController;
 use App\Http\Controllers\PlatformSeatRequestController;
+use App\Http\Controllers\PlatformSecurityController;
 use App\Http\Controllers\PlatformServicesController;
 use App\Http\Controllers\PlatformSettingsController;
 use App\Http\Controllers\PlatformSignupController;
+use App\Http\Controllers\PlatformStandingController;
 use App\Http\Controllers\PlatformSubscriptionController;
+use App\Http\Controllers\PlatformTierChangeController;
 use App\Http\Controllers\PlatformUsageController;
 use App\Http\Controllers\PlatformWebsiteController;
 use App\Http\Controllers\PublicFormController;
 use App\Http\Controllers\SignupController;
+use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\ThreadAttachmentController;
 use App\Http\Controllers\TrackingController;
+use App\Http\Controllers\TwoFactorChallengeController;
 use App\Http\Controllers\UpdatesController;
 use App\Http\Controllers\WebAuthController;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -48,6 +58,24 @@ Route::get('/f/{uuid}', [PublicFormController::class, 'page'])->where('uuid', '[
 Route::get('/p/{token}', [PriceListController::class, 'publicView'])->where('token', '[A-Za-z0-9]{32}')->middleware(['tenant.public:price_list', 'throttle:120,1']);
 Route::get('/t/o/{tracker}', [TrackingController::class, 'open'])->middleware(['tenant.public:tracker', 'throttle:600,1']);
 
+// Two-step verification and the other ways to sign in, for whoever is signed in (company or platform area)
+Route::prefix('account/security')->group(function () {
+    Route::post('2fa/start', [AccountSecurityController::class, 'start']);
+    Route::post('2fa/cancel', [AccountSecurityController::class, 'cancel']);
+    Route::post('2fa/confirm', [AccountSecurityController::class, 'confirm'])->middleware('throttle:10,1');
+    Route::post('2fa/recovery-codes', [AccountSecurityController::class, 'recoveryCodes'])->middleware('throttle:10,1');
+    Route::post('2fa/disable', [AccountSecurityController::class, 'disable'])->middleware('throttle:10,1');
+    Route::post('passkeys/options', [PasskeyController::class, 'registerOptions'])->middleware('throttle:20,1');
+    Route::post('passkeys', [PasskeyController::class, 'store'])->middleware('throttle:20,1');
+    Route::delete('passkeys/{passkey}', [PasskeyController::class, 'destroy'])->middleware('throttle:10,1');
+    Route::get('social/{provider}/link', [SocialAuthController::class, 'link'])->where('provider', '[a-z]+')->middleware('throttle:20,1');
+    Route::post('social/{provider}/disconnect', [SocialAuthController::class, 'disconnect'])->where('provider', '[a-z]+')->middleware('throttle:10,1');
+});
+
+// "Continue with Google / Microsoft / GitHub / single sign-on" (the callback is where the provider sends the browser back to)
+Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect'])->where('provider', '[a-z]+')->middleware('throttle:30,1');
+Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])->where('provider', '[a-z]+')->middleware('throttle:30,1');
+
 // Company chooser: signed in centrally, company not chosen yet (or switching)
 Route::get('/choose-company', [WebAuthController::class, 'chooseForm']);
 Route::post('/choose-company', [WebAuthController::class, 'choose']);
@@ -56,10 +84,23 @@ Route::post('/choose-company', [WebAuthController::class, 'choose']);
 Route::middleware('platform')->prefix('platform')->group(function () {
     Route::get('/', [PlatformController::class, 'index']);
     Route::get('manual', fn () => Inertia::render('Platform/Manual'))->name('platform.manual');
+    Route::get('security', [AccountSecurityController::class, 'platform']);
+    Route::get('database', [PlatformDatabaseController::class, 'central'])->middleware('throttle:120,1');
+    Route::get('companies/{tenant}/database', [PlatformDatabaseController::class, 'company'])->middleware('throttle:120,1');
+    Route::get('settings/security', [PlatformSecurityController::class, 'show']);
+    Route::patch('settings/security', [PlatformSecurityController::class, 'save']);
+    Route::patch('settings/security/passkeys', [PlatformSecurityController::class, 'savePasskeys']);
+    Route::patch('settings/security/social/{provider}', [PlatformSecurityController::class, 'saveSocial'])->where('provider', '[a-z]+');
+    Route::post('companies/{tenant}/invoices', [PlatformManualInvoiceController::class, 'store']);
+    Route::patch('companies/{tenant}/invoices/{invoice}/paid', [PlatformManualInvoiceController::class, 'paid']);
+    Route::delete('companies/{tenant}/invoices/{invoice}', [PlatformManualInvoiceController::class, 'destroy']);
+    Route::get('standing', [PlatformStandingController::class, 'index']);
+    Route::post('standing/{tenant}/remind', [PlatformStandingController::class, 'remind'])->middleware('throttle:30,1');
     Route::get('usage', [PlatformUsageController::class, 'index']);
     Route::post('usage/refresh', [PlatformUsageController::class, 'refresh'])->middleware('throttle:6,1');
     Route::post('companies', [PlatformController::class, 'store']);
     Route::patch('companies/{tenant}', [PlatformController::class, 'update']);
+    Route::get('companies/{tenant}/tier-preview', [PlatformTierChangeController::class, 'preview']);
     Route::post('companies/{tenant}/open', [PlatformController::class, 'open']);
     Route::post('companies/{tenant}/services/run', [PlatformServicesController::class, 'run']);
     Route::patch('companies/{tenant}/services/objects/{object}', [PlatformServicesController::class, 'updateObject'])->whereNumber('object');
@@ -70,6 +111,7 @@ Route::middleware('platform')->prefix('platform')->group(function () {
     Route::delete('companies/{tenant}/object-limits/{object}', [PlatformObjectLimitController::class, 'destroy'])->whereNumber('object');
     Route::get('companies/{tenant}/users', [PlatformCompanyUsersController::class, 'index']);
     Route::post('companies/{tenant}/users', [PlatformCompanyUsersController::class, 'store']);
+    Route::post('companies/{tenant}/users/{user}/reset-two-factor', [PlatformCompanyUsersController::class, 'resetTwoFactor'])->whereNumber('user');
     Route::get('messages', [PlatformMessageController::class, 'index']);
     Route::get('messages/poll', [PlatformMessageController::class, 'poll'])->middleware('throttle:120,1');
     Route::get('attachments/{attachment}', [PlatformMessageController::class, 'attachment']);
@@ -176,10 +218,15 @@ Route::middleware('platform')->prefix('platform')->group(function () {
     Route::post('administrators', [PlatformAdministratorController::class, 'store']);
     Route::patch('administrators/{administrator}', [PlatformAdministratorController::class, 'update']);
     Route::post('administrators/{administrator}/reset-password', [PlatformAdministratorController::class, 'sendReset']);
+    Route::post('administrators/{administrator}/reset-two-factor', [PlatformAdministratorController::class, 'resetTwoFactor']);
     Route::delete('administrators/{administrator}', [PlatformAdministratorController::class, 'destroy']);
 });
 
 Route::middleware(['guest', 'signed-out'])->group(function () {
+    Route::get('/two-factor-challenge', [TwoFactorChallengeController::class, 'show']);
+    Route::post('/passkeys/login/options', [PasskeyController::class, 'loginOptions'])->middleware('throttle:30,1');
+    Route::post('/passkeys/login', [PasskeyController::class, 'login'])->middleware('throttle:20,1');
+    Route::post('/two-factor-challenge', [TwoFactorChallengeController::class, 'store']);   // wrong codes are limited per person inside TwoFactor
     Route::get('/login', [WebAuthController::class, 'create'])->name('login');
     Route::post('/login', [WebAuthController::class, 'store']);   // brute-force protection is inside the controller (failures only)
     // Create your own workspace (offered only while the platform has sign-ups open; see Platform > Sign-ups)
@@ -240,12 +287,13 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/boards', fn () => Inertia::render('Boards/Index'))->name('boards.index');
     Route::get('/boards/{board}', fn (int $board) => Inertia::render('Boards/Show', ['boardId' => $board]))->whereNumber('board')->name('boards.show');
     Route::get('/user-settings', fn () => Inertia::render('UserSettings'))->name('user-settings');
+    Route::get('/security', [AccountSecurityController::class, 'company'])->name('security');
     Route::get('/manual', fn () => Inertia::render('Manual'))->name('manual');
     Route::get('/billing', fn () => Inertia::render('Billing'))->name('billing');
 
     // ---- Admin settings (administrators only)
     Route::middleware('admin')->group(function () {
-        Route::get('/admin', fn () => Inertia::render('Admin/Index'))->name('admin');
+        Route::get('/admin', AdminOverviewController::class)->name('admin');
         foreach ([
             'app-details' => 'AppDetails', 'platform-messages' => 'PlatformMessages', 'look-and-feel' => 'LookAndFeel', 'support-emails' => 'SupportEmails', 'email-domains' => 'EmailDomains',
             'custom-tabs' => 'CustomTabs', 'contact-relationships' => 'ContactRelationships', 'users' => 'Users', 'queries' => 'Queries',

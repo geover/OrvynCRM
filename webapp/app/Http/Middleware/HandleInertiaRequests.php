@@ -5,6 +5,8 @@ namespace App\Http\Middleware;
 use App\Http\Controllers\Api\V1\SettingsController;
 use App\Models\AccountUser;
 use App\Models\Announcement;
+use App\Models\CompanyManualInvoice;
+use App\Models\CompanySubscription;
 use App\Models\MessageThread;
 use App\Models\SeatRequest;
 use App\Models\SubscriptionRequest;
@@ -100,8 +102,13 @@ class HandleInertiaRequests extends Middleware
             // the free trial of the open company: a banner for its administrators while it runs out, and the page they are sent to once it has
             'trial' => fn () => Company::isOpen() && ! Company::isSignInPage($request) && ! Company::isPlatformArea($request) && $request->user() && tenancy()->initialized
                 ? $this->trial() : null,
+            // the last card payment failed: a banner for the company's administrators until it goes through
+            'paymentFailed' => fn () => $user?->isAdmin() && Company::isOpen() && ! Company::isSignInPage($request) && ! Company::isPlatformArea($request) && tenancy()->initialized
+                ? CompanySubscription::where('tenant_id', tenant('id'))->whereIn('status', ['past_due', 'unpaid'])->exists() : false,
             // a background process (scheduler or queue worker) that has gone quiet: a banner in the platform area
             'stoppedServices' => fn () => Company::isPlatformArea($request) && $identityId ? app(Heartbeat::class)->problems() : [],
+            // companies whose payment failed (the badge on the platform's Account standing menu)
+            'paymentsFailing' => fn () => Company::isPlatformArea($request) ? CompanySubscription::whereIn('status', ['past_due', 'unpaid'])->count() + CompanyManualInvoice::unpaid()->where('due_on', '<', now()->toDateString())->distinct()->count('tenant_id') : 0,
             'seatRequestsPending' => fn () => Company::isPlatformArea($request) ? SeatRequest::pending()->count() + SubscriptionRequest::pending()->count() : 0,
             'platformMessagesUnread' => fn () => Company::isPlatformArea($request) ? MessageThread::unreadForPlatform()->count() : 0,
             // a company administrator: conversations with the platform that have a new reply

@@ -1,9 +1,9 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue';
-import { Head, router } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 import { Check, Clock, CreditCard, ExternalLink, TriangleAlert } from 'lucide-vue-next';
 import Modal from '@/Components/Modal.vue';
-import PageHeader from '@/Components/PageHeader.vue';
+import AdminFrame from '@/Components/AdminFrame.vue';
 import RequestOutcome from '@/Components/RequestOutcome.vue';
 import SeatMeter from '@/Components/SeatMeter.vue';
 import { api } from '@/lib/api';
@@ -110,9 +110,7 @@ async function choose(t) {
 </script>
 
 <template>
-    <Head title="Billing and plan" />
-    <PageHeader title="Billing & plan" subtitle="Your plan, your free trial and where invoices go." />
-
+    <AdminFrame title="Billing & plan" subtitle="Your plan, your free trial and where invoices go.">
     <div v-if="data" class="space-y-6" data-testid="billing">
         <div v-if="trial.state === 'expired'" class="flex gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900" role="alert" data-testid="trial-expired">
             <TriangleAlert class="mt-0.5 size-4 shrink-0" />
@@ -253,4 +251,5 @@ async function choose(t) {
         </template>
         <p v-else class="card px-5 py-6 text-sm text-slate-500">Only administrators of your company can change the plan or the billing information. Ask one of them.</p>
     </div>
+    </AdminFrame>
 </template>

@@ -54,10 +54,10 @@ export default {
                                 rows: [
                                     ["Sidebar", "Dashboard, Contacts, Data Objects, Workflow Boards, My Tasks, Schedules, and (for administrators) Admin Settings. Use the arrow at its top to collapse it to icons."],
                                     ["Search box", "Searches contacts and records as you type. Press **Ctrl+K** (**Cmd+K** on a Mac) to open the command palette from anywhere."],
-                                    ["Add contact", "The purple button in the top bar opens the new-contact form wherever you are."],
+                                    ["Add contact", "The purple person-with-a-plus button in the top bar opens the new-contact form wherever you are. On the Contacts page it is left out, because that page has its own **New contact** button right under the title."],
                                     ["What's new", "The megaphone: updates and news from the platform. A dot shows when there is something unread."],
                                     ["Bell", "Your notifications: tasks, import and export results, notices about your company."],
-                                    ["Account menu", "Your initial, top right: User settings, Switch company (if you have several), the light or dark theme, Admin settings and Sign out."],
+                                    ["Account menu", "Your initial, top right: User settings, Sign-in security, Switch company (if you have several), the light or dark theme, Admin settings and Sign out."],
                                 ],
                             },
                         },
@@ -77,6 +77,7 @@ export default {
                     title: "Dashboard",
                     lead: "Your starting page: the numbers that matter, what is due, and what just happened.",
                     blocks: [
+                        { p: "Administrators of a new workspace see a **Get your workspace ready** card at the top: six first steps (your logo and colours, a data object, contacts, your team, an e-mail template and an automation), each ticked off by itself once done, and a **Next** button to the first one left. Press the **X** to hide it; this hides it for the whole company, and it goes away on its own when all six are done." },
                         { list: ["**Quick actions**: Create contact, Create task, Import data, and **Add widget**.", "**Headline tiles**: contacts, new contacts in the last 30 days (compared with the 30 days before), e-mails sent, open rate, your open tasks and how many are overdue.", "**Upcoming tasks**: what is due soon, with the contact it belongs to. Click one to open the contact.", "**Recent activity**: the latest changes across the workspace.", "**Data objects**: a card for each object with its record count."] },
                         { h: "Widgets" },
                         { p: "A widget shows the result of a saved query, for example *deals closing this month*. Press **Add widget**, choose a saved query and a title. On a widget you can **Reload** it, **Download CSV**, **Edit** or **Remove** it. Removing a widget never deletes the query behind it." },
@@ -91,7 +92,9 @@ export default {
                     lead: "The list of everyone you do business with, with search, filters, saved views and bulk actions.",
                     blocks: [
                         { h: "Find people" },
-                        { list: ["Type in the search box: it looks at name, e-mail, company and phone.", "Filter by **Tag** or **owner**, and sort (newest, last name, company, recently updated). **Clear filters** brings everyone back.", "**Columns** lets you choose which columns the table shows. **Views** switches between your saved views.", "**Advanced search** builds precise searches and saves them as queries (see Advanced search and saved queries)."] },
+                        { list: ["Type in the search box: it looks at name, e-mail, company and phone.", "Filter by **Tag** or **owner**. **Clear filters** brings everyone back.", "**Click a column heading to sort by it**: once for ascending (A to Z, oldest first), again for descending. An arrow shows the current order. Name, e-mail, phone, company, owner and the date added can be sorted; the sort box above the table offers newest, last name, company and recently updated.", "**Columns** lets you choose which columns the table shows. **Views** switches between your saved views.", "**Advanced search** builds precise searches and saves them as queries (see Advanced search and saved queries).", "**Pages**: the foot of the table shows which rows you are looking at (for example *1-25 of 1,234*), numbered pages with Previous and Next, and **Rows** to show 25, 50 or 100 at a time. A new search, filter or sort starts again on page 1; the table fills the height of the window."] },
+                        { h: "Quick actions on each row" },
+                        { p: "Point at a row (they are always showing on a phone) to see small buttons at its right: **Email** and **Text** open the same message windows as on the contact page, right here on the list, so the message is sent from the CRM and recorded on the contact; **Call** opens your phone app; **Edit** opens the contact form in a window and updates the row when you save. Text needs a phone number, Email an address, and Edit needs permission to edit contacts." },
                         { h: "Add a contact" },
                         { steps: ["Press **New contact** (or **Add contact** in the top bar).", "Fill in the name and whatever else you know: job title, company, website, birthday, several e-mails and phones, addresses.", "Save. You land on the new contact."] },
                         { h: "Act on many at once" },
@@ -189,6 +192,22 @@ export default {
                     ],
                 },
                 {
+                    id: "sign-in-security",
+                    title: "Sign-in security: two-step verification, passkeys and connected accounts",
+                    lead: "Protect your account beyond the password. Open **Sign-in security** in the account menu. It belongs to you and covers every company you can open.",
+                    blocks: [
+                        { h: "Two-step verification" },
+                        { steps: ["Press **Set up two-step verification**.", "Scan the QR code with an authenticator app on your phone (Google Authenticator, Microsoft Authenticator, 1Password, Authy…), or type the setup key it shows.", "Type the 6-digit code the app shows and press **Turn on**.", "**Save your recovery codes** straight away: they are shown only once. Each works once, if you lose your phone."] },
+                        { p: "From then on, signing in asks for your password and then a code. A code works once and changes every 30 seconds. Choose **Use a recovery code** on the code page if your phone is not with you. You can make new recovery codes or turn it off at any time; both ask for your password again." },
+                        { warn: "Lost your phone and your recovery codes? Ask an administrator of your company: on **User management** they can reset your two-step verification, and you set it up again." },
+                        { h: "Passkeys" },
+                        { p: "When the platform offers passkeys, you can add one on each device you use: press **Add a passkey** and confirm with your fingerprint, face or the device PIN. After that the sign-in page has **Sign in with a passkey**: no password and no code, because the passkey is both. Remove a passkey you no longer use (it asks for your password)." },
+                        { h: "Connected accounts" },
+                        { p: "When the platform offers **Continue with Google, Microsoft, GitHub** or your own single sign-on, you can **Connect** your account there and sign in with one click. It is matched to your account by a verified e-mail address, so you keep your companies and data. If you use two-step verification, the code is still asked for." },
+                        { tip: "If your administrator requires two-step verification, you are taken to this page first and can do nothing else until it is set up. A passkey counts." },
+                    ],
+                },
+                {
                     id: "user-settings",
                     title: "Your own settings",
                     lead: "Open the account menu, then **User settings**.",
@@ -200,6 +219,7 @@ export default {
                                     ["Profile", "Change your name, e-mail and **timezone**. Dates throughout the app follow it."],
                                     ["E-mail signature", "Text added to the end of every e-mail you send from a contact. Save it once."],
                                     ["Change password", "Enter your current password, then a new one: at least 10 characters with upper and lower case letters and a number. Changing it signs out your API tokens."],
+                                    ["Sign-in security", "Open **Sign-in security** in the account menu: two-step verification, passkeys and connected accounts (see the next section)."],
                                     ["My blast progress", "How many of your e-mails and texts from the last 7 days are waiting, sent or failed."],
                                     ["2-way e-mail sync", "Linking your mailbox is not available yet. E-mails you send from OrvynCRM are logged on the contact automatically."],
                                 ],
@@ -218,7 +238,7 @@ export default {
                     adminOnly: true,
                     lead: "Everything that configures the workspace lives under **Admin Settings** in the sidebar, grouped by area.",
                     blocks: [
-                        { p: "The hub shows a card for each setting, with a search box (**Find a setting**). Inside any admin page a side menu lets you jump to another. A badge on Admin Settings means the platform has replied to one of your messages." },
+                        { p: "The hub shows a card for each setting, with a few current facts on it (for example your plan, how many users you use, or how many automations are on) and a search box (**Find a setting**). Every admin page, Billing & plan included, has the same grouped menu down the left (a scrolling row of buttons on a phone) with its own **Filter the menu** box, so you can jump to another setting without going back. **Overview** returns to the cards. A badge on Admin Settings means the platform has replied to one of your messages." },
                         {
                             table: {
                                 head: ["Group", "Pages"],
@@ -263,7 +283,7 @@ export default {
                     blocks: [
                         { h: "Adding people" },
                         { steps: ["Open **User management** and press **Add user**.", "Enter their name and e-mail. Choose a role and a permission template.", "Either set a password, or leave it empty so they receive an invitation to choose their own."] },
-                        { p: "If the e-mail already belongs to a person with an account, they are simply added to your company and keep their own password. You can **Edit** a user, send a **reset link**, or **Delete user**: their contact record, notes and tasks stay." },
+                        { p: "If the e-mail already belongs to a person with an account, they are simply added to your company and keep their own password. You can **Edit** a user, send a **reset link**, turn off a colleague's **two-step verification** (the shield button, for someone who lost their phone and recovery codes), or **Delete user**: their contact record, notes and tasks stay." },
                         { h: "Permission templates" },
                         { p: "A template is a named set of permissions you give to several people. **Create template**, then choose what the template allows:" },
                         { list: ["Contacts: view, create, edit, delete and merge duplicates.", "Parts of a contact: notes and tasks, communication, relationships, attachments.", "Interface: query widgets, workflow boards, the general interface guide, which sidebar tabs and which data object sections are visible."] },
@@ -279,7 +299,7 @@ export default {
                     blocks: [
                         { p: "Open **Billing & plan** from the Admin settings hub (or the banner at the top of the page). Everybody in the company can see where the plan and the trial stand; only administrators change them." },
                         { h: "The free trial" },
-                        { p: "A workspace created through sign-up starts with a free trial on **Tier 1**. The banner and this page show how many days are left, and you get reminders by e-mail and in the bell 14 days, 7 days and 1 day before it ends. You may enter your billing information at any time, even on day one." },
+                        { p: "A workspace created through sign-up starts with a free trial on **Tier 1**. The banner and this page show how many days are left, and you get reminders by e-mail and in the bell 14 days, 7 days and 1 day before it ends. **No credit card is needed** to start or during the trial: billing information is only required when the trial ends and you want to continue. You may enter it earlier, even on day one." },
                         { warn: "When the trial ends and no billing information is on file, only the Billing & plan page (and the manual) stays open, for everybody in the company, until an administrator enters it. Nothing is deleted. People who are not administrators are asked to tell theirs." },
                         { h: "Plans (the platform can change these numbers)" },
                         {
@@ -541,6 +561,9 @@ export default {
                                     ["Texts are refused", "No Twilio account is set up for your company and the platform has none. Add your own under Twilio."],
                                     ["Texts fail with a message about the limit", "Your plan's texts for this month are used up. They start again next month, or choose a bigger plan under Billing & plan."],
                                     ["The Subscribe buttons are greyed out", "You cancelled your subscription. Ask the platform to let you subscribe again on the Subscription card; you are told when it is enabled."],
+                                    ["A red banner says my last payment did not go through", "Administrators see it while the card payment is failing. Open Billing & plan, then **Manage card & invoices**, and update the card. The banner goes once the payment succeeds."],
+                                    ["It asks me for a code when I sign in", "Two-step verification is on for your account. Type the 6-digit code from your authenticator app, or a recovery code. If the code is refused, check that the time on your phone is set automatically."],
+                                    ["I lost my phone", "Use one of your recovery codes on the code page. If you have none, ask your administrator to reset your two-step verification."],
                                     ["I only see the Billing & plan page", "Your free trial has ended and no billing information (or, where the platform asks for it, no subscription) is on file. An administrator enters it or subscribes there and everything opens again."],
                                     ["A contact does not receive automation e-mails", "They may be opted out or on the suppression list. Check the Overview and Communication tabs."],
                                     ["I cannot add a user, object or automation", "You reached the limit of your plan. Use **Request more…**."],

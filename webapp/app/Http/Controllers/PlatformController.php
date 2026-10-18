@@ -9,10 +9,12 @@ use App\Models\CompanyUsage;
 use App\Models\SeatRequest;
 use App\Models\Tenant;
 use App\Models\TenantStat;
+use App\Services\Tenancy\CompanyAdminNotices;
 use App\Services\Tenancy\CompanySession;
 use App\Services\Tenancy\InactiveCompanies;
 use App\Services\Tenancy\Plans;
 use App\Services\Tenancy\Seats;
+use App\Services\Tenancy\Subscriptions;
 use App\Services\Tenancy\TenantProvisioner;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,8 +22,10 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 /** The platform area: create, suspend and open companies. Only platform administrators reach it (EnsurePlatformAdmin). */
 class PlatformController extends Controller
@@ -41,7 +45,7 @@ class PlatformController extends Controller
 
         return Inertia::render('Platform/Companies', [
             'companies' => Tenant::withCount('members')->orderBy('name')->get()->map(fn (Tenant $t) => [
-                'id' => $t->getTenantKey(), 'name' => $t->name, 'slug' => $t->slug, 'status' => $t->status, 'plan' => $t->plan,
+                'id' => $t->getTenantKey(), 'name' => $t->name, 'slug' => $t->slug, 'status' => $t->status, 'plan' => $t->plan, 'database' => $t->database()->getName(),
                 'members' => $t->members_count, 'created_at' => $t->created_at?->toIso8601String(),
                 'users' => (int) ($stats[$t->getTenantKey()] ?? $seats->usedFor($t)), 'max_users' => (int) $t->max_users,
                 'max_data_objects' => (int) $t->max_data_objects, 'max_automations_per_object' => (int) $t->max_automations_per_object,
@@ -116,7 +120,7 @@ class PlatformController extends Controller
         return back()->with('success', "{$tenant->name} was created.");
     }
 
-    public function update(Request $request, Tenant $tenant, Plans $plans): RedirectResponse
+    public function update(Request $request, Tenant $tenant, Plans $plans, Subscriptions $subscriptions, CompanyAdminNotices $notices): RedirectResponse
     {
         $d = $request->validate([
             'status' => ['sometimes', Rule::in(['active', 'suspended', 'closed'])],
@@ -131,10 +135,33 @@ class PlatformController extends Controller
             'max_automations_per_object' => ['sometimes', 'integer', 'min:1', 'max:100000'],
             'tier' => ['sometimes', 'integer', 'between:1,'.count(config('plans.tiers'))],
             'trial_ends_at' => ['sometimes', 'nullable', 'date'],
+            'tier_billing' => ['sometimes', 'nullable', Rule::in(['stripe_now', 'stripe_renewal', 'app_only'])],
+            'tier_tell' => ['sometimes', 'boolean'],
         ], ['max_users.min' => 'This tier includes at least :min users. You can raise the limit above that, but not set it lower.', 'slug.unique' => 'That slug is already taken.', 'slug.not_in' => 'That slug is reserved.', 'slug.regex' => 'Use lowercase letters, numbers and single hyphens.']);
         // a new tier brings its user limit (an explicit limit sent with it wins, but never below the tier's); a trial end of null takes the trial away
         $newTier = $d['tier'] ?? null;
-        unset($d['tier']);
+        $billing = $d['tier_billing'] ?? null;
+        $tell = (bool) ($d['tier_tell'] ?? true);
+        unset($d['tier'], $d['tier_billing'], $d['tier_tell']);
+        $tierChanged = $newTier !== null && (int) $newTier !== (int) $tenant->tier;
+        $oldTier = $plans->tier((int) $tenant->tier);
+
+        // a company that pays through a running Stripe subscription: the subscription is moved FIRST, so a refusal from Stripe changes nothing here
+        $running = $tierChanged && $subscriptions->isRunning($tenant);
+        if ($running) {
+            if ($billing === null) {
+                throw ValidationException::withMessages(['tier_billing' => 'This company pays through Stripe: choose how its subscription follows the change.']);
+            }
+            if ($billing !== 'app_only') {
+                try {
+                    $subscriptions->changeTier($tenant, (int) $newTier, $billing === 'stripe_now' ? 'create_prorations' : 'none');
+                } catch (Throwable $e) {
+                    $why = $e instanceof ValidationException ? (string) collect($e->errors())->flatten()->first() : $e->getMessage();
+
+                    throw ValidationException::withMessages(['tier_billing' => 'Stripe did not change the subscription ('.str($why)->squish()->limit(160)->value().'). Nothing was changed.']);
+                }
+            }
+        }
         if (array_key_exists('trial_ends_at', $d)) {
             $d += ['trial_notice_stage' => 0];
         }
@@ -159,9 +186,27 @@ class PlatformController extends Controller
             $plans->applyTier($tenant, (int) $newTier);
             isset($d['max_users']) && $tenant->update(['max_users' => $d['max_users']]);
         }
+        if ($tierChanged) {
+            $running && $billing === 'app_only' && $subscriptions->keepTierDespiteStripe($tenant);
+            $tell && $this->tellTierChange($notices, $plans, $tenant->fresh(), $oldTier, $running ? $billing : null);
+        }
         array_key_exists('extra_numbers', $d) && $plans->enforceNumbers($tenant->fresh());
 
         return back()->with('success', 'Saved.');
+    }
+
+    /** @param  array<string, mixed>  $from  the tier it was on */
+    private function tellTierChange(CompanyAdminNotices $notices, Plans $plans, Tenant $tenant, array $from, ?string $billing): void
+    {
+        $to = $plans->tier((int) $tenant->tier);
+        $lines = ["The platform moved your company from {$from['name']} to {$to['name']}.", 'Now included: '.($to['users'] === null ? 'unlimited users' : "{$to['users']} active users").", {$to['sms_per_month']} texts a month and {$to['sms_numbers']} texting numbers."];
+        $lines[] = match ($billing) {
+            'stripe_now' => 'Your subscription was moved to the new plan. Stripe charges or credits the difference for the rest of this period.',
+            'stripe_renewal' => 'Your subscription was moved to the new plan from your next renewal. Nothing is charged or credited now.',
+            'app_only' => 'Your subscription and card are unchanged: the new plan was given by the platform.',
+            default => 'You can see your plan and its usage on the Billing & plan page.',
+        };
+        $notices->tell($tenant, "Your plan is now {$to['name']}", $lines);
     }
 
     /** Support access: open the company as an administrator (the person gets a profile there on first use). */

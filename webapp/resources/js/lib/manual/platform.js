@@ -156,6 +156,30 @@ export default {
                     ],
                 },
                 {
+                    id: "platform-standing",
+                    title: "Account standing",
+                    lead: "Where every company stands with paying, and a way to nudge the ones that should act.",
+                    blocks: [
+                        { p: "Open **Account standing** in the menu. At the top are the totals: how many companies are paid and up to date (with what they come to per billing period at the current prices), how many have a payment that failed (and what is at risk), how many are on a trial, and how many are invoiced or have no billing details. A red badge on the menu item counts the companies whose payment failed." },
+                        {
+                            table: {
+                                head: ["Standing", "What it means"],
+                                rows: [
+                                    ["Invoice overdue", "A company you bill yourself has an invoice that is past its due date and not marked paid. The row says how many, how much and how late."],
+                                    ["Payment failed", "Stripe could not collect the subscription (or an invoice failed and is still unpaid). The row says how much, how many attempts and when Stripe tries next."],
+                                    ["Trial ended, not paying", "The trial is over and there is no subscription or, where the platform asks for it, no billing details. Only its billing page is open."],
+                                    ["No billing details", "Not on a trial, not subscribed and no billing details on file."],
+                                    ["Trial ending soon", "The trial ends within 14 days and the company is not paying yet."],
+                                    ["Cancelled", "The subscription ended, or is set to end with this period."],
+                                    ["On trial / Invoiced / Paid, up to date", "Nothing to do. *Invoiced* means billing details are on file and you bill the company yourself: the application does not track those invoices."],
+                                ],
+                            },
+                        },
+                        { list: ["**Needs attention** (the default filter) lists the companies that should act, most urgent first. The other chips filter by one standing, and the box finds a company by name.", "**Remind** sends the company's administrators a notice in the app and an e-mail that says what they need to do for the standing they are in (update the card, subscribe, enter billing details). You can remind a company once a day.", "**Failed payments are followed up by themselves**: the company is reminded after 3 days and again, more firmly, after 7. You are e-mailed once (the **Requests** topic) if it is still unpaid after 7 days. Each step is sent once per failure.", "**Companies you invoice yourself**: on the company's overview, under *Invoices you issue*, **Add invoice** records the number, amount, invoice date and due date (it does not send anything to the company). Press **Mark paid** when the money arrives. When a due date passes without it, the company shows as *Invoice overdue*, you can **Remind** it, and the same 3 and 7 day follow-up as for failed payments runs. An invoice that is not yet due keeps the company as *Invoiced*, with the next due date.", "A company's **overview** has the same *Account standing* box with its **payment history**: each Stripe invoice, its amount and whether it was paid or failed, with a link to Stripe's invoice."] },
+                        { warn: "Standing comes from Stripe through its webhook, so it is only as current as that connection. In Stripe, add the events `invoice.paid` and `invoice.payment_failed` to the webhook endpoint (Settings, Payments lists all of them); invoices from before that are not in the history." },
+                    ],
+                },
+                {
                     id: "platform-requests",
                     title: "Requests for more",
                     lead: "Companies ask for more users, data objects, automations or texts. You answer.",
@@ -213,7 +237,7 @@ export default {
                             table: {
                                 head: ["Group", "Pages"],
                                 rows: [
-                                    ["Access", "Sign-ups, Bot protection"],
+                                    ["Access", "Sign-ups, Sign-in security, Bot protection"],
                                     ["Appearance", "Sign-in page, Platform look"],
                                     ["Communication", "E-mail notifications"],
                                     ["Integrations", "E-mail server, SMS, Calls"],
@@ -242,6 +266,21 @@ export default {
                         },
                         { p: "People go through **ask, confirm e-mail, choose a password**. Nothing is created until they have confirmed. The list **Recent requests** shows the company, person, status and when they asked: *Waiting for e-mail*, *E-mail confirmed*, *Waiting for approval*, *Approved*, *Setting up*, *Workspace created*, *Declined* or *Link expired*. In approval mode press **Approve** or **Decline** on each." },
                         { note: "New workspaces start with the default limits; change them afterwards on the Companies page. Sign-up sends e-mail, so set up the E-mail server first. Tick **requests** under E-mail notifications to hear about each one." },
+                    ],
+                },
+                {
+                    id: "platform-security",
+                    title: "Sign-in security",
+                    lead: "Who must use two-step verification, whether passkeys are offered, and which accounts people can sign in with. Open Settings, then **Sign-in security**.",
+                    blocks: [
+                        { h: "Two-step verification" },
+                        { list: ["**Optional for everybody**: each person turns it on in their own sign-in security page.", "**Required for platform administrators**, **for administrators** (yours and every company's) or **for everybody**: a person it applies to is taken to their security page on the next page they open and can do nothing else until they have set it up. A passkey counts as well.", "The page shows how many active people already use it. The API refuses to give a token to somebody who must set it up first, and asks for an `otp` code from the people who use it."] },
+                        { note: "Everybody sets up their own: it is one per person and covers the platform and every company they open. Your own is under **Sign-in security** at the bottom of the platform menu. When somebody loses their phone and recovery codes, use **Reset 2-step** on the Administrators page or on a company's People page; they are told by e-mail." },
+                        { h: "Passkeys" },
+                        { p: "Tick **Offer passkeys** to let people sign in with a fingerprint, face, device PIN or security key. Only a public key is stored. Passkeys are tied to the address people sign in on: if you change that address, they add them again." },
+                        { h: "Continue with Google, Microsoft, GitHub, single sign-on" },
+                        { steps: ["Open the card of the provider, tick **Offer…** and copy the **callback address** into the provider's settings (each card says where).", "Paste the client ID and the client secret (the secret is stored encrypted and never shown again).", "Microsoft also needs your directory (tenant) ID; **Custom OpenID Connect** needs the provider's address, for example `https://acme.okta.com`, and a button label.", "Save. The button appears on the sign-in page as soon as the card says **On**."] },
+                        { list: ["Nobody can create an account this way: a person is matched to an existing account by a **verified** e-mail address, and that provider's own id is remembered afterwards.", "Microsoft only vouches for addresses inside one directory, so a directory (tenant) must be named.", "A person who uses two-step verification still gives the code after a provider sign-in."] },
                     ],
                 },
                 {
@@ -355,6 +394,8 @@ export default {
                         { list: ["A company created through **sign-up** starts a trial on Tier 1 that ends after the chosen number of months. Companies you create yourself have none unless you tick *Start a free trial*; companies that existed before are never forced.", "The company's administrators are reminded 14 days, 7 days and 1 day before the end, and told when it has ended. You are e-mailed once when it ends (the **Requests** topic).", "When it has ended without billing information, everybody in that company can only open its billing page until an administrator enters the details. Nothing is deleted. Find such companies with the **Trial ended** chip.", "To give a company more time, open **Edit** on the Companies page and move its trial date forward."] },
                         { h: "Tiers on a company" },
                         { p: "Moving a company to a tier (Edit, or the company choosing it on its Billing & plan page) sets its user limit to the tier's. A company can only move to a smaller tier when its active users and texting numbers already fit. You are e-mailed when a company changes tier or enters billing information, and the company's overview page shows its tier, trial, usage and billing details." },
+                        { p: "On the Companies page, **Edit** has a **Licence tier**. Changing it always opens a window that explains the change before anything happens: the limits before and after, what the company uses today (with a warning if it is above the new limits), and what happens to its billing. Cancel leaves the company as it was." },
+                        { list: ["**Not paying through Stripe** (invoiced, on its trial, or no subscription): only its limits change. Nothing is sent to Stripe; change the invoice yourself if you invoice it.", "**Paying through a running Stripe subscription**: you choose. *Move the subscription too, and settle the difference now* (recommended) switches Stripe to the new tier's price and charges or credits the prorated difference for the rest of the period. *Move it from the next renewal* changes the price without charging or crediting now. *Change the limits only* is a gift: no charge, the subscription and the card stay as they are, and Stripe events do not undo it until the subscription itself is changed.", "If Stripe refuses, nothing is changed (not even the other fields in the form) and its message is shown. A tier with no Stripe price yet cannot be billed through Stripe: create the price on Settings, Payments first.", "The company's administrators are told by default (a notice and an e-mail) what their plan now includes and what it means for their subscription; untick it in the window to stay quiet."] },
                         { note: "Card details are never collected here: with Payments (Stripe) switched on, companies pay on Stripe's own pages; without it, the billing information is what you need to invoice." },
                     ],
                 },

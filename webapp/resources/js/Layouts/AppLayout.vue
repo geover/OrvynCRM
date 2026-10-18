@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { ArrowLeftRight, BookOpen, Bell, Building2, ChevronDown, LifeBuoy, Megaphone, Shield, SlidersHorizontal, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Plus, Search, Settings, UserCog } from 'lucide-vue-next';
+import { ArrowLeftRight, BookOpen, Bell, Building2, ChevronDown, LifeBuoy, Megaphone, Shield, SlidersHorizontal, LogOut, Menu, PanelLeftClose, PanelLeftOpen, KeyRound, Search, Settings, UserCog, UserPlus } from 'lucide-vue-next';
 import Hosts from '@/Components/Hosts.vue';
 import { useFavicon } from '@/lib/favicon';
 import Modal from '@/Components/Modal.vue';
@@ -46,6 +46,9 @@ const trialNotice = computed(() => {
     if (user.value.is_admin && t.days_left !== null && t.days_left <= 30 && !onBilling.value) return { blocked: false, text: `Your free trial ends in ${t.days_left} ${t.days_left === 1 ? 'day' : 'days'}. Add your billing information any time.` };
     return null;
 });
+const paymentFailed = computed(() => !!page.props.paymentFailed && !page.props.platform && user.value.is_admin);
+// the contact list has its own New contact button right under the title, so the header's quick-add would be a second one
+const onContactList = computed(() => page.url.split('?')[0] === '/contacts');
 const collapsed = useStored('sidebar:collapsed', false);
 const palette = ref(false);
 const onGlobalKey = (e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); palette.value = !palette.value; } };
@@ -149,7 +152,8 @@ const logout = () => router.post('/logout');
                 </div>
 
                 <button class="btn-outline shrink-0" title="Advanced search" @click="advanced = true"><SlidersHorizontal class="size-4" /><span class="hidden md:inline"> Advanced</span></button>
-                <button class="btn-primary ml-auto shrink-0" @click="adding = true"><Plus class="size-4" /><span class="hidden sm:inline"> Add contact</span></button>
+                <button v-if="!onContactList" class="btn-primary ml-auto shrink-0" data-testid="header-add-contact" title="Add contact" aria-label="Add contact" @click="adding = true"><UserPlus class="size-4" /></button>
+                <span v-else class="ml-auto" />
 
                 <Link href="/updates" class="btn-ghost relative !px-2" title="What's new" aria-label="What's new" data-testid="whats-new-link">
                     <Megaphone class="size-5" />
@@ -183,6 +187,7 @@ const logout = () => router.post('/logout');
                         <Link v-if="(page.props.companies ?? []).length > 1" href="/choose-company" class="flex items-center gap-2 px-4 py-2 hover:bg-slate-50"><ArrowLeftRight class="size-4" /> Switch company</Link>
                         <Link v-if="page.props.platform" href="/platform" class="flex items-center gap-2 px-4 py-2 hover:bg-slate-50"><Shield class="size-4" /> Platform</Link>
                         <Link href="/user-settings" class="flex items-center gap-2 px-4 py-2 hover:bg-slate-50"><UserCog class="size-4" /> User settings</Link>
+                        <Link href="/security" class="flex items-center gap-2 px-4 py-2 hover:bg-slate-50" data-testid="user-menu-security"><KeyRound class="size-4" /> Sign-in security</Link>
                         <Link href="/manual" class="flex items-center gap-2 px-4 py-2 hover:bg-slate-50" data-testid="user-menu-manual"><BookOpen class="size-4" /> Manual</Link>
                         <div class="flex items-center justify-between gap-2 border-t border-slate-100 px-4 py-2" role="group" aria-label="Theme" @click.stop>
                             <span class="text-xs text-slate-500">Theme</span>
@@ -200,6 +205,10 @@ const logout = () => router.post('/logout');
             <div v-if="trialNotice" class="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-2 text-sm lg:px-8" :class="trialNotice.blocked ? 'border-red-200 bg-red-50 text-red-900' : 'border-sky-200 bg-sky-50 text-sky-900'" role="status" data-testid="trial-banner">
                 <span>{{ trialNotice.text }}</span>
                 <Link v-if="user.is_admin && !onBilling" href="/billing" class="font-medium underline">Billing &amp; plan</Link>
+            </div>
+            <div v-if="paymentFailed" class="flex flex-wrap items-center justify-between gap-2 border-b border-red-200 bg-red-50 px-4 py-2 text-sm text-red-900" role="alert" data-testid="payment-failed-banner">
+                <span>Your last payment did not go through. Update your card to keep your plan active.</span>
+                <Link v-if="!onBilling" href="/billing" class="font-medium underline">Billing &amp; plan</Link>
             </div>
             <main id="main" tabindex="-1" class="p-4 outline-none lg:p-8"><slot /></main>
         </div>

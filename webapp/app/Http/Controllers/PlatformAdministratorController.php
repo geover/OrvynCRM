@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AccountUser;
 use App\Models\Tenant;
+use App\Services\Auth\TwoFactor;
 use App\Services\Tenancy\TenantProvisioner;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,7 +27,7 @@ class PlatformAdministratorController extends Controller
 
         return Inertia::render('Platform/Administrators', [
             'administrators' => AccountUser::where('is_platform_admin', true)->orderBy('name')->get()->map(fn (AccountUser $a) => [
-                'id' => $a->id, 'name' => $a->name, 'email' => $a->email, 'status' => $a->status, 'is_me' => $a->is($me),
+                'id' => $a->id, 'name' => $a->name, 'email' => $a->email, 'status' => $a->status, 'is_me' => $a->is($me), 'two_factor' => $a->two_factor_confirmed_at !== null,
             ])->values(),
             'companies' => Tenant::orderBy('name')->get()->map(fn (Tenant $t) => ['id' => $t->getTenantKey(), 'name' => $t->name])->values(),
         ]);
@@ -69,6 +70,16 @@ class PlatformAdministratorController extends Controller
         $administrator->update($d);
 
         return back()->with('success', 'Saved.');
+    }
+
+    /** A platform administrator who lost their phone and recovery codes: another one turns it off for them. */
+    public function resetTwoFactor(Request $request, AccountUser $administrator, TwoFactor $twoFactor): RedirectResponse
+    {
+        abort_unless($administrator->is_platform_admin, 404);
+        abort_if($administrator->is($request->attributes->get('platform_identity')), 422, 'Turn your own off in your sign-in security page.');
+        $twoFactor->reset($administrator);
+
+        return back()->with('success', 'Two-step verification was reset. They are told by e-mail.');
     }
 
     public function sendReset(AccountUser $administrator): RedirectResponse

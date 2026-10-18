@@ -36,7 +36,7 @@ const inProduct = (i: (typeof nav)[number]) => !!i.children?.some((c) => current
 
         <div class="hidden items-center gap-2 md:flex">
             <a href={`${site.appUrl}/login`} class="btn whitespace-nowrap text-stone-700 hover:bg-stone-100">Sign in</a>
-            <a href={site.signupUrl} class="btn-outline hidden whitespace-nowrap lg:inline-flex" data-testid="nav-signup">Create account</a>
+            <a href={site.signupUrl} class="btn-outline hidden whitespace-nowrap lg:inline-flex" data-testid="nav-signup">Start free trial</a>
             <a href="/demo" class="btn-primary whitespace-nowrap">Request a demo</a>
         </div>
 
@@ -57,7 +57,7 @@ const inProduct = (i: (typeof nav)[number]) => !!i.children?.some((c) => current
             ))}
             <div class="mt-2 grid grid-cols-2 gap-2 border-t border-stone-100 pt-3">
                 <a href={`${site.appUrl}/login`} class="btn-outline">Sign in</a>
-                <a href={site.signupUrl} class="btn-outline">Create account</a>
+                <a href={site.signupUrl} class="btn-outline">Start free trial</a>
                 <a href="/demo" class="btn-primary col-span-2">Request a demo</a>
             </div>
         </div>

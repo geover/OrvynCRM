@@ -9,6 +9,7 @@ import Team from '../components/Team.astro';
 import ProductTour from '../components/ProductTour.astro';
 import IntegrationsStrip from '../components/IntegrationsStrip.astro';
 import SecurityBand from '../components/SecurityBand.astro';
+import TrialNote from '../components/TrialNote.astro';
 import DocsBand from '../components/DocsBand.astro';
 import { Image } from 'astro:assets';
 import teamPhoto from '../assets/team-celebrating.jpg';
@@ -25,10 +26,11 @@ import { faq, features, reasons, site, steps } from '../data/site';
                     <h1 class="mt-6 text-4xl font-semibold leading-[1.08] sm:text-5xl lg:text-[3.4rem]">The CRM that adapts to <span class="text-gradient">how you work</span></h1>
                     <p class="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-stone-600 lg:mx-0">Model your own records, automate the follow-ups, and reach people by e-mail and SMS, all in one place. Every company gets its own private space.</p>
                     <div class="mt-8 flex flex-wrap justify-center gap-3 lg:justify-start">
-                        <a href="/demo" class="btn-primary !px-6 !py-3">Request a demo</a>
-                        <a href="/features" class="btn-outline !px-6 !py-3">See what it does</a>
+                        <a href={site.signupUrl} class="btn-primary !px-6 !py-3" data-testid="hero-signup">Start your free trial</a>
+                        <a href="/demo" class="btn-outline !px-6 !py-3">Request a demo</a>
                     </div>
-                    <p class="mt-5 text-sm text-stone-600"><a href={site.signupUrl} class="font-semibold text-brand-700 underline underline-offset-2 hover:text-brand-900" data-testid="hero-signup">Prefer to start on your own? Create your workspace</a></p>
+                    <div class="mt-6"><TrialNote align="start" compact /></div>
+                    <p class="mt-3 text-sm text-stone-600"><a href="/features" class="font-medium text-brand-700 underline underline-offset-2 hover:text-brand-900">See what it does</a></p>
                     <p class="mt-4 flex items-center justify-center gap-2 text-sm text-stone-500 lg:justify-start"><span class="text-gold-400" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</span>Made for teams who like their work to run itself</p>
                 </div>
 

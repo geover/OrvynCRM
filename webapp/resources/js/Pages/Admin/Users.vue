@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
-import { KeyRound, Pencil, Plus, Trash2 } from 'lucide-vue-next';
+import { KeyRound, Pencil, Plus, ShieldOff, Trash2 } from 'lucide-vue-next';
 import AdminPage from '@/Components/AdminPage.vue';
 import Modal from '@/Components/Modal.vue';
 import PasswordField from '@/Components/PasswordField.vue';
@@ -64,6 +64,9 @@ async function save() {
 async function reset(u) {
     if (await confirmDialog({ title: `Email ${u.name} a password reset link?`, confirmLabel: 'Send link' })) run(() => api.post(`/users/${u.id}/reset-password`), 'Reset link sent');
 }
+async function resetTwoFactor(u) {
+    if (await confirmDialog({ title: `Reset two-step verification for ${u.name}?`, message: 'Use this when they lost their phone and their recovery codes. They can sign in with the password alone and are told by e-mail; they can set it up again.', confirmLabel: 'Reset', danger: true })) { await run(() => api.post(`/users/${u.id}/reset-two-factor`), 'Two-step verification reset'); load(); }
+}
 async function remove(u) {
     if (await confirmDialog({ title: `Delete ${u.name}?`, message: 'Their contact record, notes and tasks are kept.', danger: true, confirmLabel: 'Delete user' })) { await run(() => api.delete(`/users/${u.id}`), 'User deleted'); load(); }
 }
@@ -103,13 +106,14 @@ const err = (k) => errors.value[k]?.[0];
                 <thead class="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Name</th><th class="px-5 py-3">Role</th><th class="px-5 py-3">Permission template</th><th class="px-5 py-3">Status</th><th class="px-5 py-3">Added</th><th /></tr></thead>
                 <tbody class="divide-y divide-slate-100">
                     <tr v-for="u in users" :key="u.id" class="hover:bg-slate-50">
-                        <td class="px-5 py-3"><div class="font-medium">{{ u.name }}</div><div class="text-xs text-slate-400">{{ u.email }}</div></td>
+                        <td class="px-5 py-3"><div class="font-medium">{{ u.name }} <span v-if="u.two_factor" class="badge ml-1 !bg-emerald-50 !text-emerald-700" title="Signs in with two-step verification" data-testid="user-two-factor">2-step</span></div><div class="text-xs text-slate-400">{{ u.email }}</div></td>
                         <td class="px-5 py-3 capitalize">{{ u.role }}</td><td class="px-5 py-3">{{ u.template || '—' }}</td>
                         <td class="px-5 py-3"><span :class="u.status === 'active' ? '!bg-emerald-50 !text-emerald-700' : '!bg-red-50 !text-red-600'" class="badge">{{ u.status }}</span></td>
                         <td class="px-5 py-3 text-slate-400">{{ fmtDate(u.created_at) }}</td>
                         <td class="whitespace-nowrap px-3 text-right">
                             <button class="btn-ghost !px-1.5" title="Edit" @click="open(u)"><Pencil class="size-4" /></button>
                             <button class="btn-ghost !px-1.5" title="Send password reset" @click="reset(u)"><KeyRound class="size-4" /></button>
+                            <button v-if="u.two_factor" class="btn-ghost !px-1.5" title="Reset two-step verification" data-testid="user-reset-two-factor" @click="resetTwoFactor(u)"><ShieldOff class="size-4" /></button>
                             <button v-if="u.id !== me.id" class="btn-ghost !px-1.5 text-slate-400 hover:text-red-600" title="Delete" @click="remove(u)"><Trash2 class="size-4" /></button>
                         </td>
                     </tr>

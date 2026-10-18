@@ -1,12 +1,12 @@
 <script setup>
 import { Link, usePage } from '@inertiajs/vue3';
-import { Activity, Globe, CircleDollarSign, CreditCard, PanelLeft, Hourglass, Layers, LayoutGrid, Mail, MessageSquareText, Palette, PhoneCall, Server, ShieldCheck, UserPlus } from 'lucide-vue-next';
+import { Activity, Globe, CircleDollarSign, CreditCard, PanelLeft, Hourglass, KeyRound, Layers, LayoutGrid, Mail, MessageSquareText, Palette, PhoneCall, Server, ShieldCheck, UserPlus } from 'lucide-vue-next';
 
 // The sub-menu of the platform's Settings, in groups. A column on the left of wide screens, a scrolling row of pills on narrow ones.
 const page = usePage();
 const GROUPS = [
     { title: 'General', items: [{ href: '/platform/settings', label: 'Overview', icon: LayoutGrid, exact: true }] },
-    { title: 'Access', items: [{ href: '/platform/signups', label: 'Sign-ups', icon: UserPlus }, { href: '/platform/settings/bot-protection', label: 'Bot protection', icon: ShieldCheck }] },
+    { title: 'Access', items: [{ href: '/platform/signups', label: 'Sign-ups', icon: UserPlus }, { href: '/platform/settings/security', label: 'Sign-in security', icon: KeyRound }, { href: '/platform/settings/bot-protection', label: 'Bot protection', icon: ShieldCheck }] },
     { title: 'Appearance', items: [{ href: '/platform/branding', label: 'Sign-in page', icon: Palette }, { href: '/platform/look', label: 'Platform look', icon: PanelLeft }, { href: '/platform/settings/website', label: 'Website', icon: Globe }] },
     { title: 'Communication', items: [{ href: '/platform/settings/notifications', label: 'E-mail notifications', icon: Mail }] },
     { title: 'Integrations', items: [

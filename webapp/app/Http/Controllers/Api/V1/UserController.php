@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\AccountUser;
 use App\Models\Contact;
 use App\Models\User;
+use App\Services\Auth\TwoFactor;
 use App\Services\Tenancy\CallSettings;
 use App\Services\Tenancy\CompanyCallerIds;
 use App\Services\Tenancy\CompanyUsers;
@@ -25,8 +27,11 @@ class UserController extends Controller
         $q = User::listed()->orderBy('name');
         $admin && $q->with('permissionTemplate:id,name');
 
-        return response()->json(['data' => $q->get($admin ? self::ADMIN_COLUMNS : ['id', 'name'])->map(fn ($u) => $admin
-            ? $u->toArray() + ['template' => $u->permissionTemplate?->name]
+        $rows = $q->get($admin ? [...self::ADMIN_COLUMNS, 'central_user_id'] : ['id', 'name']);
+        $secured = $admin ? AccountUser::whereIn('id', $rows->pluck('central_user_id')->filter())->whereNotNull('two_factor_confirmed_at')->pluck('id')->all() : [];
+
+        return response()->json(['data' => $rows->map(fn ($u) => $admin
+            ? collect($u->toArray())->except('central_user_id')->all() + ['template' => $u->permissionTemplate?->name, 'two_factor' => in_array($u->central_user_id, $secured, true)]
             : $u->only(['id', 'name']))]);
     }
 
@@ -94,6 +99,18 @@ class UserController extends Controller
         abort_unless($request->user()->isAdmin(), 403);
 
         return response()->json(['data' => ['default_caller_id' => $calls->defaultCallerId(), 'can_set' => $calls->companiesMaySetCallerIds()]]);
+    }
+
+    /** Somebody lost their phone and their recovery codes: turn two-step verification off for them (they are told and can set it up again). */
+    public function resetTwoFactor(Request $request, User $user, TwoFactor $twoFactor): JsonResponse
+    {
+        abort_unless($request->user()->isAdmin(), 403);
+        abort_if($user->is_platform_support, 404);
+        $identity = AccountUser::find($user->central_user_id);
+        abort_unless($identity && ! $identity->is_platform_admin, 404);        // a platform administrator's is the platform's to reset
+        $twoFactor->reset($identity);
+
+        return response()->json(['reset' => true]);
     }
 
     public function sendReset(Request $request, User $user): JsonResponse

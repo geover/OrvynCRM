@@ -31,5 +31,5 @@ const { page, prev, next } = Astro.props;
         {prev ? <a href={`/docs/${prev.slug}`} class="rounded-xl border border-stone-200 bg-white p-4 transition hover:border-brand-200 hover:shadow-sm"><span class="text-xs font-semibold uppercase tracking-wider text-stone-500">Previous</span><span class="mt-1 block font-semibold text-ink">{prev.title}</span></a> : <span></span>}
         {next ? <a href={`/docs/${next.slug}`} class="rounded-xl border border-stone-200 bg-white p-4 text-right transition hover:border-brand-200 hover:shadow-sm"><span class="text-xs font-semibold uppercase tracking-wider text-stone-500">Next</span><span class="mt-1 block font-semibold text-ink">{next.title}</span></a> : <span></span>}
     </nav>
-    <CtaBand title="Questions, or want a walkthrough?" text="We are happy to show you how it fits your business, or to help you set it up." />
+    <CtaBand compact title="Questions, or want a walkthrough?" text="We are happy to show you how it fits your business, or to help you set it up." />
 </Docs>

@@ -4,11 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Jobs\CollectCompanyMetrics;
 use App\Models\Automation;
+use App\Models\CompanyInvoice;
+use App\Models\CompanyManualInvoice;
 use App\Models\CompanyUsage;
 use App\Models\DataObject;
 use App\Models\Tenant;
 use App\Models\TenantMetric;
 use App\Models\TenantStat;
+use App\Services\Tenancy\AccountStanding;
 use App\Services\Tenancy\CompanyServices;
 use App\Services\Tenancy\Limits;
 use App\Services\Tenancy\Plans;
@@ -48,6 +51,16 @@ class PlatformCompanyOverviewController extends Controller
             ],
             'limits' => $tenant->isActive() ? $tenant->run(fn () => ['data_objects' => $limits->dataObjects(), 'objects' => $limits->objects()]) : null,
             'plan' => $this->plan($tenant),
+            // where it stands with paying, and what Stripe invoiced it
+            'standing' => app(AccountStanding::class)->of($tenant),
+            'manual_invoices' => CompanyManualInvoice::where('tenant_id', $tenant->getTenantKey())->orderByDesc('due_on')->limit(30)->get()->map(fn (CompanyManualInvoice $i) => [
+                'id' => $i->id, 'number' => $i->number, 'amount' => $i->amount_due, 'currency' => $i->currency, 'issued_on' => $i->issued_on->toDateString(), 'due_on' => $i->due_on->toDateString(),
+                'paid_on' => $i->paid_on?->toDateString(), 'state' => $i->state(), 'note' => $i->note,
+            ])->values(),
+            'invoices' => CompanyInvoice::where('tenant_id', $tenant->getTenantKey())->orderByDesc('issued_at')->limit(12)->get()->map(fn (CompanyInvoice $i) => [
+                'id' => $i->id, 'number' => $i->number, 'status' => $i->status, 'amount' => $i->amount_due, 'paid' => $i->amount_paid, 'currency' => $i->currency, 'attempts' => $i->attempt_count,
+                'issued_at' => $i->issued_at?->toIso8601String(), 'paid_at' => $i->paid_at?->toIso8601String(), 'url' => $i->hosted_url,
+            ])->values(),
             'users' => $stat?->users ?? $seats->usedFor($tenant),
             'collected_at' => $stat?->collected_at?->toIso8601String(),
             'counts' => ($stat?->counts ?? []) + ['contacts' => $stat?->contacts ?? 0, 'records' => $stat?->records ?? 0],

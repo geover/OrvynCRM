@@ -92,13 +92,43 @@ test.describe('data table: contacts list', () => {
         expect((await api(page, 'GET', `/contacts?filter[q]=${state.co}&per_page=50`)).json.data).toHaveLength(3);
     });
 
+    test('clicking a column header sorts the list ascending, then descending', async ({ page }) => {
+        await page.goto('/contacts');
+        await search(page).fill(state.co);
+        const header = (name) => page.locator('thead th', { hasText: name });
+        const emails = async () => (await page.locator('tbody tr td:nth-child(3)').allInnerTexts()).map((t) => t.trim());
+        await expect(page.locator('tbody tr')).not.toHaveCount(0);
+
+        await header('Email').getByRole('button').click();
+        await expect(header('Email')).toHaveAttribute('aria-sort', 'ascending');
+        await expect.poll(async () => { const e = await emails(); return JSON.stringify(e) === JSON.stringify([...e].sort()); }).toBe(true);
+        await header('Email').getByRole('button').click();
+        await expect(header('Email')).toHaveAttribute('aria-sort', 'descending');
+        await expect.poll(async () => { const e = await emails(); return JSON.stringify(e) === JSON.stringify([...e].sort().reverse()); }).toBe(true);
+        await header('Name').getByRole('button').click();
+        await expect(header('Name')).toHaveAttribute('aria-sort', 'ascending');
+        await expect(header('Email')).toHaveAttribute('aria-sort', 'none');
+        await expect(header('Tags')).not.toHaveAttribute('aria-sort', /.+/);                   // not sortable
+    });
+
     test('quick actions on a row, owner/tag columns, "Clear filters" and the empty state', async ({ page }) => {
         await page.goto('/contacts');
         await search(page).fill(state.co);
         const row = page.locator('tbody tr').first();
         await expect(row).toContainText(state.adminName);                                         // owner column
-        await expect(row.getByRole('link', { name: /^Email / })).toHaveAttribute('href', /^mailto:/);
         await expect(row.getByRole('link', { name: /^Call / })).toHaveAttribute('href', /^tel:/);
+        // e-mail, text and edit open right here, without leaving the list
+        await row.getByRole('button', { name: /^Email / }).click();
+        await expect(modal(page).locator('h2')).toContainText('Email ');
+        await modal(page).getByRole('button', { name: 'Cancel' }).click();
+        await row.getByRole('button', { name: /^Text / }).click();
+        await expect(modal(page).locator('h2')).toContainText('Text ');
+        await modal(page).getByRole('button', { name: 'Cancel' }).click();
+        await row.getByRole('button', { name: /^Edit / }).click();
+        await expect(modal(page).locator('h2')).toContainText('Edit contact');
+        await expect(field(modal(page), 'First name')).not.toHaveValue('');
+        await modal(page).getByRole('button', { name: 'Cancel' }).click();
+        await expect(modal(page)).toHaveCount(0);
 
         await page.getByPlaceholder('Tag').fill('no-such-tag-xyz');
         await expect(page.getByText('No contacts found.')).toBeVisible();
@@ -290,13 +320,13 @@ test.describe('app shell: command palette, collapsible sidebar, admin navigation
         await expect(nav.getByRole('link', { name: 'Webhooks' })).not.toHaveAttribute('aria-current', 'page');
         for (const g of ['General', 'Data', 'Automation & communication', 'Planning']) await expect(nav.getByText(g, { exact: true })).toBeVisible();
 
-        await nav.getByLabel('Find an admin section').fill('price');
-        await expect(nav.getByRole('link')).toHaveCount(1);
+        await nav.getByLabel('Filter the menu').fill('price');
+        await expect(nav.getByRole('link', { name: 'Webhooks' })).toHaveCount(0);
         await nav.getByRole('link', { name: 'Price list generator' }).click();
         await expect(page).toHaveURL(/\/admin\/price-lists$/);
         await expect(page.getByRole('navigation', { name: 'Admin sections' }).getByRole('link', { name: 'Price list generator' })).toHaveAttribute('aria-current', 'page');
 
-        await page.getByRole('navigation', { name: 'Admin sections' }).getByLabel('Find an admin section').fill('zzz');
+        await page.getByRole('navigation', { name: 'Admin sections' }).getByLabel('Filter the menu').fill('zzz');
         await expect(page.getByRole('navigation', { name: 'Admin sections' })).toContainText('No match');
     });
 
@@ -310,7 +340,7 @@ test.describe('app shell: command palette, collapsible sidebar, admin navigation
         await expect(page.getByText(/No settings match/)).toBeVisible();
         await page.getByLabel('Find a setting').fill('');
         await expect(page.locator('main a.card')).toHaveCount(24);
-        await expect(page.locator('main nav')).toHaveCount(0);                                     // the hub has no breadcrumb above its own title
+        await expect(page.getByTestId('admin-content').locator('nav')).toHaveCount(0);                                   // the hub has no breadcrumb above its own title
     });
 
     test('contact page shows a breadcrumb back to the list', async ({ page }) => {
@@ -321,4 +351,12 @@ test.describe('app shell: command palette, collapsible sidebar, admin navigation
         await crumb.getByRole('link', { name: 'Contacts' }).click();
         await expect(page).toHaveURL(/\/contacts$/);
     });
+});
+
+test('the header quick-add is not repeated on the contact list, which has its own New contact button', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByTestId('header-add-contact')).toBeVisible();
+    await page.goto('/contacts');
+    await expect(page.getByTestId('header-add-contact')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'New contact' }).first()).toBeVisible();
 });

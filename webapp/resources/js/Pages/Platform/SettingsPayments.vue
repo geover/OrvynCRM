@@ -63,7 +63,7 @@ const STATUS = { trialing: 'trialing', active: 'active', past_due: 'payment late
 
             <section class="card space-y-3 p-5" aria-labelledby="st-hook">
                 <h2 id="st-hook" class="text-sm font-semibold">Webhook</h2>
-                <p class="text-xs text-slate-500">In Stripe (Developers, Webhooks) add an endpoint with this address and paste its signing secret above. Choose the events <code>checkout.session.completed</code>, <code>customer.subscription.created</code>, <code>customer.subscription.updated</code>, <code>customer.subscription.deleted</code> and <code>invoice.payment_failed</code>. Stripe must be able to reach the address, so it has to be public.</p>
+                <p class="text-xs text-slate-500">In Stripe (Developers, Webhooks) add an endpoint with this address and paste its signing secret above. Choose the events <code>checkout.session.completed</code>, <code>customer.subscription.created</code>, <code>customer.subscription.updated</code>, <code>customer.subscription.deleted</code>, <code>invoice.paid</code> and <code>invoice.payment_failed</code> (the last two feed the payment history on Account standing). Stripe must be able to reach the address, so it has to be public.</p>
                 <div class="flex gap-2"><input :value="settings.webhook_url" readonly class="input font-mono text-xs" data-testid="stripe-webhook-url" @focus="$event.target.select()" /><button type="button" class="btn-outline shrink-0" @click="copy">Copy</button></div>
                 <p class="text-xs text-slate-400">Status: <strong>{{ settings.webhook_set ? 'signing secret saved' : 'no signing secret yet: payments reported by Stripe are refused' }}</strong></p>
             </section>

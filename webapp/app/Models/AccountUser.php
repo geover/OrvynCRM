@@ -19,13 +19,13 @@ class AccountUser extends Authenticatable
 
     protected $fillable = ['name', 'email', 'password', 'is_platform_admin', 'status', 'notify_requests', 'notify_messages', 'notify_automation_failures', 'notify_inactive_companies', 'notify_email'];
 
-    protected $hidden = ['password'];
+    protected $hidden = ['password', 'two_factor_secret', 'two_factor_recovery_codes'];
 
     protected $attributes = ['is_platform_admin' => false, 'status' => 'active', 'notify_requests' => true, 'notify_messages' => true];
 
     protected function casts(): array
     {
-        return ['password' => 'hashed', 'email_verified_at' => 'datetime', 'is_platform_admin' => 'boolean', 'notify_requests' => 'boolean', 'notify_messages' => 'boolean', 'notify_automation_failures' => 'boolean', 'notify_inactive_companies' => 'boolean'];
+        return ['password' => 'hashed', 'two_factor_secret' => 'encrypted', 'two_factor_confirmed_at' => 'datetime', 'email_verified_at' => 'datetime', 'is_platform_admin' => 'boolean', 'notify_requests' => 'boolean', 'notify_messages' => 'boolean', 'notify_automation_failures' => 'boolean', 'notify_inactive_companies' => 'boolean'];
     }
 
     public function tenants(): BelongsToMany

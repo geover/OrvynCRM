@@ -13,6 +13,7 @@ import PageHeader from '@/Components/PageHeader.vue';
 import SeatMeter from '@/Components/SeatMeter.vue';
 import StatTile from '@/Components/StatTile.vue';
 import { mb, num } from '@/lib/format';
+import { fmtMoney, minorToMajor } from '@/lib/money';
 import { confirmDialog, fmtDate, fmtRelative, toast } from '@/lib/ui';
 import { saved } from '@/lib/visit';
 
@@ -31,12 +32,22 @@ async function subscriptionAction(action, title, message, confirmLabel) {
 }
 
 const props = defineProps({
-    company: Object, plan: Object, usage_history: { type: Array, default: () => [] }, users: Number, collected_at: String, counts: Object, automations: Object, activities_total: Number, db_mb: Number,
+    company: Object, standing: Object, manual_invoices: { type: Array, default: () => [] }, invoices: { type: Array, default: () => [] }, plan: Object, usage_history: { type: Array, default: () => [] }, users: Number, collected_at: String, counts: Object, automations: Object, activities_total: Number, db_mb: Number,
     breakdown: Array, labels: Array, series: Object, week: Object, services: Object, limits: Object,
 });
 
 const INDIGO = '#6366f1', GREEN = '#10b981', AMBER = '#f59e0b', CYAN = '#22d3ee';
 
+// The invoices the platform issues itself (a company it does not bill through Stripe): add one, mark it paid, remove it
+const invoicing = ref(false);
+const today = () => new Date().toISOString().slice(0, 10);
+const inDays = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
+const invoiceForm = useForm({ number: '', amount: '', issued_on: today(), due_on: inDays(14), note: '' });
+const addInvoice = () => { invoiceForm.reset(); invoiceForm.issued_on = today(); invoiceForm.due_on = inDays(14); invoiceForm.clearErrors(); invoicing.value = true; };
+const saveInvoice = () => invoiceForm.post(`/platform/companies/${props.company.id}/invoices`, { preserveScroll: true, onSuccess: () => { invoicing.value = false; toast(page.props.flash.success ?? 'Added', 'success'); } });
+const markPaid = async (i) => { if (await confirmDialog({ title: 'Mark this invoice as paid?', message: `${i.number ?? 'The invoice'} (${fmtMoney(minorToMajor(i.amount, i.currency), i.currency.toUpperCase())}) is recorded as paid today.`, confirmLabel: 'Mark as paid' })) router.patch(`/platform/companies/${props.company.id}/invoices/${i.id}/paid`, {}, { preserveScroll: true, onSuccess: () => toast(page.props.flash.success ?? 'Done', 'success') }); };
+const removeInvoice = async (i) => { if (await confirmDialog({ title: 'Remove this invoice?', message: 'It is removed from the list and from what the company owes. This does not change anything you sent it.', confirmLabel: 'Remove', danger: true })) router.delete(`/platform/companies/${props.company.id}/invoices/${i.id}`, { preserveScroll: true, onSuccess: () => toast(page.props.flash.success ?? 'Removed', 'success') }); };
+const STATE = { paid: ['Paid', '!bg-emerald-50 !text-emerald-700'], overdue: ['Overdue', '!bg-red-50 !text-red-700'], sent: ['Waiting', '!bg-sky-50 !text-sky-700'] };
 const collect = () => router.post(`/platform/companies/${props.company.id}/collect`, {}, saved('Collecting…'));
 const open = () => router.post(`/platform/companies/${props.company.id}/open`);
 
@@ -77,6 +88,66 @@ const cards = computed(() => [
         <button class="btn-outline" data-testid="collect-company" :disabled="company.status !== 'active'" @click="collect"><RefreshCw class="size-4" /> Refresh numbers</button>
     </PageHeader>
     <p class="-mt-3 mb-5 text-xs text-slate-400">{{ collected_at ? `Counted ${fmtRelative(collected_at)}` : 'Not counted yet: use "Refresh numbers"' }}. Counts update every hour. Database {{ mb(db_mb) }}.</p>
+
+    <Modal v-if="invoicing" title="Add an invoice" @close="invoicing = false">
+        <form id="invoice-form" class="space-y-3" @submit.prevent="saveInvoice">
+            <div class="grid gap-3 sm:grid-cols-2">
+                <div><label class="label" for="inv-number">Invoice number <span class="normal-case text-slate-400">(optional)</span></label><input id="inv-number" v-model="invoiceForm.number" class="input" maxlength="60" data-testid="invoice-number" /></div>
+                <div><label class="label" for="inv-amount">Amount ({{ standing.money.currency }})</label><input id="inv-amount" v-model="invoiceForm.amount" type="number" step="0.01" min="0.01" class="input" required data-testid="invoice-amount" /><p v-if="invoiceForm.errors.amount" class="mt-1 text-xs text-red-600">{{ invoiceForm.errors.amount }}</p></div>
+                <div><label class="label" for="inv-issued">Invoice date</label><input id="inv-issued" v-model="invoiceForm.issued_on" type="date" class="input" required data-testid="invoice-issued" /></div>
+                <div><label class="label" for="inv-due">Due date</label><input id="inv-due" v-model="invoiceForm.due_on" type="date" class="input" required data-testid="invoice-due" /><p v-if="invoiceForm.errors.due_on" class="mt-1 text-xs text-red-600">{{ invoiceForm.errors.due_on }}</p></div>
+            </div>
+            <div><label class="label" for="inv-note">Note <span class="normal-case text-slate-400">(optional, for you)</span></label><input id="inv-note" v-model="invoiceForm.note" class="input" maxlength="300" /></div>
+            <p class="text-xs text-slate-500">This only records the invoice so it can be tracked: it does not send anything to the company. When the due date passes without it being marked paid, the company shows as <em>Invoice overdue</em> and is reminded after 3 and 7 days.</p>
+        </form>
+        <template #footer><button class="btn-ghost" @click="invoicing = false">Cancel</button><button class="btn-primary" form="invoice-form" :disabled="invoiceForm.processing" data-testid="save-invoice">Add invoice</button></template>
+    </Modal>
+
+    <section class="card mb-5 p-5" aria-labelledby="co-standing" data-testid="company-standing">
+        <div class="flex flex-wrap items-center gap-3">
+            <h2 id="co-standing" class="text-sm font-semibold">Account standing</h2>
+            <span class="badge" :class="{ red: '!bg-red-50 !text-red-700', amber: '!bg-amber-50 !text-amber-700', emerald: '!bg-emerald-50 !text-emerald-700', sky: '!bg-sky-50 !text-sky-700', violet: '!bg-violet-50 !text-violet-700', slate: '!bg-slate-100 !text-slate-600' }[standing.tone]" data-testid="company-standing-badge">{{ standing.label }}</span>
+            <span v-if="standing.failing" class="text-xs text-red-700">{{ fmtMoney(standing.failing.amount / 100, standing.failing.currency.toUpperCase()) }} not collected, {{ standing.failing.attempts }} {{ standing.failing.attempts === 1 ? 'attempt' : 'attempts' }}<template v-if="standing.failing.next_attempt_at">, next try {{ fmtDate(standing.failing.next_attempt_at) }}</template></span>
+            <span v-else-if="standing.renews_at" class="text-xs text-slate-500">Renews {{ fmtDate(standing.renews_at) }}<template v-if="standing.card"> · {{ standing.card.brand }} ••••{{ standing.card.last4 }}</template></span>
+            <span v-if="standing.last_reminder" class="text-xs text-slate-400">Last reminded {{ fmtRelative(standing.last_reminder.at) }}</span>
+            <button v-if="standing.can_remind" type="button" class="btn-outline ml-auto !py-1 text-xs" data-testid="company-remind" @click="router.post(`/platform/standing/${company.id}/remind`, {}, { preserveScroll: true, onSuccess: () => toast(page.props.flash.success ?? 'Sent', 'success') })">Remind</button>
+            <Link href="/platform/standing" class="text-xs text-slate-500 hover:text-brand-700 hover:underline" :class="!standing.can_remind && 'ml-auto'">All companies</Link>
+        </div>
+        <div v-if="invoices.length" class="mt-4 overflow-x-auto" data-testid="company-invoices">
+            <table class="w-full text-sm" aria-label="Payment history">
+                <thead class="text-left text-xs uppercase tracking-wide text-slate-500"><tr><th class="py-1.5 pr-3 font-medium">Invoice</th><th class="py-1.5 pr-3 font-medium">Date</th><th class="py-1.5 pr-3 font-medium">Amount</th><th class="py-1.5 pr-3 font-medium">Result</th><th class="py-1.5 font-medium"><span class="sr-only">Link</span></th></tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                    <tr v-for="i in invoices" :key="i.id">
+                        <td class="py-1.5 pr-3">{{ i.number ?? `#${i.id}` }}</td>
+                        <td class="py-1.5 pr-3 text-slate-600">{{ fmtDate(i.issued_at) }}</td>
+                        <td class="py-1.5 pr-3 tabular-nums">{{ fmtMoney(i.amount / 100, i.currency.toUpperCase()) }}</td>
+                        <td class="py-1.5 pr-3"><span class="badge" :class="i.status === 'paid' ? '!bg-emerald-50 !text-emerald-700' : '!bg-red-50 !text-red-700'">{{ i.status === 'paid' ? `Paid ${fmtDate(i.paid_at)}` : `Failed${i.attempts ? `, ${i.attempts} ${i.attempts === 1 ? 'attempt' : 'attempts'}` : ''}` }}</span></td>
+                        <td class="py-1.5 text-right"><a v-if="i.url" :href="i.url" target="_blank" rel="noopener noreferrer" class="text-xs text-brand-700 hover:underline">Open</a></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <p v-else class="mt-3 text-xs text-slate-400">No invoices recorded yet. They appear here as Stripe reports them (the webhook must send the invoice events).</p>
+        <div class="mt-5 border-t border-slate-100 pt-4" data-testid="manual-invoices">
+            <div class="flex flex-wrap items-center gap-3"><h3 class="text-sm font-semibold">Invoices you issue</h3><span class="text-xs text-slate-400">For a company you bill yourself, outside Stripe. Overdue ones show up in Account standing and are followed up.</span><button type="button" class="btn-outline ml-auto !py-1 text-xs" data-testid="add-invoice" @click="addInvoice">Add invoice</button></div>
+            <div v-if="manual_invoices.length" class="mt-3 overflow-x-auto">
+                <table class="w-full text-sm" aria-label="Invoices you issued">
+                    <thead class="text-left text-xs uppercase tracking-wide text-slate-500"><tr><th class="py-1.5 pr-3 font-medium">Invoice</th><th class="py-1.5 pr-3 font-medium">Amount</th><th class="py-1.5 pr-3 font-medium">Issued</th><th class="py-1.5 pr-3 font-medium">Due</th><th class="py-1.5 pr-3 font-medium">Status</th><th class="py-1.5 font-medium"><span class="sr-only">Actions</span></th></tr></thead>
+                    <tbody class="divide-y divide-slate-100">
+                        <tr v-for="i in manual_invoices" :key="i.id" :data-invoice-state="i.state">
+                            <td class="py-1.5 pr-3">{{ i.number ?? `#${i.id}` }}<span v-if="i.note" class="block text-xs text-slate-400">{{ i.note }}</span></td>
+                            <td class="py-1.5 pr-3 tabular-nums">{{ fmtMoney(minorToMajor(i.amount, i.currency), i.currency.toUpperCase()) }}</td>
+                            <td class="py-1.5 pr-3 text-slate-600">{{ fmtDate(i.issued_on) }}</td>
+                            <td class="py-1.5 pr-3 text-slate-600">{{ fmtDate(i.due_on) }}</td>
+                            <td class="py-1.5 pr-3"><span class="badge" :class="STATE[i.state][1]">{{ STATE[i.state][0] }}<template v-if="i.paid_on"> {{ fmtDate(i.paid_on) }}</template></span></td>
+                            <td class="whitespace-nowrap py-1.5 text-right"><button v-if="i.state !== 'paid'" type="button" class="btn-ghost !px-2 !py-1 text-xs" data-testid="mark-paid" @click="markPaid(i)">Mark paid</button><button type="button" class="btn-ghost !px-2 !py-1 text-xs text-red-600" @click="removeInvoice(i)">Remove</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p v-else class="mt-2 text-xs text-slate-400">Nothing issued yet.</p>
+        </div>
+    </section>
 
     <section class="card mb-5 p-5" aria-labelledby="co-plan" data-testid="company-plan">
         <div class="mb-3 flex flex-wrap items-center gap-2">

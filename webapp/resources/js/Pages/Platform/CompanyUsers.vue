@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { ArrowLeft, Plus } from 'lucide-vue-next';
+import { ArrowLeft, Plus, ShieldOff } from 'lucide-vue-next';
 import Modal from '@/Components/Modal.vue';
 import PasswordField from '@/Components/PasswordField.vue';
 import PageHeader from '@/Components/PageHeader.vue';
@@ -21,6 +21,7 @@ function save() {
         onSuccess: () => { adding.value = false; form.reset(); toast(page.props.flash.success ?? 'Added'); },
     });
 }
+const resetTwoFactor = (u) => router.post(`/platform/companies/${props.company.id}/users/${u.id}/reset-two-factor`, {}, { preserveScroll: true, onSuccess: () => toast('Two-step verification reset') });
 const raise = () => router.visit('/platform');
 </script>
 
@@ -39,15 +40,16 @@ const raise = () => router.visit('/platform');
 
     <div class="card table-scroll">
         <table class="w-full text-sm" aria-label="People of the company">
-            <thead class="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Name</th><th class="px-5 py-3">Role</th><th class="px-5 py-3">Status</th><th class="px-5 py-3">Added</th></tr></thead>
+            <thead class="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Name</th><th class="px-5 py-3">Role</th><th class="px-5 py-3">Status</th><th class="px-5 py-3">Added</th><th /></tr></thead>
             <tbody class="divide-y divide-slate-100">
                 <tr v-for="u in users" :key="u.id" :data-user="u.email">
-                    <td class="px-5 py-3"><div class="font-medium">{{ u.name }}</div><div class="text-xs text-slate-400">{{ u.email }}</div></td>
+                    <td class="px-5 py-3"><div class="font-medium">{{ u.name }} <span v-if="u.two_factor" class="badge ml-1 !bg-emerald-50 !text-emerald-700">2-step</span></div><div class="text-xs text-slate-400">{{ u.email }}</div></td>
                     <td class="px-5 py-3 capitalize">{{ u.role }}</td>
                     <td class="px-5 py-3"><span class="badge" :class="u.status === 'active' ? '!bg-emerald-50 !text-emerald-700' : '!bg-red-50 !text-red-600'">{{ u.status }}</span></td>
                     <td class="px-5 py-3 text-slate-400">{{ fmtDate(u.created_at) }}</td>
+                    <td class="px-5 py-3 text-right"><button v-if="u.two_factor" class="btn-ghost !py-1.5" data-testid="company-user-reset-two-factor" @click="resetTwoFactor(u)"><ShieldOff class="size-4" /> Reset 2-step</button></td>
                 </tr>
-                <tr v-if="!users.length"><td colspan="4" class="px-5 py-10 text-center text-slate-400">No people yet.</td></tr>
+                <tr v-if="!users.length"><td colspan="5" class="px-5 py-10 text-center text-slate-400">No people yet.</td></tr>
             </tbody>
         </table>
     </div>

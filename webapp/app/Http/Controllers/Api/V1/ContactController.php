@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Spatie\QueryBuilder\AllowedFilter;
+use Spatie\QueryBuilder\AllowedSort;
 use Spatie\QueryBuilder\QueryBuilder;
 
 class ContactController extends Controller
@@ -24,7 +25,8 @@ class ContactController extends Controller
     {
         abort_unless($request->user()->hasPermission('contacts.view'), 403);
 
-        $contacts = QueryBuilder::for(Contact::query()->with('owner:id,name', 'tags:id,name'))
+        $perPage = min((int) $request->integer('per_page', 25), 100);
+        $query = QueryBuilder::for(Contact::query()->with('owner:id,name', 'tags:id,name'))
             ->allowedFilters(
                 AllowedFilter::callback('q', fn ($q, $v) => $q->search($v)),
                 AllowedFilter::callback('tag', fn ($q, $v) => $q->withTag($v)),
@@ -32,11 +34,15 @@ class ContactController extends Controller
                 AllowedFilter::partial('company_name'),
                 AllowedFilter::callback('created_after', fn ($q, $v) => $q->where('created_at', '>=', $v)),
             )
-            ->allowedSorts('first_name', 'last_name', 'email', 'company_name', 'created_at', 'updated_at')
+            ->allowedSorts(
+                'first_name', 'last_name', 'email', 'phone', 'company_name', 'created_at', 'updated_at',
+                AllowedSort::callback('full_name', fn ($q, bool $desc) => $q->orderBy('first_name', $desc ? 'desc' : 'asc')->orderBy('last_name', $desc ? 'desc' : 'asc')),
+                AllowedSort::callback('owner', fn ($q, bool $desc) => $q->orderBy(User::select('name')->whereColumn('users.id', 'contacts.owner_id')->limit(1), $desc ? 'desc' : 'asc')),
+            )
             ->defaultSort('-created_at')
-            ->orderByDesc('contacts.id')                                           // tie-breaker: rows created in the same second must not be skipped between pages
-            ->cursorPaginate(min((int) $request->integer('per_page', 25), 100))   // cursor pagination: O(1) deep pages
-            ->withQueryString();
+            ->orderByDesc('contacts.id');                                           // tie-breaker: rows created in the same second must not be skipped between pages
+        // `?page=N` gives numbered pages with totals (the contact table); without it, cursor pagination: O(1) deep pages for API clients and imports
+        $contacts = $request->has('page') ? $query->paginate($perPage)->withQueryString() : $query->cursorPaginate($perPage)->withQueryString();
 
         return ContactResource::collection($contacts);
     }

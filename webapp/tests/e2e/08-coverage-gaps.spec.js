@@ -108,7 +108,7 @@ test.describe('admin hub', () => {
 });
 
 test.describe('contacts list', () => {
-    test('sort, owner filter, tag filter, search, "Load more" (cursor pages) and empty state', async ({ page }) => {
+    test('sort, owner filter, tag filter, search, numbered pages and empty state', async ({ page }) => {
         const co = uniq('Listco');
         const mk = (i, extra = {}) => api(page, 'POST', '/contacts', { first_name: 'List', last_name: `Row${String(i).padStart(2, '0')}`, email: `${co}-${i}@example.com`, company_name: co, ...extra });
         for (let i = 0; i < 27; i++) expect((await mk(i, i < 2 ? { owner_id: state.adminId, tags: [`${co}-t`] } : {})).status).toBe(201);
@@ -118,10 +118,19 @@ test.describe('contacts list', () => {
         const searched = page.waitForResponse((r) => r.url().includes('/contacts') && r.url().includes(encodeURIComponent(co)));
         await page.getByPlaceholder('Search name, email, company, phone…').fill(co);
         await searched;                                                                        // the (debounced) search has been applied
-        await expect(rows).toHaveCount(25);                                                   // first cursor page
-        await page.getByRole('button', { name: 'Load more' }).click();
+        await expect(rows).toHaveCount(25);                                                   // first page
+        await expect(page.getByTestId('pagination-range')).toHaveText('1–25 of 27');
+        await page.getByRole('button', { name: 'Next page' }).click();
+        await expect(rows).toHaveCount(2);
+        await expect(page.getByTestId('pagination-range')).toHaveText('26–27 of 27');
+        await expect(page.getByRole('button', { name: 'Next page' })).toBeDisabled();
+        await page.getByRole('button', { name: 'Page 1' }).click();
+        await expect(rows).toHaveCount(25);
+        await page.getByTestId('pagination-size').selectOption('50');                        // rows per page
         await expect(rows).toHaveCount(27);
-        await expect(page.getByRole('button', { name: 'Load more' })).toHaveCount(0);
+        await expect(page.getByRole('button', { name: 'Next page' })).toHaveCount(0);         // one page: no page buttons
+        await page.getByTestId('pagination-size').selectOption('25');
+        await expect(rows).toHaveCount(25);
 
         await page.locator('select').nth(1).selectOption('last_name');                         // sort by last name
         await expect(rows.first()).toContainText('Row00');

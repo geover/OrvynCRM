@@ -2,6 +2,7 @@
 import PageHero from '../components/PageHero.astro';
 import Base from '../layouts/Base.astro';
 import CtaBand from '../components/CtaBand.astro';
+import TrialNote from '../components/TrialNote.astro';
 import Icon from '../components/Icon.astro';
 import { everyPlan, faq, fmtNumber, fmtUsers, planLimits, plans, site } from '../data/site';
 
@@ -20,15 +21,18 @@ const icons = {
 };
 ---
 <Base title="Pricing" description="Five plans from a small team to unlimited users, a free trial, and clear limits you can raise when you need more.">
-    <PageHero eyebrow="Pricing" title="Start free." highlight="Grow when you are ready." lead="Every company starts with a free trial and has clear limits on users, texts and phone numbers. You can see how much you use, and move up a plan or ask for more at any time.">
+    <PageHero eyebrow="Pricing" title="Start free." highlight="Grow when you are ready." lead="Every company starts with a free trial, no credit card needed, and has clear limits on users, texts and phone numbers. You can see how much you use, and move up a plan or ask for more at any time.">
         <a href={site.signupUrl} class="btn-primary">Start your free trial</a>
         <a href="/demo" class="btn-outline">Request a demo</a>
     </PageHero>
 
-    <section class="container-page -mt-6    </section>
+    <!-- as wide as the header and the plans below -->
+    <section class="container-page -mt-6 relative z-10" aria-label="About the free trial">
+        <TrialNote wide />
+    </section>
 
-    <section class="container-page -mt-6 pb-4" aria-labelledby="finder-title">
-        <div class="mx-auto max-w-4xl rounded-3xl border border-stone-200 bg-white p-6 shadow-lg shadow-stone-900/5 sm:p-8">
+    <section class="container-page mt-10 pb-4" aria-labelledby="finder-title">
+        <div class="rounded-3xl border border-stone-200 bg-white p-6 shadow-lg shadow-stone-900/5 sm:p-8">
             <div class="flex flex-wrap items-end justify-between gap-2">
                 <div>
                     <h2 id="finder-title" class="text-lg font-semibold text-ink">Find your plan</h2>
@@ -113,10 +117,10 @@ const icons = {
     </section>
 
     <section class="container-page py-16" aria-labelledby="trial-title">
-        <div class="mx-auto grid max-w-4xl gap-5 sm:grid-cols-3">
+        <div class="grid gap-5 sm:grid-cols-3">
             <div class="rounded-2xl border border-stone-200 bg-white p-6">
                 <h3 id="trial-title" class="font-semibold text-ink">A free trial</h3>
-                <p class="mt-2 text-sm leading-relaxed text-stone-600">Create a workspace and start on the first plan. You are reminded 14, 7 and 1 day before the trial ends, and nothing is deleted if it does.</p>
+                <p class="mt-2 text-sm leading-relaxed text-stone-600">Create a workspace and start on the first plan. <strong class="font-semibold text-ink">No credit card is needed.</strong> You only add billing details when the trial ends and you want to carry on. You are reminded 14, 7 and 1 day before the trial ends, and nothing is deleted if it does.</p>
             </div>
             <div class="rounded-2xl border border-stone-200 bg-white p-6">
                 <h3 class="font-semibold text-ink">Pay your way</h3>
@@ -131,7 +135,7 @@ const icons = {
 
     <section class="container-page pb-16" aria-labelledby="compare-title">
         <h2 id="compare-title" class="text-center text-2xl font-semibold">Compare the plans</h2>
-        <div class="mx-auto mt-8 max-w-5xl overflow-x-auto rounded-2xl border border-stone-200 bg-white shadow-sm" role="region" tabindex="0" aria-label="Comparison of the plans">
+        <div class="mt-8 overflow-x-auto rounded-2xl border border-stone-200 bg-white shadow-sm" role="region" tabindex="0" aria-label="Comparison of the plans">
             <table class="w-full min-w-[40rem] text-left text-sm">
                 <thead><tr class="border-b border-stone-200 bg-stone-50"><th scope="col" class="px-5 py-4"><span class="sr-only">Feature</span></th>{planLimits.columns.map((c) => <th scope="col" class="px-4 py-4 font-semibold text-stone-700">{c}</th>)}</tr></thead>
                 <tbody class="divide-y divide-stone-100">

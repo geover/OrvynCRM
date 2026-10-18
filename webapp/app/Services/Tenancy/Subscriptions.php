@@ -4,6 +4,7 @@ namespace App\Services\Tenancy;
 
 use App\Integrations\Stripe\StripeClient;
 use App\Models\CompanyBilling;
+use App\Models\CompanyInvoice;
 use App\Models\CompanySubscription;
 use App\Models\SubscriptionRequest;
 use App\Models\Tenant;
@@ -34,6 +35,20 @@ class Subscriptions
     public function available(): bool
     {
         return $this->stripe->configured();
+    }
+
+    /** Is the company paying through a running Stripe subscription that a tier change would have to follow? */
+    public function isRunning(Tenant $tenant): bool
+    {
+        $sub = $this->forTenant($tenant);
+
+        return $sub !== null && $sub->isGood() && $sub->stripe_subscription_id && $this->available();
+    }
+
+    /** The platform put the company on another tier without moving its Stripe subscription: Stripe events must not undo it. */
+    public function keepTierDespiteStripe(Tenant $tenant, bool $keep = true): void
+    {
+        $this->forTenant($tenant)?->update(['tier_override' => $keep]);
     }
 
     public function forTenant(Tenant $tenant): ?CompanySubscription
@@ -297,7 +312,7 @@ class Subscriptions
      * @throws ValidationException
      * @throws RuntimeException
      */
-    public function changeTier(Tenant $tenant, int $tier): bool
+    public function changeTier(Tenant $tenant, int $tier, string $proration = 'create_prorations'): bool
     {
         $sub = $this->forTenant($tenant);
         if (! $sub || ! $sub->isGood() || ! $sub->stripe_subscription_id || ! $this->available()) {
@@ -310,9 +325,9 @@ class Subscriptions
 
         $item = $this->stripe->get("subscriptions/{$sub->stripe_subscription_id}")['items']['data'][0]['id'] ?? null;
         $this->stripe->post("subscriptions/{$sub->stripe_subscription_id}", [
-            'items' => [['id' => $item, 'price' => $priceId]], 'proration_behavior' => 'create_prorations', 'metadata' => ['tier' => $tier],
+            'items' => [['id' => $item, 'price' => $priceId]], 'proration_behavior' => $proration, 'metadata' => ['tier' => $tier],
         ]);
-        $sub->update(['tier' => $tier, 'stripe_price_id' => $priceId]);
+        $sub->update(['tier' => $tier, 'stripe_price_id' => $priceId, 'tier_override' => false]);
 
         return true;
     }
@@ -454,7 +469,8 @@ class Subscriptions
         match ($event['type'] ?? '') {
             'checkout.session.completed' => $this->checkoutCompleted($object),
             'customer.subscription.created', 'customer.subscription.updated', 'customer.subscription.deleted' => $this->subscriptionChanged($object, ($event['type'] ?? '') === 'customer.subscription.deleted'),
-            'invoice.payment_failed' => $this->paymentFailed($object),
+            'invoice.paid' => $this->recordInvoice($object, true),
+            'invoice.payment_failed' => $this->failedPayment($object),
             default => null,
         };
     }
@@ -501,11 +517,48 @@ class Subscriptions
             return;
         }
 
+        // a platform override stays until Stripe's own tier changes (someone moved the subscription): then Stripe is the truth again
+        $kept = $before?->tier_override && (int) $before->tier === (int) $tier;
+        $kept || $row->update(['tier_override' => false]);
+
         // paying for a tier puts the company on it (its user limit follows the tier)
-        if ($row->isGood() && $tier && (int) $tenant->tier !== $tier && array_key_exists($tier, config('plans.tiers'))) {
+        if (! $kept && $row->isGood() && $tier && (int) $tenant->tier !== $tier && array_key_exists($tier, config('plans.tiers'))) {
             $this->plans->applyTier($tenant, $tier);
         }
         $this->refreshCard($row);
+    }
+
+    /** @param  array<string, mixed>  $invoice */
+    private function failedPayment(array $invoice): void
+    {
+        $this->recordInvoice($invoice, false);
+        $this->paymentFailed($invoice);
+    }
+
+    /**
+     * Keep the invoice and how paying it went: the company's payment history, and what the platform's Account standing page reads.
+     *
+     * @param  array<string, mixed>  $inv  a Stripe invoice
+     */
+    private function recordInvoice(array $inv, bool $paid): void
+    {
+        $row = CompanySubscription::where('stripe_customer_id', $inv['customer'] ?? '')->first();
+        if (! $row || empty($inv['id'])) {
+            return;
+        }
+        $at = fn ($t) => $t ? now()->setTimestamp((int) $t) : null;
+        $before = CompanyInvoice::where('stripe_invoice_id', $inv['id'])->first();
+
+        CompanyInvoice::updateOrCreate(['stripe_invoice_id' => $inv['id']], [
+            'tenant_id' => $row->tenant_id, 'number' => $inv['number'] ?? null,
+            'status' => $paid ? 'paid' : (($inv['status'] ?? 'open') === 'paid' ? 'paid' : 'failed'),
+            'amount_due' => (int) ($inv['amount_due'] ?? 0), 'amount_paid' => (int) ($inv['amount_paid'] ?? 0), 'currency' => strtolower((string) ($inv['currency'] ?? 'usd')),
+            'attempt_count' => (int) ($inv['attempt_count'] ?? 0), 'next_attempt_at' => $paid ? null : $at($inv['next_payment_attempt'] ?? null),
+            'hosted_url' => $inv['hosted_invoice_url'] ?? null,
+            'period_start' => $at($inv['period_start'] ?? null), 'period_end' => $at($inv['period_end'] ?? null), 'issued_at' => $at($inv['created'] ?? null) ?? now(),
+            'paid_at' => $paid ? ($at($inv['status_transitions']['paid_at'] ?? null) ?? now()) : null,
+            'failed_at' => $before?->failed_at ?? ($paid ? null : now()),
+        ]);
     }
 
     /** @param  array<string, mixed>  $invoice */
