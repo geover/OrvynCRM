@@ -1,0 +1,27 @@
+---
+interface Props {
+    eyebrow?: string;
+    /** The first words of the heading. May be empty when the whole heading is the highlight. */
+    title?: string;
+    /** The closing words of the heading, drawn in the brand gradient. */
+    highlight?: string;
+    lead?: string;
+    /** The page name for the breadcrumb ("Home / Security"). Leave out on pages that need none. */
+    crumb?: string;
+    /** A small line under the lead, such as the dates on a legal page. */
+    meta?: string;
+}
+const { eyebrow, title, highlight, lead, crumb, meta } = Astro.props;
+---
+<section class="relative overflow-hidden bg-gradient-to-b from-[#f4efe3] via-[#f8f4ea] to-[#fbf9f5] py-14 sm:py-20">
+    <div class="pointer-events-none absolute -right-24 -top-24 size-80 rounded-full bg-gold-300/30 blur-3xl" aria-hidden="true"></div>
+    <div class="pointer-events-none absolute -left-24 top-24 size-72 rounded-full bg-brand-200/40 blur-3xl" aria-hidden="true"></div>
+    <div class="container-page relative max-w-3xl text-center">
+        {crumb && <nav aria-label="Breadcrumb" class="mb-4 text-xs text-stone-500"><a href="/" class="hover:text-brand-700">Home</a> <span aria-hidden="true">/</span> <span class="text-stone-700">{crumb}</span></nav>}
+        {eyebrow && <p class="eyebrow">{eyebrow}</p>}
+        <h1 class="mt-2 text-4xl font-semibold sm:text-5xl">{title}{title && highlight && " "}{highlight && <span class="text-gradient">{highlight}</span>}</h1>
+        {lead && <p class="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-stone-600">{lead}</p>}
+        {meta && <p class="mt-3 text-sm text-stone-500">{meta}</p>}
+        <div class="mt-7 flex flex-wrap justify-center gap-3 empty:hidden"><slot /></div>
+    </div>
+</section>

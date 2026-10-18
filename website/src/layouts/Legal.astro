@@ -1,5 +1,6 @@
 ---
 import Base from './Base.astro';
+import PageHero from '../components/PageHero.astro';
 import { legal, type Section } from '../data/legal';
 import { site } from '../data/site';
 
@@ -7,13 +8,7 @@ interface Props { title: string; description: string; intro: string; sections: S
 const { title, description, intro, sections, other } = Astro.props;
 ---
 <Base title={title} description={description}>
-    <header class="border-b border-stone-200 bg-stone-100/60">
-        <div class="container-page py-10 sm:py-14">
-            <nav aria-label="Breadcrumb" class="text-xs text-stone-500"><a href="/" class="hover:text-brand-700">Home</a> <span aria-hidden="true">/</span> <span class="text-stone-700">{title}</span></nav>
-            <h1 class="mt-4 text-3xl font-semibold sm:text-4xl">{title}</h1>
-            <p class="mt-3 text-sm text-stone-500">Effective {legal.effective} &middot; Last updated {legal.updated}</p>
-        </div>
-    </header>
+    <PageHero eyebrow="Legal" highlight={title} crumb={title} meta={`Effective ${legal.effective} \u00b7 Last updated ${legal.updated}`} />
 
     <div class="container-page grid gap-10 py-12 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-16 lg:py-16">
         <aside class="hidden lg:block">

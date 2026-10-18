@@ -9,6 +9,7 @@ import Team from '../components/Team.astro';
 import ProductTour from '../components/ProductTour.astro';
 import IntegrationsStrip from '../components/IntegrationsStrip.astro';
 import SecurityBand from '../components/SecurityBand.astro';
+import DocsBand from '../components/DocsBand.astro';
 import { Image } from 'astro:assets';
 import teamPhoto from '../assets/team-celebrating.jpg';
 import { faq, features, reasons, site, steps } from '../data/site';
@@ -21,7 +22,7 @@ import { faq, features, reasons, site, steps } from '../data/site';
             <div class="grid items-center gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-14">
                 <div class="text-center lg:text-left">
                     <p class="inline-flex items-center gap-2 rounded-full border border-gold-300 bg-gold-100/70 px-3 py-1 text-xs font-semibold text-gold-600">{site.tagline}</p>
-                    <h1 class="mt-6 text-4xl font-semibold leading-[1.08] sm:text-5xl lg:text-[3.4rem]">The CRM that adapts to <span class="bg-gradient-to-r from-brand-600 to-gold-500 bg-clip-text text-transparent">how you work</span></h1>
+                    <h1 class="mt-6 text-4xl font-semibold leading-[1.08] sm:text-5xl lg:text-[3.4rem]">The CRM that adapts to <span class="text-gradient">how you work</span></h1>
                     <p class="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-stone-600 lg:mx-0">Model your own records, automate the follow-ups, and reach people by e-mail and SMS, all in one place. Every company gets its own private space.</p>
                     <div class="mt-8 flex flex-wrap justify-center gap-3 lg:justify-start">
                         <a href="/demo" class="btn-primary !px-6 !py-3">Request a demo</a>
@@ -130,6 +131,8 @@ import { faq, features, reasons, site, steps } from '../data/site';
             </ol>
         </div>
     </section>
+
+    <DocsBand />
 
     <section class="reveal container-page pb-4">
         <div class="mx-auto max-w-3xl">

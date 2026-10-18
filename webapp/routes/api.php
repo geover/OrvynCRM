@@ -20,6 +20,7 @@ Route::prefix('v1')->group(function () {
     Route::post('forms/{uuid}/submit', [PublicFormController::class, 'submit'])->where('uuid', '[0-9a-fA-F\-]{36}')->middleware(['tenant.public:form', 'throttle:public-forms']);
     Route::post('hooks/sendgrid', [V1\InboundWebhookController::class, 'sendgrid'])->middleware(['tenant.public:webhook', 'throttle:600,1']);
     Route::post('hooks/sendgrid/platform', [V1\InboundWebhookController::class, 'sendgridPlatform'])->middleware('throttle:600,1');
+    Route::get('public/website', V1\PublicWebsiteController::class)->middleware('throttle:60,1');
     Route::post('hooks/stripe', [V1\StripeWebhookController::class, 'handle'])->middleware('throttle:600,1');
     Route::post('hooks/twilio', [V1\InboundWebhookController::class, 'twilio'])->middleware(['tenant.public:webhook', 'throttle:600,1']);
 

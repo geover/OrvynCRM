@@ -1,13 +1,13 @@
 <script setup>
 import { Head } from '@inertiajs/vue3';
-import { Activity, CircleDollarSign, CreditCard, PanelLeft, Layers, Mail, MessageSquareText, Palette, PhoneCall, Hourglass, Server, ShieldCheck, UserPlus } from 'lucide-vue-next';
+import { Activity, Globe, CircleDollarSign, CreditCard, PanelLeft, Layers, Mail, MessageSquareText, Palette, PhoneCall, Hourglass, Server, ShieldCheck, UserPlus } from 'lucide-vue-next';
 import SettingsCard from '@/Components/SettingsCard.vue';
 import SettingsFact from '@/Components/SettingsFact.vue';
 import SettingsShell from '@/Components/SettingsShell.vue';
 import { fmtMoney, periodLabel } from '@/lib/money';
 import { DARK_STYLES } from '@/lib/theme';
 
-defineProps({ notifications: Object, mail: Object, services: Object, pricing: Object, branding: Object, sms: Object, calls: Object, signup: Object, recaptcha: Object, inactivity: Object, plans: Object, payments: Object, platform_look: Object });
+defineProps({ notifications: Object, mail: Object, services: Object, pricing: Object, branding: Object, sms: Object, calls: Object, signup: Object, recaptcha: Object, website: Object, inactivity: Object, plans: Object, payments: Object, platform_look: Object });
 
 const price = (p, v) => (v === null ? 'not set' : `${fmtMoney(v, p.currency)} / ${periodLabel(p.period)}`);
 const THEME = { light: 'Always light', dark: 'Always dark', system: 'Follows the device' };
@@ -21,6 +21,10 @@ const builtInOrCustom = (custom) => (custom ? 'Custom' : 'Built-in');
             <SettingsCard href="/platform/signups" :icon="UserPlus" title="Sign-ups" group="Access" text="Let people create their own workspace: closed, open, or only after you approve each one." data-testid="overview-signups">
                 <SettingsFact label="Who can sign up"><span class="badge" :class="signup.mode === 'open' ? '!bg-emerald-50 !text-emerald-700' : signup.mode === 'approval' ? '!bg-amber-50 !text-amber-700' : ''">{{ { closed: 'Nobody', open: 'Anyone', approval: 'After approval' }[signup.mode] }}</span></SettingsFact>
                 <SettingsFact label="Waiting for approval"><span :class="signup.waiting ? 'text-amber-700' : ''">{{ signup.waiting }}</span></SettingsFact>
+            </SettingsCard>
+            <SettingsCard href="/platform/settings/website" :icon="Globe" title="Website" group="Appearance" text="What the public website says that is decided here: contact e-mail, business address, legal details and the demo form." data-testid="overview-website">
+                <SettingsFact label="Details set here">{{ website.set }} of 6</SettingsFact>
+                <SettingsFact label="Rebuild hook"><span class="badge" :class="website.hook ? '!bg-emerald-50 !text-emerald-700' : ''">{{ website.hook ? 'Saved' : 'Not set' }}</span></SettingsFact>
             </SettingsCard>
             <SettingsCard href="/platform/settings/bot-protection" :icon="ShieldCheck" title="Bot protection" group="Access" text="Google reCAPTCHA v3 on the sign-in and sign-up pages: an invisible check instead of a puzzle." data-testid="overview-recaptcha">
                 <SettingsFact label="Status"><span class="badge" :class="recaptcha.active ? '!bg-emerald-50 !text-emerald-700' : recaptcha.enabled ? '!bg-amber-50 !text-amber-700' : ''">{{ recaptcha.active ? 'On' : recaptcha.enabled ? 'Incomplete' : 'Off' }}</span></SettingsFact>

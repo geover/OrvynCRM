@@ -1,23 +1,21 @@
 ---
+import PageHero from '../components/PageHero.astro';
 import Base from '../layouts/Base.astro';
 import FeatureCard from '../components/FeatureCard.astro';
 import CtaBand from '../components/CtaBand.astro';
+import DocsBand from '../components/DocsBand.astro';
 import { features } from '../data/site';
 ---
 <Base title="Features" description="Contacts, your own data objects, automations, e-mail and SMS, forms, planning and administration: everything OrvynCRM does.">
-    <section class="bg-stone-50 py-16 sm:py-20">
-        <div class="container-page max-w-3xl text-center">
-            <p class="eyebrow">Features</p>
-            <h1 class="mt-2 text-4xl font-semibold sm:text-5xl">Everything your team needs, nothing it does not</h1>
-            <p class="mt-5 text-lg text-stone-600">One CRM for the people you deal with, the records that matter to your business, and the work in between.</p>
-        </div>
-    </section>
+    <PageHero eyebrow="Features" title="Everything your team needs," highlight="nothing it does not" lead="One CRM for the people you deal with, the records that matter to your business, and the work in between." />
 
     <section class="container-page py-16">
         <div class="grid gap-5 md:grid-cols-2">
             {features.map((f) => <FeatureCard feature={f} showPoints level="h2" />)}
         </div>
     </section>
+
+    <DocsBand />
 
     <CtaBand title="Want to see it working?" text="A short walkthrough is the quickest way to find out if OrvynCRM fits." />
 </Base>

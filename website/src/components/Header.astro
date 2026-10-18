@@ -7,14 +7,14 @@ const current = (href: string) => path === href || path.startsWith(`${href}/`);
 const inProduct = (i: (typeof nav)[number]) => !!i.children?.some((c) => current(c.href));
 ---
 <header class="sticky top-0 z-40 border-b border-stone-200/70 bg-white/85 backdrop-blur transition-shadow" data-header>
-    <div class="container-page flex h-16 items-center justify-between gap-6">
+    <div class="container-page flex h-16 items-center justify-between gap-4 lg:gap-6">
         <a href="/" class="flex items-center gap-2" aria-label={`${site.name} home`}><img src="/brand/orvyn-logo-blend.svg" alt={site.name} class="h-8 w-auto" width="128" height="32" /></a>
 
         <nav class="hidden items-center gap-1 md:flex" aria-label="Main">
             {nav.map((i) => i.children ? (
                 <div class="relative" data-dropdown>
                     <button type="button" aria-expanded="false" aria-haspopup="true" data-dropdown-button
-                        class:list={['flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition', inProduct(i) ? 'text-brand-700' : 'text-stone-600 hover:text-stone-900']}>
+                        class:list={['flex items-center gap-1 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition', inProduct(i) ? 'text-brand-700' : 'text-stone-600 hover:text-stone-900']}>
                         {i.label}<svg viewBox="0 0 20 20" class="size-4" aria-hidden="true" fill="currentColor"><path d="M5.5 7.5l4.5 4.5 4.5-4.5z" /></svg>
                     </button>
                     <div class="invisible absolute left-0 top-full z-50 w-[22rem] pt-2 opacity-0 transition data-[open=true]:visible data-[open=true]:opacity-100" data-dropdown-panel role="menu">
@@ -30,14 +30,14 @@ const inProduct = (i: (typeof nav)[number]) => !!i.children?.some((c) => current
                 </div>
             ) : (
                 <a href={i.href} aria-current={current(i.href) ? 'page' : undefined}
-                    class:list={['rounded-lg px-3 py-2 text-sm font-medium transition', current(i.href) ? 'text-brand-700' : 'text-stone-600 hover:text-stone-900']}>{i.label}</a>
+                    class:list={['whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition', current(i.href) ? 'text-brand-700' : 'text-stone-600 hover:text-stone-900']}>{i.label}</a>
             ))}
         </nav>
 
         <div class="hidden items-center gap-2 md:flex">
-            <a href={`${site.appUrl}/login`} class="btn text-stone-700 hover:bg-stone-100">Sign in</a>
-            <a href={site.signupUrl} class="btn-outline" data-testid="nav-signup">Create account</a>
-            <a href="/demo" class="btn-primary">Request a demo</a>
+            <a href={`${site.appUrl}/login`} class="btn whitespace-nowrap text-stone-700 hover:bg-stone-100">Sign in</a>
+            <a href={site.signupUrl} class="btn-outline hidden whitespace-nowrap lg:inline-flex" data-testid="nav-signup">Create account</a>
+            <a href="/demo" class="btn-primary whitespace-nowrap">Request a demo</a>
         </div>
 
         <button type="button" class="grid size-10 place-items-center rounded-lg text-stone-700 hover:bg-stone-100 md:hidden" aria-label="Menu" aria-expanded="false" aria-controls="mobile-menu" data-menu-button>

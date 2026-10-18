@@ -1,4 +1,5 @@
 ---
+import PageHero from '../components/PageHero.astro';
 import Base from '../layouts/Base.astro';
 import Icon from '../components/Icon.astro';
 import CtaBand from '../components/CtaBand.astro';
@@ -11,13 +12,7 @@ const steps = [
 ];
 ---
 <Base title="Integrations" description="OrvynCRM works with Keap, Twilio, SendGrid, any SMTP server, webhooks and CSV, so it fits the tools you already use.">
-    <header class="border-b border-stone-200 bg-stone-100/60">
-        <div class="container-page py-10 sm:py-14">
-            <nav aria-label="Breadcrumb" class="text-xs text-stone-500"><a href="/" class="hover:text-brand-700">Home</a> <span aria-hidden="true">/</span> <span class="text-stone-700">Integrations</span></nav>
-            <h1 class="mt-4 max-w-3xl text-3xl font-semibold sm:text-4xl">Fits the tools you already use</h1>
-            <p class="mt-4 max-w-2xl text-lg leading-relaxed text-stone-600">Bring your contacts in, send through the providers you trust, and connect anything else with a webhook.</p>
-        </div>
-    </header>
+    <PageHero eyebrow="Integrations" title="Fits the tools" highlight="you already use" lead="Bring your contacts in, send through the providers you trust, and connect anything else with a webhook." crumb="Integrations" />
 
     <section class="container-page py-16">
         <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

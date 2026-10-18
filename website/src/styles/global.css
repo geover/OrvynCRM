@@ -45,6 +45,7 @@
 @utility btn-light { @apply btn bg-white text-brand-700 shadow-sm hover:bg-brand-50; }
 @utility btn-outline { @apply btn border border-stone-300 bg-white text-stone-700 hover:bg-stone-50; }
 @utility btn-ghost-dark { @apply btn border border-white/25 text-white hover:bg-white/10; }
+@utility text-gradient { @apply bg-gradient-to-r from-brand-600 to-gold-600 bg-clip-text text-transparent; }
 @utility eyebrow { @apply text-xs font-semibold uppercase tracking-widest text-brand-600; }
 @utility container-page { @apply mx-auto w-full max-w-6xl px-5 sm:px-8; }
 @utility prose-lite { @apply space-y-4 leading-relaxed [&_h2]:mt-8 [&_h2]:text-xl [&_h2]:font-semibold [&_a]:text-brand-600 [&_a]:underline [&_ul]:list-disc [&_ul]:pl-5; }

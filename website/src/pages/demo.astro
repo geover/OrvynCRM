@@ -6,10 +6,13 @@ import { site } from '../data/site';
 const mail = `mailto:${site.contactEmail}?subject=${encodeURIComponent('OrvynCRM demo request')}`;
 ---
 <Base title="Request a demo" description="Tell us about your business and see how OrvynCRM would work for you.">
-    <section class="container-page grid gap-12 py-16 sm:py-20 lg:grid-cols-[1fr_1.1fr]">
+    <section class="relative overflow-hidden bg-gradient-to-b from-[#f4efe3] via-[#f8f4ea] to-[#fbf9f5]">
+    <div class="pointer-events-none absolute -right-24 -top-24 size-80 rounded-full bg-gold-300/30 blur-3xl" aria-hidden="true"></div>
+    <div class="pointer-events-none absolute -left-24 top-24 size-72 rounded-full bg-brand-200/40 blur-3xl" aria-hidden="true"></div>
+    <div class="container-page relative grid gap-12 py-14 sm:py-20 lg:grid-cols-[1fr_1.1fr]">
         <div>
             <p class="eyebrow">Request a demo</p>
-            <h1 class="mt-2 text-4xl font-semibold sm:text-5xl">See it with your own business in mind</h1>
+            <h1 class="mt-2 text-4xl font-semibold sm:text-5xl">See it with <span class="text-gradient">your own business in mind</span></h1>
             <p class="mt-5 text-lg text-stone-600">A short walkthrough, shaped around what you do. No pressure and no long forms.</p>
             <ul class="mt-8 space-y-4 text-sm text-stone-700">
                 {['We look at how you work today', 'We show how your records and automations would look', 'You leave knowing if it fits, and what it would cost'].map((t) => (
@@ -31,5 +34,6 @@ const mail = `mailto:${site.contactEmail}?subject=${encodeURIComponent('OrvynCRM
                 </div>
             )}
         </div>
+    </div>
     </section>
 </Base>

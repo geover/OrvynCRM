@@ -5,12 +5,13 @@ import { legal } from '../data/legal';
 const year = new Date().getFullYear();
 const columns = [
     { title: 'Product', links: [['Features', '/features'], ['Integrations', '/integrations'], ['Security', '/security'], ['Pricing', '/pricing']] },
+    { title: 'Docs', links: [['Overview', '/docs'], ['Getting started', '/docs/getting-started'], ['Automations', '/docs/automations'], ['E-mail and text', '/docs/messaging'], ['API', '/docs/api']] },
     { title: 'Company', links: [['Why OrvynCRM', '/why-orvyncrm'], ['Request a demo', '/demo'], ['Contact', '/contact'], ['Create an account', site.signupUrl], ['Sign in', `${site.appUrl}/login`]] },
     { title: 'Legal', links: [['Privacy Policy', '/privacy'], ['Terms of Use', '/terms']] },
 ];
 ---
 <footer class="border-t border-stone-200 bg-stone-100/60">
-    <div class="container-page grid gap-10 py-14 lg:grid-cols-[1.6fr_repeat(3,1fr)]">
+    <div class="container-page grid gap-10 py-14 lg:grid-cols-[1.6fr_repeat(4,1fr)]">
         <div>
             <img src="/brand/orvyn-logo-blend.svg" alt={site.name} class="h-8 w-auto" width="128" height="32" />
             <p class="mt-4 max-w-xs text-sm leading-relaxed text-stone-500">{site.description}</p>

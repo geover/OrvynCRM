@@ -1,44 +1,142 @@
 ---
+import PageHero from '../components/PageHero.astro';
 import Base from '../layouts/Base.astro';
 import CtaBand from '../components/CtaBand.astro';
 import Icon from '../components/Icon.astro';
-import { faq, planLimits, plans, site } from '../data/site';
+import { everyPlan, faq, fmtNumber, fmtUsers, planLimits, plans, site } from '../data/site';
+
+// capacity bars are drawn against the biggest plan, so the tiers visibly grow from left to right
+const maxUsers = Math.max(...plans.map((p) => p.users ?? 0));
+const maxTexts = Math.max(...plans.map((p) => p.texts));
+const maxNumbers = Math.max(...plans.map((p) => p.numbers));
+const pct = (n: number, max: number) => Math.max(6, Math.round((n / max) * 100));
+const last = plans.length - 1;
+// one colour per step, light to deep: static class names so Tailwind keeps them
+const accent = ['bg-brand-200', 'bg-brand-400', 'bg-brand-500', 'bg-brand-600', 'bg-gold-400'];
+const icons = {
+    users: 'M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z',
+    chat: 'M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 0 1 1.037-.443 48.282 48.282 0 0 0 5.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.019Z',
+    phone: 'M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z',
+};
 ---
-<Base title="Pricing" description="Plans for teams of every size, with clear limits you can raise when you need more.">
-    <section class="bg-stone-50 py-16 sm:py-20">
-        <div class="container-page max-w-3xl text-center">
-            <p class="eyebrow">Pricing</p>
-            <h1 class="mt-2 text-4xl font-semibold sm:text-5xl">Start small. Grow when you are ready.</h1>
-            <p class="mt-5 text-lg text-stone-600">Every company has clear limits on users, data objects and automations. You can see how much you use and ask for more at any time.</p>
+<Base title="Pricing" description="Five plans from a small team to unlimited users, a free trial, and clear limits you can raise when you need more.">
+    <PageHero eyebrow="Pricing" title="Start free." highlight="Grow when you are ready." lead="Every company starts with a free trial and has clear limits on users, texts and phone numbers. You can see how much you use, and move up a plan or ask for more at any time.">
+        <a href={site.signupUrl} class="btn-primary">Start your free trial</a>
+        <a href="/demo" class="btn-outline">Request a demo</a>
+    </PageHero>
+
+    <section class="container-page -mt-6    </section>
+
+    <section class="container-page -mt-6 pb-4" aria-labelledby="finder-title">
+        <div class="mx-auto max-w-4xl rounded-3xl border border-stone-200 bg-white p-6 shadow-lg shadow-stone-900/5 sm:p-8">
+            <div class="flex flex-wrap items-end justify-between gap-2">
+                <div>
+                    <h2 id="finder-title" class="text-lg font-semibold text-ink">Find your plan</h2>
+                    <p class="text-sm text-stone-500">Slide to match your team. The plan that fits lights up below.</p>
+                </div>
+                <p id="fit-text" class="text-sm font-semibold text-brand-700" role="status" aria-live="polite"></p>
+            </div>
+            <div class="mt-6 grid gap-6 sm:grid-cols-2">
+                <div>
+                    <label for="fit-users" class="flex items-baseline justify-between text-sm font-medium text-stone-700"><span>People who will use it</span><output id="fit-users-out" class="text-lg font-semibold text-ink tabular-nums">10</output></label>
+                    <input id="fit-users" type="range" min="1" max="120" value="10" class="fit-range mt-3 w-full" />
+                </div>
+                <div>
+                    <label for="fit-texts" class="flex items-baseline justify-between text-sm font-medium text-stone-700"><span>Texts you send in a month</span><output id="fit-texts-out" class="text-lg font-semibold text-ink tabular-nums">300</output></label>
+                    <input id="fit-texts" type="range" min="0" max="6000" step="50" value="300" class="fit-range mt-3 w-full" />
+                </div>
+            </div>
         </div>
     </section>
 
-    <section class="container-page py-16">
-        <div class="grid items-stretch gap-6 lg:grid-cols-3">
-            {plans.map((p) => (
-                <article class:list={['flex flex-col rounded-2xl border bg-white p-7 shadow-sm', p.featured ? 'border-brand-500 ring-1 ring-brand-500 shadow-lg' : 'border-stone-200']}>
-                    {p.featured && <span class="mb-3 w-fit rounded-full bg-brand-600 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">Most popular</span>}
-                    <h2 class="text-xl font-semibold">{p.name}</h2>
-                    <p class="mt-1 text-sm text-stone-500">{p.blurb}</p>
-                    <p class="mt-5 text-3xl font-semibold text-stone-900">{p.price}{p.unit && <span class="text-sm font-normal text-stone-500"> {p.unit}</span>}</p>
-                    <ul class="mt-6 space-y-3 text-sm text-stone-700">
-                        {p.includes.map((i) => <li class="flex gap-2.5"><Icon name="check" class="mt-0.5 size-4 shrink-0 text-brand-600" /><span>{i}</span></li>)}
-                    </ul>
-                    <a href={p.href === 'signup' ? site.signupUrl : '/demo'} class:list={['mt-8', p.featured ? 'btn-primary' : 'btn-outline']}>{p.cta}</a>
-                </article>
-            ))}
+    <section class="container-page py-12" aria-labelledby="plans-title">
+        <h2 id="plans-title" class="sr-only">The plans</h2>
+        <div class="grid items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-5">
+            {plans.map((p, i) => {
+                const top = i === last;
+                return (
+                    <article data-plan data-users={p.users ?? -1} data-texts={p.texts}
+                        class:list={['group relative flex flex-col overflow-hidden rounded-2xl border p-6 transition duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-brand-900/10 data-[fit=true]:-translate-y-1.5 data-[fit=true]:shadow-2xl data-[fit=true]:ring-2 data-[fit=true]:ring-brand-500',
+                            top ? 'border-brand-900 bg-gradient-to-br from-brand-900 via-[#26354f] to-brand-700 text-white' : 'border-stone-200 bg-white']}>
+                        <span class:list={['absolute inset-x-0 top-0 h-1.5', accent[i]]} aria-hidden="true"></span>
+                        <span class:list={['pointer-events-none absolute -right-1 -top-5 select-none text-[7rem] font-bold leading-none', top ? 'text-white/10' : 'text-brand-50']} aria-hidden="true">{i + 1}</span>
+                        <span data-fit-badge hidden class="absolute right-4 top-4 z-10 rounded-full bg-brand-600 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">Fits you</span>
+
+                        <h3 class:list={['relative text-lg font-semibold', top ? 'text-white' : 'text-ink']}>{p.name}</h3>
+                        <p class:list={['relative mt-1 min-h-[3.75rem] text-sm leading-snug', top ? 'text-brand-100' : 'text-stone-500']}>{p.blurb}</p>
+                        <p class:list={['relative mt-4 text-2xl font-semibold', top ? 'text-white' : 'text-stone-900']}>{p.price}</p>
+
+                        <dl class="relative mt-6 space-y-4 text-sm">
+                            {[
+                                ['users', 'Users', fmtUsers(p.users), p.users === null ? 100 : pct(p.users, maxUsers)],
+                                ['chat', 'Texts / month', fmtNumber(p.texts), pct(p.texts, maxTexts)],
+                                ['phone', 'Numbers', fmtNumber(p.numbers), pct(p.numbers, maxNumbers)],
+                            ].map(([icon, label, value, width]) => (
+                                <div>
+                                    <div class="flex items-center justify-between gap-2">
+                                        <dt class:list={['flex items-center gap-2', top ? 'text-brand-100' : 'text-stone-500']}>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="size-4 shrink-0" aria-hidden="true"><path d={icons[icon as keyof typeof icons]} /></svg>{label}
+                                        </dt>
+                                        <dd class:list={['font-semibold tabular-nums', top ? 'text-white' : 'text-ink']}>{value}</dd>
+                                    </div>
+                                    <div class:list={['mt-1.5 h-1.5 overflow-hidden rounded-full', top ? 'bg-white/15' : 'bg-stone-100']} aria-hidden="true">
+                                        <div class:list={['h-full rounded-full transition-all duration-700', top ? 'bg-gold-300' : accent[i]]} style={`width:${width}%`}></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </dl>
+
+                        <ul class:list={['relative mt-6 space-y-2 border-t pt-5 text-xs', top ? 'border-white/15 text-brand-100' : 'border-stone-100 text-stone-500']}>
+                            <li class="flex gap-2"><Icon name="check" class:list={['mt-0.5 size-3.5 shrink-0', top ? 'text-gold-300' : 'text-brand-600']} />The whole product</li>
+                            <li class="flex gap-2"><Icon name="check" class:list={['mt-0.5 size-3.5 shrink-0', top ? 'text-gold-300' : 'text-brand-600']} />Free trial to start</li>
+                        </ul>
+
+                        <a href={p.href === 'signup' ? site.signupUrl : p.cta === 'Contact us' ? '/contact' : '/demo'} class:list={['relative mt-6', top ? 'btn-light' : 'btn-outline group-data-[fit=true]:border-brand-600 group-data-[fit=true]:bg-brand-600 group-data-[fit=true]:text-white']}>{p.cta}</a>
+                    </article>
+                );
+            })}
         </div>
-        <p class="mt-6 text-center text-xs text-stone-500">Need more users, data objects or automations than your plan includes? Administrators can request them inside the app, with the price shown before you confirm.</p>
+        <p class="mt-8 text-center text-xs text-stone-500">The numbers above are the standard plans. The platform can adjust a plan&rsquo;s name, limits and price, and the billing page in the app always shows the current ones. Prices are agreed with you: <a href="/contact" class="underline hover:text-brand-700">talk to us</a>.</p>
+    </section>
+
+    <section class="bg-gradient-to-b from-white to-brand-50/60 py-16" aria-labelledby="every-title">
+        <div class="container-page grid items-center gap-10 lg:grid-cols-2">
+            <div>
+                <p class="eyebrow">In every plan</p>
+                <h2 id="every-title" class="mt-2 text-3xl font-semibold">The whole product, whatever the size</h2>
+                <p class="mt-4 max-w-md text-stone-600">Plans differ in how many people and texts they hold, not in what they can do. You never pay extra to unlock a feature.</p>
+            </div>
+            <ul class="grid gap-3 sm:grid-cols-2">
+                {everyPlan.map((i) => <li class="flex gap-2.5 rounded-xl border border-stone-200 bg-white p-4 text-sm leading-relaxed text-stone-700 transition hover:border-brand-200 hover:shadow-sm"><Icon name="check" class="mt-0.5 size-4 shrink-0 text-brand-600" /><span>{i}</span></li>)}
+            </ul>
+        </div>
+    </section>
+
+    <section class="container-page py-16" aria-labelledby="trial-title">
+        <div class="mx-auto grid max-w-4xl gap-5 sm:grid-cols-3">
+            <div class="rounded-2xl border border-stone-200 bg-white p-6">
+                <h3 id="trial-title" class="font-semibold text-ink">A free trial</h3>
+                <p class="mt-2 text-sm leading-relaxed text-stone-600">Create a workspace and start on the first plan. You are reminded 14, 7 and 1 day before the trial ends, and nothing is deleted if it does.</p>
+            </div>
+            <div class="rounded-2xl border border-stone-200 bg-white p-6">
+                <h3 class="font-semibold text-ink">Pay your way</h3>
+                <p class="mt-2 text-sm leading-relaxed text-stone-600">Pay by card on Stripe&rsquo;s own secure page, or be invoiced. Change the card, download invoices and cancel from the billing page.</p>
+            </div>
+            <div class="rounded-2xl border border-stone-200 bg-white p-6">
+                <h3 class="font-semibold text-ink">No surprises</h3>
+                <p class="mt-2 text-sm leading-relaxed text-stone-600">Meters show every limit, you are warned at 80% and 100%, and you can ask for more users, data objects, automations or texts with the price shown.</p>
+            </div>
+        </div>
     </section>
 
     <section class="container-page pb-16" aria-labelledby="compare-title">
         <h2 id="compare-title" class="text-center text-2xl font-semibold">Compare the plans</h2>
-        <div class="mx-auto mt-8 max-w-4xl overflow-x-auto rounded-2xl border border-stone-200 bg-white shadow-sm">
-            <table class="w-full min-w-[34rem] text-left text-sm">
-                <thead><tr class="border-b border-stone-200 bg-stone-50"><th scope="col" class="px-5 py-4"><span class="sr-only">Feature</span></th>{planLimits.columns.map((c, i) => <th scope="col" class:list={['px-5 py-4 font-semibold', i === 1 ? 'bg-brand-50 text-brand-700' : 'text-stone-700']}>{c}</th>)}</tr></thead>
+        <div class="mx-auto mt-8 max-w-5xl overflow-x-auto rounded-2xl border border-stone-200 bg-white shadow-sm" role="region" tabindex="0" aria-label="Comparison of the plans">
+            <table class="w-full min-w-[40rem] text-left text-sm">
+                <thead><tr class="border-b border-stone-200 bg-stone-50"><th scope="col" class="px-5 py-4"><span class="sr-only">Feature</span></th>{planLimits.columns.map((c) => <th scope="col" class="px-4 py-4 font-semibold text-stone-700">{c}</th>)}</tr></thead>
                 <tbody class="divide-y divide-stone-100">
                     {planLimits.rows.map(([label, cells]) => (
-                        <tr><th scope="row" class="px-5 py-3.5 font-medium text-stone-800">{label}</th>{cells.map((c, i) => <td class:list={['px-5 py-3.5', i === 1 ? 'bg-brand-50/60 font-medium text-brand-700' : 'text-stone-600']}>{c || <span class="text-stone-300" aria-label="Not included">&mdash;</span>}</td>)}</tr>
+                        <tr><th scope="row" class="px-5 py-3.5 font-medium text-stone-800">{label}</th>{cells.map((c) => <td class="px-4 py-3.5 text-stone-600">{c}</td>)}</tr>
                     ))}
                 </tbody>
             </table>
@@ -49,15 +147,58 @@ import { faq, planLimits, plans, site } from '../data/site';
         <div class="mx-auto max-w-3xl">
             <h2 class="text-center text-2xl font-semibold">Common questions</h2>
             <div class="mt-8 divide-y divide-stone-200 rounded-2xl border border-stone-200 bg-white">
-                {faq.slice(0, 3).map((f) => (
+                {faq.slice(0, 6).map((f) => (
                     <details class="group p-5">
                         <summary class="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-semibold text-stone-900">{f.q}<span class="text-brand-600 transition group-open:rotate-45" aria-hidden="true">+</span></summary>
                         <p class="mt-3 text-sm leading-relaxed text-stone-600">{f.a}</p>
                     </details>
                 ))}
             </div>
+            <p class="mt-6 text-center text-sm text-stone-600">More in the <a href="/docs/plans-and-billing" class="font-medium text-brand-700 underline">plans and billing guide</a>.</p>
         </div>
     </section>
 
     <CtaBand />
 </Base>
+
+<style is:global>
+    /* the two sliders of the plan finder */
+    .fit-range { -webkit-appearance: none; appearance: none; height: 6px; border-radius: 999px; background: linear-gradient(90deg, var(--color-brand-200), var(--color-brand-500)); outline-offset: 6px; }
+    .fit-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 22px; height: 22px; border-radius: 999px; background: #fff; border: 3px solid var(--color-brand-600); box-shadow: 0 2px 6px rgb(29 42 64 / 0.25); cursor: grab; transition: transform 0.15s; }
+    .fit-range::-webkit-slider-thumb:hover { transform: scale(1.12); }
+    .fit-range::-moz-range-thumb { width: 18px; height: 18px; border-radius: 999px; background: #fff; border: 3px solid var(--color-brand-600); box-shadow: 0 2px 6px rgb(29 42 64 / 0.25); cursor: grab; }
+    .fit-range:focus-visible { outline: 2px solid var(--color-brand-500); }
+    @media (prefers-reduced-motion: reduce) { .fit-range::-webkit-slider-thumb { transition: none; } }
+</style>
+
+<script>
+    // the plan finder: the smallest plan that holds the team and its texts is the one that lights up
+    const users = document.querySelector<HTMLInputElement>('#fit-users')!;
+    const texts = document.querySelector<HTMLInputElement>('#fit-texts')!;
+    const usersOut = document.querySelector<HTMLOutputElement>('#fit-users-out')!;
+    const textsOut = document.querySelector<HTMLOutputElement>('#fit-texts-out')!;
+    const message = document.querySelector<HTMLElement>('#fit-text')!;
+    const cards = [...document.querySelectorAll<HTMLElement>('[data-plan]')];
+
+    function update() {
+        const u = Number(users.value);
+        const t = Number(texts.value);
+        usersOut.textContent = u >= 120 ? '120+' : String(u);
+        textsOut.textContent = t >= 6000 ? '6,000+' : t.toLocaleString('en-US');
+        const fit = cards.find((c) => {
+            const cap = Number(c.dataset.users);
+            return (cap === -1 || u <= cap) && t <= Number(c.dataset.texts);
+        });
+        cards.forEach((c) => {
+            const on = c === fit;
+            c.dataset.fit = String(on);
+            c.querySelector<HTMLElement>('[data-fit-badge]')!.hidden = !on;
+        });
+        message.textContent = fit
+            ? `${fit.querySelector('h3')!.textContent} fits: ${Number(fit.dataset.users) === -1 ? 'unlimited users' : `up to ${fit.dataset.users} users`}, ${Number(fit.dataset.texts).toLocaleString('en-US')} texts a month`
+            : 'More than 5,000 texts a month? Ask for extra texts, or talk to us.';
+    }
+    users.addEventListener('input', update);
+    texts.addEventListener('input', update);
+    update();
+</script>

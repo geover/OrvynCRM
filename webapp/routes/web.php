@@ -29,6 +29,7 @@ use App\Http\Controllers\PlatformSettingsController;
 use App\Http\Controllers\PlatformSignupController;
 use App\Http\Controllers\PlatformSubscriptionController;
 use App\Http\Controllers\PlatformUsageController;
+use App\Http\Controllers\PlatformWebsiteController;
 use App\Http\Controllers\PublicFormController;
 use App\Http\Controllers\SignupController;
 use App\Http\Controllers\ThreadAttachmentController;
@@ -128,6 +129,9 @@ Route::middleware('platform')->prefix('platform')->group(function () {
     Route::post('companies/{tenant}/inactive/keep', [PlatformInactivityController::class, 'keep']);
     Route::post('companies/{tenant}/inactive/suspend', [PlatformInactivityController::class, 'suspend']);
     Route::post('companies/{tenant}/inactive/close', [PlatformInactivityController::class, 'close']);
+    Route::get('settings/website', [PlatformWebsiteController::class, 'show']);
+    Route::patch('settings/website', [PlatformWebsiteController::class, 'save']);
+    Route::post('settings/website/rebuild', [PlatformWebsiteController::class, 'rebuild'])->middleware('throttle:6,1');
     Route::get('settings/bot-protection', [PlatformBotProtectionController::class, 'show']);
     Route::patch('settings/bot-protection', [PlatformBotProtectionController::class, 'save']);
     Route::get('settings/sms', [PlatformIntegrationController::class, 'sms']);

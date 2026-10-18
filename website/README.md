@@ -26,8 +26,11 @@ Running it next to the CRM on Laragon (`orvyncrm.test` and `app.orvyncrm.test`) 
 | Path | What it is |
 |---|---|
 | `src/data/site.ts` | **All the words**: name, navigation (with the Product menu), features, integrations, security points, steps, plans, FAQ. Edit copy here. |
+| `src/data/docs.ts` | **The documentation** (`/docs`): every guide, section and block of text, and the cards on the overview page. Edit the words here. Keep it true to the product: it follows the in-app manual (`webapp/resources/js/lib/manual`) and the API (`webapp/routes/api.php`). |
 | `src/data/legal.ts` | The Privacy Policy and Terms of Use text, entity name and dates. |
 | `src/pages/` | One file per page: `index`, `features`, `integrations`, `security`, `why-orvyncrm`, `pricing`, `demo`, `contact`, `privacy`, `terms`, `404`. |
+| `src/pages/docs/` | The documentation pages: `index` (overview) and `[slug]` (one page per entry in `docs.ts`). |
+| `src/layouts/Docs.astro` | The documentation shell: menu, page and "on this page" list. |
 | `src/layouts/Base.astro` | Page shell: head, SEO tags, header, footer. |
 | `src/components/` | Header (with the Product menu), Footer, ProductTour (tabbed sample screens), IntegrationsStrip, SecurityBand, FeatureCard, CtaBand, AppMock, Illustration, Icon. |
 | `src/styles/global.css` | Tailwind and the brand palette (the same as the CRM). |
@@ -56,6 +59,7 @@ Checked with Lighthouse (mobile and desktop) on every page: 100 for Performance,
 
 ## How it connects to the CRM
 
+- **Platform settings:** the contact e-mail, business address, legal entity, the dates of the legal pages and the demo form address can be set in the CRM under *Settings > Website*. The site reads them from `PUBLIC_APP_URL/api/v1/public/website` when it is **built** (`src/lib/remote.ts`); anything the platform has not set, and everything when the CRM cannot be reached, keeps the value from `.env`. With a build hook saved there (Netlify, Cloudflare Pages or Vercel), saving a change rebuilds the site by itself. `WEBSITE_SETTINGS_URL` points the fetch somewhere else and `WEBSITE_SETTINGS=off` skips it.
 - **Sign in:** the "Sign in" buttons go to `PUBLIC_APP_URL` + `/login`.
 - **Demo form:** build a form in the CRM and paste its embed address into `PUBLIC_DEMO_FORM_URL`. Leads land in your own CRM.
 - **Pricing:** plans are text in `src/data/site.ts` (they read "Talk to us" until prices are decided).

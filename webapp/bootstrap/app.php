@@ -7,12 +7,14 @@ use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\RedirectSignedInPlatformAdmin;
 use App\Http\Middleware\ResolvePublicTenant;
 use App\Http\Middleware\ResolveTenant;
+use App\Http\Middleware\SecurityHeaders;
 use App\Support\UploadLimit;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\PostTooLargeException;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 
@@ -37,7 +39,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'platform' => EnsurePlatformAdmin::class,
             'signed-out' => RedirectSignedInPlatformAdmin::class,
         ]);
-        $middleware->trustProxies(at: '*');
+        // only the proxies named in TRUSTED_PROXIES are believed about the visitor's address and https (none by default)
+        $middleware->replace(TrustProxies::class, App\Http\Middleware\TrustProxies::class);
+        $middleware->append(SecurityHeaders::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

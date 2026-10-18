@@ -264,6 +264,16 @@ export default {
                     ],
                 },
                 {
+                    id: "platform-website",
+                    title: "Website",
+                    lead: "What the public website says that is decided here.",
+                    blocks: [
+                        { p: "Under **Settings, Website** you set the **contact e-mail**, the **business address**, the **legal entity** and the two dates of the Privacy Policy and Terms, and the **demo form** address. The website reads them from a public address shown on the page when it is **built**; anything you leave empty keeps the website's own default from its `.env` file, and so does everything if this application cannot be reached while the site is built." },
+                        { list: ["**Build hook** (optional): a Netlify, Cloudflare Pages or Vercel address that builds the site when it is called. With one saved, a change here rebuilds the website by itself, and **Rebuild the website now** does it on demand. It must be a public https address, it is stored encrypted and it is never shown again. The last request and its result are shown beside the button.", "Without a hook the website picks the change up the next time it is built.", "The list under *What the website reads* shows what the website will use right now: a field showing *not set* keeps its default."] },
+                        { note: "These details are printed on a public site, so type only what you want everyone to see." },
+                    ],
+                },
+                {
                     id: "platform-look",
                     title: "Platform look",
                     lead: "How the platform area looks to you and the other platform administrators. Separate from the sign-in page.",

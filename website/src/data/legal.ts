@@ -4,15 +4,18 @@
  *
  * Have them reviewed by a lawyer who knows your country before launch, and fill in `legal` below.
  */
+import { remoteSettings } from '../lib/remote';
 import { site } from './site';
+
+const remote = await remoteSettings();
 
 export const legal = {
     /** The company that offers the service. Replace with the registered name once there is one. */
-    entity: site.name,
+    entity: remote.legal_entity || site.name,
     /** Printed in the contact section when set (env PUBLIC_BUSINESS_ADDRESS). */
-    address: String(import.meta.env.PUBLIC_BUSINESS_ADDRESS || '').split('\\n').join('\n').trim(),
-    effective: 'October 13, 2026',
-    updated: 'October 13, 2026',
+    address: String(remote.business_address || import.meta.env.PUBLIC_BUSINESS_ADDRESS || '').split('\\n').join('\n').trim(),
+    effective: remote.legal_effective || 'October 13, 2026',
+    updated: remote.legal_updated || 'October 13, 2026',
 };
 
 export type Block = { p: string } | { ul: string[] };

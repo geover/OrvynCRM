@@ -4,7 +4,41 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="528c632e-cbff-4534-8781-ee19cae56136" name="Changes" comment="" />
+    <list default="true" id="528c632e-cbff-4534-8781-ee19cae56136" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/webapp/app/Http/Middleware/SecurityHeaders.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/webapp/app/Http/Middleware/TrustProxies.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/webapp/config/security.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/webapp/tests/Feature/SecurityHeadersTest.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/webapp/tests/e2e/20-security-headers.spec.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/.env.example" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/.env.example" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformSettingsController.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/app/Http/Controllers/PlatformSettingsController.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/bootstrap/app.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/bootstrap/app.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/docs/DEPLOYMENT.md" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/docs/DEPLOYMENT.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Components/SettingsNav.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Components/SettingsNav.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/Settings.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/Pages/Platform/Settings.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/resources/js/lib/manual/platform.js" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/js/lib/manual/platform.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/resources/views/app.blade.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/resources/views/app.blade.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/routes/api.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/routes/api.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webapp/routes/web.php" beforeDir="false" afterPath="$PROJECT_DIR$/webapp/routes/web.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/website/.env.example" beforeDir="false" afterPath="$PROJECT_DIR$/website/.env.example" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/website/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/website/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/website/src/components/Footer.astro" beforeDir="false" afterPath="$PROJECT_DIR$/website/src/components/Footer.astro" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/website/src/components/Header.astro" beforeDir="false" afterPath="$PROJECT_DIR$/website/src/components/Header.astro" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/website/src/data/legal.ts" beforeDir="false" afterPath="$PROJECT_DIR$/website/src/data/legal.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/website/src/data/site.ts" beforeDir="false" afterPath="$PROJECT_DIR$/website/src/data/site.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/website/src/layouts/Legal.astro" beforeDir="false" afterPath="$PROJECT_DIR$/website/src/layouts/Legal.astro" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/website/src/pages/404.astro" beforeDir="false" afterPath="$PROJECT_DIR$/website/src/pages/404.astro" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/website/src/pages/contact.astro" beforeDir="false" afterPath="$PROJECT_DIR$/website/src/pages/contact.astro" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/website/src/pages/demo.astro" beforeDir="false" afterPath="$PROJECT_DIR$/website/src/pages/demo.astro" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/website/src/pages/features.astro" beforeDir="false" afterPath="$PROJECT_DIR$/website/src/pages/features.astro" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/website/src/pages/index.astro" beforeDir="false" afterPath="$PROJECT_DIR$/website/src/pages/index.astro" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/website/src/pages/integrations.astro" beforeDir="false" afterPath="$PROJECT_DIR$/website/src/pages/integrations.astro" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/website/src/pages/pricing.astro" beforeDir="false" afterPath="$PROJECT_DIR$/website/src/pages/pricing.astro" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/website/src/pages/security.astro" beforeDir="false" afterPath="$PROJECT_DIR$/website/src/pages/security.astro" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/website/src/pages/why-orvyncrm.astro" beforeDir="false" afterPath="$PROJECT_DIR$/website/src/pages/why-orvyncrm.astro" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/website/src/styles/global.css" beforeDir="false" afterPath="$PROJECT_DIR$/website/src/styles/global.css" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -15,7 +49,7 @@
     <execution />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="4813" />
+    <option name="cachedIndexableFilesCount" value="1000" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="Git.Settings">
@@ -33,61 +67,61 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.9040386471243211" />
-      <entry key="MS500" value="3.846308454613974" />
-      <entry key="S2" value="7.05370214655969" />
-      <entry key="S5" value="13.127640887964262" />
-      <entry key="S10" value="17.702584660689393" />
-      <entry key="S30" value="22.17261487734394" />
-      <entry key="S60" value="23.5377584598706" />
-      <entry key="M2" value="24.453552526704254" />
-      <entry key="M5" value="26.336344454884575" />
-      <entry key="M10" value="29.040565601687504" />
-      <entry key="M15" value="31.10262624595726" />
-      <entry key="M30" value="34.899862757528695" />
-      <entry key="H1" value="40.37063544549113" />
-      <entry key="H2" value="49.295215150473545" />
-      <entry key="H4" value="58.913051463463525" />
-      <entry key="D1" value="72.4133378932368" />
-      <entry key="W1" value="75.4656847522061" />
+      <entry key="MS100" value="2.423125370512838" />
+      <entry key="MS500" value="4.6287545208250425" />
+      <entry key="S2" value="7.9517714735097185" />
+      <entry key="S5" value="14.051428122198928" />
+      <entry key="S10" value="18.651123518426584" />
+      <entry key="S30" value="23.15110887412643" />
+      <entry key="S60" value="24.526340638436146" />
+      <entry key="M2" value="25.447620777413025" />
+      <entry key="M5" value="27.333788884076927" />
+      <entry key="M10" value="30.03915657883908" />
+      <entry key="M15" value="32.101620189669845" />
+      <entry key="M30" value="35.89929831145887" />
+      <entry key="H1" value="41.37030898090289" />
+      <entry key="H2" value="50.29501583264668" />
+      <entry key="H4" value="59.91293236028865" />
+      <entry key="D1" value="73.41331349381682" />
+      <entry key="W1" value="76.46568111964879" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
       <entry key="MS500" value="0.0" />
-      <entry key="S2" value="7.8906136911694E-311" />
-      <entry key="S5" value="9.095871423807592E-125" />
-      <entry key="S10" value="9.53722780676208E-63" />
-      <entry key="S30" value="2.1206746848956392E-21" />
-      <entry key="S60" value="4.605078375984098E-11" />
-      <entry key="M2" value="6.786072778849412E-6" />
-      <entry key="M5" value="0.008563423161506222" />
-      <entry key="M10" value="0.09253876572283758" />
-      <entry key="M15" value="0.20458908895050543" />
-      <entry key="M30" value="0.4523152539440884" />
-      <entry key="H1" value="0.6725438676726511" />
-      <entry key="H2" value="0.8200877194987444" />
-      <entry key="H4" value="0.9055869475090421" />
-      <entry key="D1" value="0.9836071847516544" />
-      <entry key="W1" value="0.9976415477974405" />
+      <entry key="S2" value="7.7765890913767E-311" />
+      <entry key="S5" value="9.043065171399377E-125" />
+      <entry key="S10" value="9.509503231714772E-63" />
+      <entry key="S30" value="2.1186177675293765E-21" />
+      <entry key="S60" value="4.6028445199999653E-11" />
+      <entry key="M2" value="6.78442666700729E-6" />
+      <entry key="M5" value="0.00856259220205843" />
+      <entry key="M10" value="0.09253427582284537" />
+      <entry key="M15" value="0.20458247124119538" />
+      <entry key="M30" value="0.45230793851224316" />
+      <entry key="H1" value="0.6725384290226419" />
+      <entry key="H2" value="0.8200844035967529" />
+      <entry key="H4" value="0.9055851167045278" />
+      <entry key="D1" value="0.9836068533286666" />
+      <entry key="W1" value="0.9976414997757455" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="1.8599491670718213" />
-      <entry key="MS500" value="3.826553122699943" />
-      <entry key="S2" value="7.037188976387523" />
-      <entry key="S5" value="13.111453787589237" />
-      <entry key="S10" value="17.69105751004648" />
-      <entry key="S30" value="22.167691574187526" />
-      <entry key="S60" value="23.53513530457614" />
-      <entry key="M2" value="24.45219912129993" />
-      <entry key="M5" value="26.34419422938681" />
-      <entry key="M10" value="29.132028829336875" />
-      <entry key="M15" value="31.305863894475582" />
-      <entry key="M30" value="35.35080033656326" />
-      <entry key="H1" value="41.04217020572699" />
-      <entry key="H2" value="50.114681641869424" />
-      <entry key="H4" value="59.818289938307146" />
-      <entry key="D1" value="73.39688050951028" />
-      <entry key="W1" value="76.46331689520638" />
+      <entry key="MS100" value="2.137596431765715" />
+      <entry key="MS500" value="4.553554835933572" />
+      <entry key="S2" value="7.921046266535143" />
+      <entry key="S5" value="14.02952947755514" />
+      <entry key="S10" value="18.636722892361934" />
+      <entry key="S30" value="23.14522041089474" />
+      <entry key="S60" value="24.523233670261412" />
+      <entry key="M2" value="25.44602512821925" />
+      <entry key="M5" value="27.341540860972263" />
+      <entry key="M10" value="30.130566849647078" />
+      <entry key="M15" value="32.30481891784774" />
+      <entry key="M30" value="36.35021242403972" />
+      <entry key="H1" value="42.04183022396466" />
+      <entry key="H2" value="51.11447496730204" />
+      <entry key="H4" value="60.81816698335502" />
+      <entry key="D1" value="74.39685544174257" />
+      <entry key="W1" value="77.4633131664926" />
     </decayedShown>
   </component>
   <component name="PhpWorkspaceProjectConfiguration" interpreter_name="PHP">
@@ -412,7 +446,10 @@
       <workItem from="1791848611092" duration="3494000" />
       <workItem from="1791858902703" duration="3971000" />
       <workItem from="1791878337255" duration="3826000" />
-      <workItem from="1791944759965" duration="9218000" />
+      <workItem from="1791944759965" duration="10462000" />
+      <workItem from="1792024247337" duration="351000" />
+      <workItem from="1792028552136" duration="3327000" />
+      <workItem from="1792294209871" duration="637000" />
     </task>
     <servers />
   </component>

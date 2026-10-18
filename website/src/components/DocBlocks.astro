@@ -1,0 +1,69 @@
+---
+import { inline, withAppAddress } from '../lib/inline';
+import type { Block } from '../data/docs';
+
+interface Props { blocks: Block[] }
+const { blocks } = Astro.props;
+const callouts = {
+    note: { label: 'Note', box: 'border-brand-200 bg-brand-50', title: 'text-brand-700' },
+    tip: { label: 'Tip', box: 'border-gold-200 bg-gold-100/60', title: 'text-gold-600' },
+    warn: { label: 'Careful', box: 'border-red-200 bg-red-50', title: 'text-red-800' },
+} as const;
+const kindOf = (b: Block): keyof typeof callouts => ('note' in b ? 'note' : 'tip' in b ? 'tip' : 'warn');
+const textOf = (b: Block, kind: string): string => String((b as any)[kind]);
+---
+<div class="space-y-4">
+    {blocks.map((b) => {
+        if ('p' in b) return <p class="leading-relaxed text-stone-700" set:html={inline(b.p)} />;
+        if ('h' in b) return <h3 class="!mt-8 text-base font-semibold text-ink">{b.h}</h3>;
+        if ('list' in b) return (
+            <ul class="space-y-2 pl-1 text-stone-700">
+                {b.list.map((t) => <li class="flex gap-2.5 leading-relaxed"><span class="mt-2.5 size-1.5 shrink-0 rounded-full bg-brand-400" aria-hidden="true"></span><span set:html={inline(t)} /></li>)}
+            </ul>
+        );
+        if ('steps' in b) return (
+            <ol class="space-y-3 text-stone-700">
+                {b.steps.map((t, n) => (
+                    <li class="flex gap-3 leading-relaxed">
+                        <span class="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-brand-600 text-xs font-semibold text-white" aria-hidden="true">{n + 1}</span>
+                        <span set:html={inline(t)} />
+                    </li>
+                ))}
+            </ol>
+        );
+        if ('table' in b) return (
+            <div class="overflow-x-auto rounded-xl border border-stone-200 bg-white" role="region" tabindex="0" aria-label="Table">
+                <table class="w-full min-w-[26rem] text-left text-sm">
+                    <thead class="bg-stone-50 text-xs uppercase tracking-wide text-stone-500"><tr>{b.table.head.map((h) => <th scope="col" class="px-4 py-3 font-semibold">{h}</th>)}</tr></thead>
+                    <tbody class="divide-y divide-stone-100">
+                        {b.table.rows.map((r) => <tr class="align-top">{r.map((c, i) => <td class:list={['px-4 py-3 leading-relaxed', i === 0 ? 'font-medium text-ink' : 'text-stone-600']} set:html={inline(c)} />)}</tr>)}
+                    </tbody>
+                </table>
+            </div>
+        );
+        if ('code' in b) return (
+            <figure class="overflow-hidden rounded-xl border border-stone-800 bg-[#1d2433] text-stone-100">
+                {b.code.label && <figcaption class="flex items-center justify-between border-b border-white/10 px-4 py-2 text-xs text-stone-300"><span>{b.code.label}</span><button type="button" class="rounded px-2 py-0.5 text-stone-200 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white" data-copy>Copy</button></figcaption>}
+                <pre class="overflow-x-auto p-4 text-[13px] leading-relaxed" tabindex="0"><code>{withAppAddress(b.code.text)}</code></pre>
+            </figure>
+        );
+        const kind = kindOf(b);
+        const c = callouts[kind];
+        const text = textOf(b, kind);
+        return (
+            <aside class:list={['rounded-xl border px-4 py-3 text-sm leading-relaxed text-stone-700', c.box]}>
+                <strong class:list={['mr-1 font-semibold', c.title]}>{c.label}.</strong><span set:html={inline(text)} />
+            </aside>
+        );
+    })}
+</div>
+<script>
+    // the Copy button on a code sample
+    document.querySelectorAll<HTMLButtonElement>('[data-copy]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+            const code = btn.closest('figure')?.querySelector('code')?.textContent ?? '';
+            try { await navigator.clipboard.writeText(code); btn.textContent = 'Copied'; } catch { btn.textContent = 'Press Ctrl+C'; }
+            setTimeout(() => { btn.textContent = 'Copy'; }, 1800);
+        });
+    });
+</script>

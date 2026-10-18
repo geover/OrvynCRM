@@ -17,6 +17,7 @@ use App\Services\Tenancy\Recaptcha;
 use App\Services\Tenancy\SignupSettings;
 use App\Services\Tenancy\SmsSettings;
 use App\Services\Tenancy\Subscriptions;
+use App\Services\Tenancy\WebsiteSettings;
 use App\Support\Tenancy\Company;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -45,6 +46,7 @@ class PlatformSettingsController extends Controller
             'payments' => ['enabled' => app(PaymentSettings::class)->enabled(), 'mode' => app(PaymentSettings::class)->mode(), 'ready' => app(Subscriptions::class)->available()],
             'plans' => ['trial_months' => app(Plans::class)->trialMonths(), 'priced' => collect(app(Plans::class)->tiers())->whereNotNull('price')->count(), 'tiers' => count(config('plans.tiers')), 'trials_ending' => Tenant::whereNotNull('trial_ends_at')->where('trial_ends_at', '>', now())->count()],
             'inactivity' => ['enabled' => app(InactiveCompanies::class)->enabled(), 'days' => app(InactiveCompanies::class)->days(), 'flagged' => Tenant::active()->whereNotNull('inactive_since')->count()],
+            'website' => ['set' => count(array_filter(app(WebsiteSettings::class)->publicValues())), 'hook' => app(WebsiteSettings::class)->hook() !== null],
             'recaptcha' => ['active' => app(Recaptcha::class)->active(), 'enabled' => app(Recaptcha::class)->current()['enabled']],
             'signup' => ['mode' => app(SignupSettings::class)->mode(), 'waiting' => Signup::where('status', Signup::PENDING_APPROVAL)->count()],
             'platform_look' => collect(Company::platformAreaBranding())->only(['name', 'color'])->all(),

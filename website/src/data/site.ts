@@ -3,6 +3,11 @@
  * The facts about the product come from the OrvynCRM README: keep them true.
  */
 
+import { remoteSettings } from '../lib/remote';
+
+// What the platform decides (CRM: Settings > Website). Anything it has not set keeps the default from .env below.
+const remote = await remoteSettings();
+
 export const site = {
     name: 'OrvynCRM',
     tagline: 'Build. Connect. Automate.',
@@ -10,10 +15,10 @@ export const site = {
     // Where the product lives. Set PUBLIC_APP_URL in .env.
     appUrl: (import.meta.env.PUBLIC_APP_URL || 'http://localhost:8000').replace(/\/$/, ''),
     // Where the demo form posts. Empty: the form falls back to an e-mail to contactEmail.
-    demoFormUrl: import.meta.env.PUBLIC_DEMO_FORM_URL || '',
+    demoFormUrl: remote.demo_form_url || import.meta.env.PUBLIC_DEMO_FORM_URL || '',
     // Where "Create an account" leads: the CRM's own sign-up page (open only while the platform has switched sign-ups on).
     get signupUrl() { return `${this.appUrl}/signup`; },
-    contactEmail: import.meta.env.PUBLIC_CONTACT_EMAIL || 'hello@example.com',
+    contactEmail: remote.contact_email || import.meta.env.PUBLIC_CONTACT_EMAIL || 'hello@example.com',
 };
 
 export type NavItem = { href: string; label: string; text?: string; children?: { href: string; label: string; text: string; icon: string }[] };
@@ -27,6 +32,7 @@ export const nav: NavItem[] = [
     ] },
     { href: '/why-orvyncrm', label: 'Why OrvynCRM' },
     { href: '/pricing', label: 'Pricing' },
+    { href: '/docs', label: 'Docs' },
 ];
 
 /** What the product connects to. Names are shown as plain text, not as partner logos. */
@@ -45,6 +51,7 @@ export const securityPoints = [
     { icon: 'shield', title: 'Secrets stay encrypted', text: 'Integration credentials, API tokens and mail passwords are encrypted when stored and are never shown again after you save them.' },
     { icon: 'users', title: 'Permissions that match your team', text: 'Permission templates decide who can see and do what. Administrators control who is in the workspace.' },
     { icon: 'calendar', title: 'A record of what happened', text: 'Records keep their history, and every automation run and message delivery is written down, so you can see what happened and when.' },
+    { icon: 'shield', title: 'Protected in the browser and at sign-in', text: 'Every page carries a content security policy and the usual browser protections. Sign-in is rate limited, can be protected by reCAPTCHA, and a password reset signs out every API token.' },
     { icon: 'mail', title: 'Safe sending', text: 'Bounces, spam reports and unsubscribes are recorded and respected, and sending is rate limited to protect your reputation.' },
     { icon: 'link', title: 'Your data goes where you say', text: 'Nothing leaves the workspace except through the integrations and webhooks you switch on. Export your data at any time.' },
 ];
@@ -67,8 +74,8 @@ export const reasons: Reason[] = [
         text: 'Every company has its own database, its own people and its own data model. One company can never see another\'s records.',
         points: ['A separate database for every company', 'Permission templates decide who sees and does what', 'Your own logo, colours and time zone'] },
     { icon: 'calendar', title: 'Clear limits, no surprises',
-        text: 'You always see how much you use: users, record types and automations. Need more? Ask inside the app and see the price before you confirm.',
-        points: ['"3 of 5" meters for every limit', 'Requests for more, with the price shown', 'Administrators and the platform team stay in the loop'] },
+        text: 'You always see how much you use: users, record types, automations and texts. Need more? Ask inside the app and see the price before you confirm.',
+        points: ['"3 of 5" meters for every limit', 'Warnings at 80% and 100%', 'Requests for more, with the price shown'] },
     { icon: 'link', title: 'Plays well with what you already use',
         text: 'Bring your contacts across, send through the providers you trust and connect anything else with webhooks.',
         points: ['Keap contact sync', 'Your own Twilio account, SendGrid or any SMTP server', 'Import and export CSV any time'] },
@@ -108,7 +115,13 @@ export const features: Feature[] = [
         points: ['My tasks and overdue digests', 'A calendar of the dates that matter', 'Dashboard widgets from your own queries'] },
     { icon: 'shield', title: 'Control for administrators',
         text: 'Decide who sees and does what, and keep the workspace looking like your company.',
-        points: ['Users and permission templates', 'Your logo, colours and time zone', 'Limits with clear meters, and a way to ask for more'] },
+        points: ['Users and permission templates', 'Your logo, colours and time zone', 'Meters for users, texts and numbers, and a way to ask for more'] },
+    { icon: 'calendar', title: 'Plans that grow with you',
+        text: 'Start with a free trial, pay by card or by invoice, and move up a plan whenever you need more room.',
+        points: ['Five plans from a small team to unlimited users', 'Card payment on Stripe, invoices and receipts', 'Warnings at 80% and 100% of every limit'] },
+    { icon: 'zap', title: 'Built to be connected',
+        text: 'A JSON API, signed webhooks and forms let your own systems talk to OrvynCRM, with the same permissions as the person using them.',
+        points: ['Token sign-in and a full REST API', 'Webhooks signed with HMAC-SHA256', 'Documentation with examples to copy'] },
     { icon: 'link', title: 'Connects to what you use',
         text: 'Bring your contacts from Keap, send through your own Twilio and mail provider, and call out to anything with webhooks.',
         points: ['Keap contact sync', 'Your own Twilio account, or the platform\'s', 'SendGrid or any SMTP server'] },
@@ -140,36 +153,56 @@ export const people: Person[] = [
         look: { skin: '#ffdbac', hair: '#2b1b12', style: 'bun', outfit: '#a9803a', glasses: true } },
 ];
 
-export type Plan = { name: string; blurb: string; price: string; unit: string; featured?: boolean; includes: string[]; cta: string; href?: string };
+/** `users: null` means unlimited. The numbers drive the capacity bars and the plan finder on the pricing page. */
+export type Plan = { name: string; blurb: string; price: string; users: number | null; texts: number; numbers: number; cta: string; href?: string };
 
-/** Prices are not decided yet: they read "Talk to us". Put real numbers in `price` and `unit` when they are. */
+/**
+ * The five plans of the app (the platform can change their names, numbers and prices, so the figures here are the defaults and the
+ * page says so). Prices are not published: they read "Talk to us". Put real numbers in `price` when they are decided.
+ */
 export const plans: Plan[] = [
-    { name: 'Team', blurb: 'For a small team getting organised.', price: 'Talk to us', unit: '', cta: 'Create a workspace', href: 'signup',
-        includes: ['5 active users', '10 data objects', '5 automations per data object', 'E-mail and SMS sending', 'Forms and webhooks'] },
-    { name: 'Business', blurb: 'For growing companies with more to automate.', price: 'Talk to us', unit: '', featured: true, cta: 'Request a demo',
-        includes: ['More users, data objects and automations', 'Your own Twilio account for SMS', 'Keap contact sync', 'Priority help from the platform team', 'Everything in Team'] },
-    { name: 'Custom', blurb: 'For larger or unusual needs.', price: 'Let\'s talk', unit: '', cta: 'Contact us',
-        includes: ['Limits set for your company', 'Dedicated help with setup and import', 'Tailored onboarding', 'Everything in Business'] },
+    { name: 'Tier 1', blurb: 'A small team getting organised.', price: 'Talk to us', users: 5, texts: 100, numbers: 1, cta: 'Start free trial', href: 'signup' },
+    { name: 'Tier 2', blurb: 'A growing team with more follow-ups to send.', price: 'Talk to us', users: 15, texts: 500, numbers: 3, cta: 'Start free trial', href: 'signup' },
+    { name: 'Tier 3', blurb: 'Several teams working in one place.', price: 'Talk to us', users: 50, texts: 1000, numbers: 5, cta: 'Request a demo' },
+    { name: 'Tier 4', blurb: 'A large organisation with busy campaigns.', price: 'Talk to us', users: 100, texts: 3000, numbers: 10, cta: 'Request a demo' },
+    { name: 'Tier 5', blurb: 'No limit on people, and the most texting.', price: 'Talk to us', users: null, texts: 5000, numbers: 20, cta: 'Contact us' },
+];
+
+export const fmtUsers = (n: number | null) => (n === null ? 'Unlimited' : n.toLocaleString('en-US'));
+export const fmtNumber = (n: number) => n.toLocaleString('en-US');
+
+/** What every plan includes, whatever its size. */
+export const everyPlan = [
+    'Contacts with notes, tasks, history and attachments',
+    'Your own data objects, fields, boards and tabs',
+    'Automations with e-mail, text, tags, tasks, field updates and webhooks',
+    'E-mail with templates and tracking, and text through Twilio',
+    'Forms for your website, webhooks and CSV import and export',
+    'The API and the documentation',
+    'Pay by card on Stripe, or be invoiced',
+    'A free trial, then clear meters for every limit',
 ];
 
 export const planLimits = {
-    columns: ['Team', 'Business', 'Custom'],
+    columns: plans.map((p) => p.name),
     rows: [
-        ['Active users', ['5', 'More', 'Set for you']],
-        ['Data objects (your record types)', ['10', 'More', 'Set for you']],
-        ['Automations per data object', ['5', 'More', 'Set for you']],
-        ['E-mail and SMS sending', ['Included', 'Included', 'Included']],
-        ['Forms, webhooks and CSV import', ['Included', 'Included', 'Included']],
-        ['Your own Twilio account', ['Optional', 'Included', 'Included']],
-        ['Keap contact sync', ['', 'Included', 'Included']],
-        ['Help with setup and import', ['', 'Priority', 'Dedicated']],
-    ] as [string, [string, string, string]][],
+        ['Active users', plans.map((p) => fmtUsers(p.users))],
+        ['Texts per month', plans.map((p) => fmtNumber(p.texts))],
+        ['Texting numbers', plans.map((p) => fmtNumber(p.numbers))],
+        ['Contacts and data objects', plans.map(() => 'Included')],
+        ['Automations, e-mail, forms, API', plans.map(() => 'Included')],
+        ['Ask for more of anything', plans.map(() => 'Yes')],
+    ] as [string, string[]][],
 };
 
 export const faq = [
-    { q: 'Can I add more users, data objects or automations later?', a: 'Yes. Administrators see how much of each limit is used, and can ask for more at any time with the price shown.' },
+    { q: 'Is there a free trial?', a: 'Yes. A workspace you create yourself starts with a free trial on the first plan. The app shows how many days are left and reminds you 14, 7 and 1 day before it ends. You can enter your billing details at any time.' },
+    { q: 'Can I add more users, data objects, automations or texts later?', a: 'Yes. Administrators see how much of each limit is used and can ask for more at any time, with the price shown. A bigger plan raises the limits at once. Extra texts can be given for every month, or for one month only.' },
+    { q: 'How do I pay?', a: 'By card on Stripe\'s own secure page, so OrvynCRM never sees your card number, or by invoice if your platform invoices you. You can change the card, download invoices and cancel from the billing page.' },
+    { q: 'What happens when I reach a limit?', a: 'You are told at 80% and again at 100%. At the user limit you cannot add more people until you free a seat or move up. At the text limit, further texts are not sent and show as failed with an explanation, until the next month or a bigger plan.' },
     { q: 'Is my data kept apart from other companies?', a: 'Yes. Every company has its own database, its own people and its own data model.' },
     { q: 'Can I move my contacts over from another system?', a: 'Yes. Import them from a CSV, or connect your Keap account and sync them across.' },
-    { q: 'Do I need my own e-mail or SMS provider?', a: 'No. E-mail is sent through the platform\'s server and text messages through its Twilio account. You can use your own Twilio account if you prefer.' },
+    { q: 'Do I need my own e-mail or SMS provider?', a: 'No. E-mail is sent through the platform\'s server and text messages through its Twilio account. You can use your own Twilio account if you prefer your own numbers.' },
+    { q: 'Can I connect my own systems?', a: 'Yes. There is a JSON API with the same permissions as the person using it, signed webhooks that an automation can call, and forms that feed your contacts. See the documentation.' },
     { q: 'What happens to an automation if e-mail or SMS is not set up?', a: 'You are told while you build it: the editor warns you that those actions will not run until the sending channel is set up.' },
 ];
