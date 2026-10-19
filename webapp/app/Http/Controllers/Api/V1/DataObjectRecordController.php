@@ -33,7 +33,11 @@ class DataObjectRecordController extends Controller
 
         $this->applySort($query, $dataObject, $request->string('sort')->toString());
 
-        return RecordResource::collection($query->with('contacts:id,first_name,last_name')->orderByDesc('data_object_records.id')->cursorPaginate(min($request->integer('per_page', 25), 100)));
+        $query->with('contacts:id,first_name,last_name')->orderByDesc('data_object_records.id');
+        $perPage = min($request->integer('per_page', 25), 100);
+
+        // `?page=N` gives numbered pages with totals (the items table); without it, cursor pagination (API clients, the contact's data tab)
+        return RecordResource::collection($request->has('page') ? $query->paginate($perPage)->withQueryString() : $query->cursorPaginate($perPage));
     }
 
     /**

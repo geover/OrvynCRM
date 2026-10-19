@@ -279,4 +279,39 @@ class ContactRecordApiTest extends TestCase
         $this->deleteJson('/api/v1/notifications')->assertNoContent();
         $this->assertSame(1, DB::table('notifications_feed')->count());   // other user's untouched
     }
+
+    public function test_an_address_keeps_its_type_and_second_line(): void
+    {
+        $id = $this->postJson('/api/v1/contacts', ['first_name' => 'Ann', 'email' => 'ann@x.io', 'addresses' => [
+            ['type' => 'SHIPPING', 'street1' => '1 Main St', 'street2' => 'Suite 4', 'city' => 'Springfield', 'country' => 'US'],
+        ]])->assertCreated()->assertJsonPath('data.addresses.0.type', 'SHIPPING')->assertJsonPath('data.addresses.0.street2', 'Suite 4')->json('data.id');
+
+        $this->patchJson("/api/v1/contacts/$id", ['addresses' => [['type' => 'OTHER', 'street1' => '2 Side Rd', 'street2' => '']]])
+            ->assertOk()->assertJsonPath('data.addresses.0.type', 'OTHER');
+    }
+
+    public function test_deleting_a_relationship_disconnects_its_contacts_and_clears_what_named_it(): void
+    {
+        $owner = DataObjectRelationship::create(['label' => 'Owner']);
+        $agent = DataObjectRelationship::create(['label' => 'Agent']);
+        $object = DataObject::create(['name' => 'Homes']);
+        $object->fields()->create(['key' => 'title', 'label' => 'Title', 'type' => 'text']);
+        $object->relationships()->attach([$owner->id, $agent->id]);
+        $ann = Contact::create(['first_name' => 'Ann', 'email' => 'ann@x.io']);
+        $bob = Contact::create(['first_name' => 'Bob', 'email' => 'bob@x.io']);
+        $record = app(RecordService::class)->create($object->fresh('fields'), ['title' => 'House'], null, [
+            ['contact_id' => $ann->id, 'relationship_id' => $owner->id], ['contact_id' => $bob->id, 'relationship_id' => $agent->id],
+        ]);
+
+        $listed = collect($this->getJson('/api/v1/relationships')->assertOk()->json('data'))->keyBy('label');
+        $this->assertSame(1, $listed['Owner']['links']);
+        $this->assertSame(1, $listed['Owner']['objects']);
+
+        $this->deleteJson("/api/v1/relationships/{$owner->id}")->assertNoContent();
+
+        $this->assertDatabaseMissing('data_object_relationships', ['id' => $owner->id]);
+        $this->assertSame([$bob->id], $record->contacts()->pluck('contacts.id')->all());              // Ann is disconnected, Bob keeps his link
+        $this->assertTrue(Contact::whereKey($ann->id)->exists() && $record->fresh()->exists);          // the contact and the item stay
+        $this->assertSame(['Agent'], $object->relationships()->pluck('label')->all());
+    }
 }

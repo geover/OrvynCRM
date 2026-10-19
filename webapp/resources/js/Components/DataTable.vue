@@ -24,8 +24,10 @@ const props = defineProps({
     rowClickable: Boolean,
     noun: { type: String, default: 'item' },
     sort: { type: String, default: '' },
+    contained: Boolean,            // inside a pop-up: the header sticks to the top of the pop-up and the card does not stretch to the window's bottom
 });
 const emit = defineEmits(['update:selected', 'row-click', 'update:sort']);
+const stick = computed(() => (props.contained ? 'top-0' : 'top-[65px]'));
 const direction = (c) => (props.sort === c.sort ? 'ascending' : props.sort === `-${c.sort}` ? 'descending' : 'none');
 const sortBy = (c) => emit('update:sort', props.sort === c.sort ? `-${c.sort}` : c.sort);
 
@@ -44,7 +46,7 @@ const clickRow = (r) => props.rowClickable && emit('row-click', r);
 // The card stretches to the bottom of the window (a short list no longer leaves an empty strip under it); on phones it is as tall as its cards.
 const card = ref(null);
 const fit = () => {
-    if (!card.value) return;
+    if (!card.value || props.contained) return;
     const wide = window.matchMedia('(min-width: 768px)').matches;
     const top = card.value.getBoundingClientRect().top + window.scrollY;
     card.value.style.minHeight = wide ? `${Math.max(0, window.innerHeight - top - 32)}px` : '';
@@ -81,18 +83,18 @@ watch(() => [props.selected.length, props.loading], () => nextTick(fit), { flush
                     <span class="h-4 w-1/5 animate-pulse rounded bg-slate-100" /><span class="h-4 w-1/4 animate-pulse rounded bg-slate-100" /><span class="hidden h-4 w-1/6 animate-pulse rounded bg-slate-100 md:block" /><span class="hidden h-4 w-1/6 animate-pulse rounded bg-slate-100 lg:block" />
                 </div>
             </div>
-            <div v-else class="table-scroll flex-1 max-md:max-h-none max-md:overflow-visible">
+            <div v-else class="table-scroll flex-1 max-md:max-h-none max-md:overflow-visible" :class="contained && '!max-h-[52vh]'">
             <table class="w-full text-sm max-md:block">
                 <thead class="max-md:hidden">
                     <tr class="text-left text-xs uppercase tracking-wide text-slate-500">
-                        <th v-if="selectable" class="sticky top-[65px] z-10 w-10 rounded-tl-xl border-b border-slate-100 bg-white px-5 py-3"><input type="checkbox" class="rounded" aria-label="Select all rows" :checked="allOn" @change="toggleAll" /></th>
-                        <th v-for="c in visible" :key="c.key" :class="band(c)" class="sticky top-[65px] z-10 border-b border-slate-100 bg-white px-5 py-3 font-semibold" :aria-sort="c.sort ? direction(c) : undefined">
+                        <th v-if="selectable" :class="stick" class="sticky z-10 w-10 rounded-tl-xl border-b border-slate-100 bg-white px-5 py-3"><input type="checkbox" class="rounded" aria-label="Select all rows" :checked="allOn" @change="toggleAll" /></th>
+                        <th v-for="c in visible" :key="c.key" :class="[band(c), stick]" class="sticky z-10 border-b border-slate-100 bg-white px-5 py-3 font-semibold" :aria-sort="c.sort ? direction(c) : undefined">
                             <button v-if="c.sort" type="button" class="-mx-1 inline-flex items-center gap-1 rounded px-1 uppercase tracking-wide hover:text-slate-800" :class="direction(c) !== 'none' && 'text-brand-700'" :data-sort="c.sort" :title="`Sort by ${c.label}`" @click="sortBy(c)">
                                 {{ c.label }}<ArrowUp v-if="direction(c) === 'ascending'" class="size-3.5" /><ArrowDown v-else-if="direction(c) === 'descending'" class="size-3.5" /><ArrowUpDown v-else class="size-3 opacity-40" />
                             </button>
                             <template v-else>{{ c.label }}</template>
                         </th>
-                        <th v-if="$slots.actions" class="sticky top-[65px] z-10 rounded-tr-xl border-b border-slate-100 bg-white px-5 py-3"><span class="sr-only">Actions</span></th>
+                        <th v-if="$slots.actions" :class="stick" class="sticky z-10 rounded-tr-xl border-b border-slate-100 bg-white px-5 py-3"><span class="sr-only">Actions</span></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 max-md:block">

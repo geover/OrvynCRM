@@ -1,8 +1,11 @@
 <script setup>
 import { computed, nextTick, onMounted, ref } from 'vue';
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { Activity, ArrowDownRight, ArrowUpRight, Download, FileUp, ListPlus, Mail, MessageSquare, Pencil, Plus, RefreshCw, Trash2, UserPlus } from 'lucide-vue-next';
 import Modal from '@/Components/Modal.vue';
+import ContactShow from './Contacts/Show.vue';
+import TaskDetail from '@/Components/TaskDetail.vue';
+import WidgetResults from '@/Components/WidgetResults.vue';
 import EmailComposer from './Contacts/partials/EmailComposer.vue';
 import MergeFieldMenu from '@/Components/MergeFieldMenu.vue';
 import { insertAtCursor } from '@/lib/mergeFields';
@@ -47,7 +50,21 @@ async function loadData(w) {
     try { data.value[w.id] = await api.get(`/widgets/${w.id}/data`, { limit: 8 }); } catch (e) { data.value[w.id] = { error: e.message }; }
 }
 
+const viewing = ref(null);       // the widget whose every result is open in a wide pop-up
+const openTask = ref(null);      // an upcoming task that was clicked: {task, contactId}
+const refreshDashboard = async () => { d.value = (await api.get('/dashboard')).data; };       // a task may have been completed or changed
+const closeTask = () => { openTask.value = null; refreshDashboard(); };
+async function toggleLoose(t) { await run(() => api.patch(`/tasks/${t.id}`, { completed: !t.completed_at }), t.completed_at ? undefined : 'Task completed'); closeTask(); }
+async function removeLoose(t) {
+    if (!(await confirmDialog({ title: `Delete “${t.title}”?`, danger: true, confirmLabel: 'Delete' }))) return;
+    if (await run(() => api.delete(`/tasks/${t.id}`), 'Task deleted')) closeTask();
+}
+const openUpcoming = (t) => { openTask.value = { task: t, contactId: t.contact_id }; };
+
 const stat = (label, key, suffix = '') => ({ label, key, suffix });
+// where each tile leads: the list it counts. (E-mail sending is followed under Blast progress, which only administrators have.)
+const TILE_LINKS = { contacts: '/contacts', new_contacts_30d: '/contacts?added=30', emails_sent_30d: '/admin/blast-progress', open_rate_30d: '/admin/blast-progress', my_open_tasks: '/tasks?status=open', my_overdue_tasks: '/tasks?status=overdue' };
+const tileLink = (key) => (key.startsWith('emails_') || key.startsWith('open_rate') ? (isAdmin.value ? TILE_LINKS[key] : null) : TILE_LINKS[key]);
 const stats = [stat('Contacts', 'contacts'), stat('New (30d)', 'new_contacts_30d'), stat('Emails sent (30d)', 'emails_sent_30d'), stat('Open rate', 'open_rate_30d', '%'), stat('My open tasks', 'my_open_tasks'), stat('Overdue', 'my_overdue_tasks')];
 
 function openWidget(w = null) { draft.value = w ? { id: w.id, name: w.name, saved_query_id: w.saved_query_id } : { name: '', saved_query_id: queries.value[0]?.id ?? '', shared: false }; modal.value = { type: 'widget' }; }
@@ -96,13 +113,14 @@ const cell = (v) => (Array.isArray(v) ? v.join(', ') : v);
             <Link v-if="isAdmin" href="/admin/data-tools" class="btn-outline"><FileUp class="size-4" /> Import data</Link>
         </nav>
         <div class="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
-            <div v-for="s in stats" :key="s.key" class="card p-4">
+            <component :is="tileLink(s.key) ? Link : 'div'" v-for="s in stats" :key="s.key" :href="tileLink(s.key) || undefined" class="card group block p-4" :class="tileLink(s.key) && 'transition hover:border-brand-500 hover:shadow-sm'" :data-testid="`tile-${s.key}`" :title="tileLink(s.key) ? `Open ${s.label}` : undefined">
                 <div class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ s.label }}</div>
                 <div class="mt-2 text-2xl font-semibold" :class="s.key === 'my_overdue_tasks' && d[s.key] ? 'text-red-600' : ''">{{ Number(d[s.key]).toLocaleString() }}{{ s.suffix }}</div>
                 <div v-if="trend(s.key)" class="mt-1.5 flex items-center gap-1 text-xs" :class="trend(s.key).flat ? 'text-slate-400' : trend(s.key).up ? 'text-emerald-600' : 'text-red-600'" :title="'Compared with the previous 30 days'">
                     <component :is="trend(s.key).up ? ArrowUpRight : ArrowDownRight" class="size-3.5" />{{ trend(s.key).text }} <span class="text-slate-400">vs prev. 30d</span>
                 </div>
-            </div>
+                <div v-if="tileLink(s.key)" class="mt-1.5 text-xs text-brand-700 opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100 max-md:opacity-100">View →</div>
+            </component>
         </div>
 
         <!-- query widgets -->
@@ -132,6 +150,9 @@ const cell = (v) => (Array.isArray(v) ? v.join(', ') : v);
                         </tbody>
                     </table>
                 </div>
+                <div v-if="data[w.id]?.total > data[w.id]?.rows?.length" class="border-t border-slate-100 px-5 py-2.5 text-right">
+                    <button type="button" class="text-sm font-medium text-brand-700 hover:underline" data-testid="widget-view-all" @click="viewing = w">View all {{ data[w.id].total.toLocaleString() }} results</button>
+                </div>
             </section>
         </div>
 
@@ -140,7 +161,7 @@ const cell = (v) => (Array.isArray(v) ? v.join(', ') : v);
                 <h2 class="card-title">Upcoming tasks</h2>
                 <ul class="divide-y divide-slate-100">
                     <li v-for="t in d.upcoming_tasks" :key="t.id" class="flex items-center justify-between px-5 py-3 text-sm">
-                        <div class="min-w-0"><div class="truncate font-medium">{{ t.title }}</div>
+                        <div class="min-w-0"><button type="button" class="block max-w-full truncate text-left font-medium hover:text-brand-700 hover:underline" data-testid="upcoming-task" @click="openUpcoming(t)">{{ t.title }}</button>
                             <Link v-if="t.contact" :href="`/contacts/${t.contact_id}`" class="text-xs text-brand-600">{{ t.contact.first_name }} {{ t.contact.last_name }}</Link></div>
                         <span class="badge">{{ t.due_at ? fmtDue(t.due_at) : 'No date' }}</span>
                     </li>
@@ -179,6 +200,17 @@ const cell = (v) => (Array.isArray(v) ? v.join(', ') : v);
             <label v-if="isAdmin && !draft.id" class="flex items-center gap-2 text-sm"><input v-model="draft.shared" type="checkbox" class="rounded" /> Show to everyone</label>
         </form>
         <template #footer><button class="btn-ghost" @click="modal = null">Cancel</button><button class="btn-primary" form="wf">Save</button></template>
+    </Modal>
+
+    <!-- a task from the list: its contact, on Notes & tasks, with the task open -->
+    <Modal v-if="openTask?.contactId" :title="`${openTask.task.contact?.first_name ?? ''} ${openTask.task.contact?.last_name ?? ''}`.trim() || 'Contact'" width="max-w-6xl" @close="closeTask">
+        <ContactShow :contact-id="openTask.contactId" embedded initial-tab="notes" :focus-task="openTask.task.id" @deleted="closeTask" />
+    </Modal>
+    <TaskDetail v-else-if="openTask" :task="openTask.task" @close="closeTask" @edit="router.visit('/tasks')" @toggle="toggleLoose" @delete="removeLoose" />
+
+    <!-- every result of a widget: a table with search, sorting, pages and actions -->
+    <Modal v-if="viewing" :title="viewing.name" width="max-w-6xl" @close="viewing = null">
+        <WidgetResults :widget-id="viewing.id" :name="viewing.name" />
     </Modal>
 
     <!-- e-mail to everybody a widget finds: the same form as e-mailing one contact (templates, merge fields, formatting, attachments) -->

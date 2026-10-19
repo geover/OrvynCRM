@@ -16,7 +16,7 @@ class ContactAttachmentController extends Controller
     {
         return response()->json(['data' => $contact->attachments()->with('uploader:id,name')->latest()->get()->map(fn ($a) => [
             'id' => $a->id, 'title' => $a->title, 'mime' => $a->mime, 'size' => $a->size, 'url' => $a->url,
-            'is_link' => (bool) $a->url, 'uploaded_by' => $a->uploader?->name, 'created_at' => $a->created_at,
+            'is_link' => (bool) $a->url, 'note_id' => $a->note_id, 'task_id' => $a->task_id, 'uploaded_by' => $a->uploader?->name, 'created_at' => $a->created_at,
         ])]);
     }
 

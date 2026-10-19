@@ -16,6 +16,7 @@ class ContactResource extends JsonResource
             'full_name' => $this->full_name,
             'first_name' => $this->first_name,
             'middle_name' => $this->middle_name,
+            'sex' => $this->sex,
             'title' => $this->title,
             'website' => $this->website,
             'emails' => $this->emails ?? [],
@@ -36,6 +37,7 @@ class ContactResource extends JsonResource
             'notes' => $this->notes,
             'owner' => $this->whenLoaded('owner', fn () => $this->owner ? ['id' => $this->owner->id, 'name' => $this->owner->name] : null),
             'tags' => $this->whenLoaded('tags', fn () => $this->tags->pluck('name')),
+            ...$this->avatar(),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

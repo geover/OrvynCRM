@@ -1,3 +1,4 @@
+import { appendFileSync, mkdirSync } from 'node:fs';
 import { expect } from '@playwright/test';
 
 export const ADMIN = { email: 'admin@orvyncrm.test', password: 'E2e-Passw0rd!x' };
@@ -10,7 +11,22 @@ export async function submitSignIn(page, email, password) {
     await page.getByRole('button', { name: 'Sign in' }).click();
 }
 
+/**
+ * The server says, in the X-Ignored-Input header, which fields of a request it was sent but did not save (they have no validation rule; see
+ * App\Support\IgnoredInput). Every such response seen during a run is written to test-results/ignored-input.txt, so a form that quietly loses a field shows up.
+ */
+function watchIgnoredInput(page) {
+    page.on('response', (r) => {
+        const fields = r.headers()['x-ignored-input'];
+        if (!fields) return;
+        mkdirSync('test-results', { recursive: true });
+        appendFileSync('test-results/ignored-input.txt', `${r.request().method()} ${new URL(r.url()).pathname}  ->  ${fields}
+`);
+    });
+}
+
 export async function login(page, creds = ADMIN) {
+    watchIgnoredInput(page);
     await page.goto('/login');
     await submitSignIn(page, creds.email, creds.password);
     try {

@@ -47,10 +47,30 @@ class QueryActions
         return ['scope' => $d['scope'], 'definition' => $d['definition'], 'saved' => null, 'name' => 'search'];
     }
 
+    /**
+     * The same query narrowed to what a person has on screen: the words typed in the search box (`search`) and the rows they ticked (`ids`).
+     *
+     * @param  array<string, mixed>  $definition
+     * @return array<string, mixed>
+     */
+    public function narrowed(Request $request, array $definition): array
+    {
+        $d = $request->validate(['search' => ['nullable', 'string', 'max:200'], 'ids' => ['nullable', 'array', 'max:500'], 'ids.*' => ['integer']]);
+        if (filled($d['search'] ?? null)) {
+            $definition['_search'] = trim($d['search']);
+        }
+        if (! empty($d['ids'])) {
+            $definition['_ids'] = array_map('intval', $d['ids']);
+        }
+
+        return $definition;
+    }
+
     /** The result as a CSV download, paged through so memory stays flat however many rows there are. */
     public function csv(Request $request, string $scope, array $definition, string $name): StreamedResponse
     {
         abort_unless($request->user()->hasPermission('contacts.view'), 403);
+        $definition = $this->narrowed($request, $definition);
 
         return response()->streamDownload(function () use ($scope, $definition) {
             $out = fopen('php://output', 'w');
@@ -70,6 +90,10 @@ class QueryActions
     {
         abort_unless(in_array($channel, ['email', 'sms'], true), 404);
         abort_unless($request->user()->hasPermission('contacts.view'), 403);
+        $narrowed = $this->narrowed($request, $definition);
+        if ($narrowed !== $definition) {
+            [$definition, $savedId] = [$narrowed, null];                  // a part of a saved query is run as the search it is, not as the saved one
+        }
         $spec = $request->validate($channel === 'email'
             ? [
                 'subject' => ['required', 'string', 'max:255'], 'html' => ['required', 'string', 'max:500000'],

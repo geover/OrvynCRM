@@ -7,6 +7,7 @@ use App\Jobs\ProcessDataExport;
 use App\Jobs\ProcessDataImport;
 use App\Models\DataObject;
 use App\Models\DataTransfer;
+use App\Services\Data\DataTransferNotices;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -23,7 +24,7 @@ class DataTransferController extends Controller
     {
         abort_unless($request->user()->isAdmin(), 403);
 
-        return response()->json(['data' => DataTransfer::latest('id')->limit(30)->get()]);
+        return response()->json(['data' => DataTransfer::with('user:id,name')->latest('id')->limit(30)->get()]);
     }
 
     /** Reads the uploaded CSV header + first rows and proposes a column mapping. */
@@ -63,6 +64,40 @@ class DataTransferController extends Controller
         }
 
         return response()->json(['headers' => $headers, 'sample' => $rows, 'total_rows' => $total + count($rows), 'targets' => $targets, 'mapping' => $guess]);
+    }
+
+    /**
+     * A page of the rows of an uploaded CSV, to show it as a table. Big files are read a piece at a time: each answer carries a `cursor` (the place in
+     * the file it stopped at) and the next request starts there, so the cost of a page does not grow with how far down the file it is.
+     */
+    public function rows(Request $request): JsonResponse
+    {
+        abort_unless($request->user()->isAdmin(), 403);
+        $d = $request->validate(['path' => ['required', 'string'], 'cursor' => ['nullable', 'integer', 'min:0'], 'limit' => ['nullable', 'integer', 'min:1', 'max:200']]);
+        $path = Storage::disk('local')->path($this->ownTempFile($request, $d['path']));
+
+        $fh = fopen($path, 'r');
+        if (empty($d['cursor'])) {
+            fgetcsv($fh);                                              // the header row is shown on its own
+        } else {
+            fseek($fh, (int) $d['cursor']);
+        }
+        $rows = [];
+        while (count($rows) < ($d['limit'] ?? 50) && ($r = fgetcsv($fh)) !== false) {
+            if ($r !== [null]) {
+                $rows[] = array_map(fn ($v) => $this->utf8((string) $v), $r);
+            }
+        }
+        $cursor = feof($fh) ? null : ftell($fh);
+        fclose($fh);
+
+        return response()->json(['rows' => $rows, 'cursor' => $cursor]);
+    }
+
+    /** A spreadsheet saved as "CSV" is often Windows-1252, which cannot be sent as JSON as it is. */
+    private function utf8(string $v): string
+    {
+        return mb_check_encoding($v, 'UTF-8') ? $v : mb_convert_encoding($v, 'UTF-8', 'Windows-1252');
     }
 
     public function store(Request $request): JsonResponse
@@ -106,6 +141,7 @@ class DataTransferController extends Controller
         }
 
         $t = DataTransfer::create(['direction' => $d['direction'], 'resource' => $d['resource'], 'file_path' => $d['path'] ?? null, 'options' => $opts, 'user_id' => $request->user()->id]);
+        DataTransferNotices::queued($t);
         $d['direction'] === 'import' ? ProcessDataImport::dispatch($t->id) : ProcessDataExport::dispatch($t->id);
 
         return response()->json(['data' => $t], 202);

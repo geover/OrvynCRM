@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { Bookmark, Download, Mail, MessageSquare, Pencil, Phone, Plus, Search, Tag, Trash2, UserCog, X } from 'lucide-vue-next';
 import DataTable from '@/Components/DataTable.vue';
@@ -7,10 +7,13 @@ import Dropdown from '@/Components/Dropdown.vue';
 import Modal from '@/Components/Modal.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import TablePagination from '@/Components/TablePagination.vue';
+import ContactAvatar from '@/Components/ContactAvatar.vue';
+import MergeFieldMenu from '@/Components/MergeFieldMenu.vue';
 import ContactForm from './partials/ContactForm.vue';
 import EmailComposer from './partials/EmailComposer.vue';
 import SmsComposer from './partials/SmsComposer.vue';
 import { api } from '@/lib/api';
+import { insertAtCursor } from '@/lib/mergeFields';
 import { useStored } from '@/lib/stored';
 import { confirmDialog, fmtDate, run } from '@/lib/ui';
 
@@ -23,6 +26,10 @@ const q = ref('');
 const tag = ref('');
 const owner = ref('');
 const sort = ref('-created_at');
+// the dashboard's "New (30d)" tile opens the list of the people added in the last N days
+const askedDays = Number(new URLSearchParams(location.search).get('added'));
+const addedDays = ref(Number.isInteger(askedDays) && askedDays > 0 && askedDays <= 3650 ? askedDays : 0);
+const addedSince = () => (addedDays.value ? new Date(Date.now() - addedDays.value * 86400000).toISOString().slice(0, 10) : '');
 const users = ref([]);
 const showNew = ref(false);
 const auth = usePage().props.auth.user;
@@ -34,6 +41,9 @@ const openAction = async (type, c) => {
 };
 const edited = (c) => { acting.value = null; const i = rows.value.findIndex((r) => r.id === c.id); if (i >= 0) rows.value[i] = { ...rows.value[i], ...c }; };
 const selected = ref([]);
+const composing = ref(null);       // 'email' | 'sms': a message to every ticked contact
+const smsDraft = ref({ body: '' });
+const smsEl = ref(null);
 const bulk = ref(null);            // {type: 'add_tag' | 'remove_tag' | 'set_owner', value}
 const views = useStored('views:contacts', []);
 const viewName = ref('');
@@ -48,12 +58,12 @@ const columns = [
     { key: 'created_at', label: 'Added', sort: 'created_at', hideBelow: '2xl' },
 ];
 const SORT_CHOICES = ['-created_at', 'last_name', 'company_name', '-updated_at'];
-const filtered = computed(() => !!(q.value || tag.value || owner.value));
+const filtered = computed(() => !!(q.value || tag.value || owner.value || addedDays.value));
 
 async function load() {
     loading.value = true;
     try {
-        const res = await api.get('/contacts', { 'filter[q]': q.value, 'filter[tag]': tag.value, 'filter[owner_id]': owner.value, sort: sort.value, page: page.value, per_page: perPage.value });
+        const res = await api.get('/contacts', { 'filter[q]': q.value, 'filter[tag]': tag.value, 'filter[owner_id]': owner.value, 'filter[created_after]': addedSince(), sort: sort.value, page: page.value, per_page: perPage.value });
         if (res.meta.last_page && page.value > res.meta.last_page) { page.value = res.meta.last_page; return load(); }   // the last page emptied (deleted rows)
         rows.value = res.data;
         meta.value = res.meta;
@@ -65,11 +75,13 @@ const resize = (n) => { perPage.value = n; goTo(1); };
 const fromStart = () => { page.value = 1; load(); };      // a new search, filter or order starts on page 1
 let t;
 watch([q, tag], () => { clearTimeout(t); t = setTimeout(fromStart, 300); });
-watch([sort, owner], fromStart);
+watch([sort, owner, addedDays], fromStart);
+// a contact opened from a row (the layout's pop-up) may have been changed or deleted: the list follows
+onMounted(() => { window.addEventListener('orvyn:contact-changed', load); window.addEventListener('orvyn:contact-closed', load); });
+onBeforeUnmount(() => { window.removeEventListener('orvyn:contact-changed', load); window.removeEventListener('orvyn:contact-closed', load); });
 onMounted(async () => { if (new URLSearchParams(location.search).get('new')) showNew.value = true; load(); users.value = (await api.get('/users')).data; });
 const created = (c) => { showNew.value = false; router.visit(`/contacts/${c.id}`); };
-const clearFilters = () => { q.value = ''; tag.value = ''; owner.value = ''; };
-const initials = (c) => ((c.first_name?.[0] ?? '') + (c.last_name?.[0] ?? '')).toUpperCase() || '?';
+const clearFilters = () => { q.value = ''; tag.value = ''; owner.value = ''; addedDays.value = 0; };
 
 // ---- saved views (kept in this browser)
 function saveView(close) {
@@ -80,6 +92,23 @@ function saveView(close) {
 }
 function applyView(v, close) { q.value = v.q; tag.value = v.tag; owner.value = v.owner; sort.value = v.sort; close(); }
 const dropView = (v) => { views.value = views.value.filter((x) => x.name !== v.name); };
+
+// ---- e-mail or text the ticked contacts (the same forms as for one contact; contacts without an address, or who opted out, are skipped)
+const startCompose = (type) => { smsDraft.value = { body: '' }; composing.value = type; };
+async function addSmsField(token) {
+    const r = insertAtCursor(smsEl.value, smsDraft.value.body, token);
+    smsDraft.value.body = r.value;
+    await nextTick();
+    smsEl.value?.focus();
+    smsEl.value?.setSelectionRange(r.caret, r.caret);
+}
+async function sendToSelected(spec) {
+    const n = selected.value.length;
+    const email = composing.value === 'email';
+    if (!(await confirmDialog({ title: `${email ? 'Email' : 'Text'} ${n} contact${n === 1 ? '' : 's'}?`, message: 'Contacts without ' + (email ? 'an e-mail address' : 'a phone number') + ', who opted out or are suppressed are skipped automatically.', confirmLabel: 'Queue messages' }))) return;
+    const body = { scope: 'contact', definition: { contact_filter: { match: 'all', rules: [] } }, ids: selected.value, ...spec };
+    if (await run(() => api.post(`/queries/batch/${composing.value}`, body), 'Messages are being queued. Follow the progress under Blast progress.')) composing.value = null;
+}
 
 // ---- bulk actions
 async function bulkRun(action, value, done) {
@@ -117,6 +146,7 @@ function exportSelected() {
         <template #toolbar>
             <div class="relative"><Search class="pointer-events-none absolute left-3 top-2.5 size-4 text-slate-400" /><input v-model="q" class="input !w-64 !pl-9" placeholder="Search name, email, company, phone…" /></div>
             <input v-model="tag" class="input !w-36" placeholder="Tag" />
+            <button v-if="addedDays" type="button" class="badge !bg-brand-50 !px-2.5 !py-1.5 !text-brand-700" data-testid="added-chip" title="Show everybody again" @click="addedDays = 0">Added in the last {{ addedDays }} days <X class="ml-1 size-3.5" /></button>
             <select v-model="owner" class="input !w-44"><option value="">All owners</option><option v-for="u in users" :key="u.id" :value="u.id">{{ u.name }}</option></select>
             <select v-model="sort" class="input !w-40"><option value="-created_at">Newest</option><option value="last_name">Last name</option><option value="company_name">Company</option><option value="-updated_at">Recently updated</option><option v-if="!SORT_CHOICES.includes(sort)" :value="sort">Column order</option></select>
             <button v-if="filtered" type="button" class="btn-ghost" @click="clearFilters"><X class="size-4" /> Clear filters</button>
@@ -137,6 +167,8 @@ function exportSelected() {
         </template>
 
         <template #bulk>
+            <button class="btn-outline !py-1.5" data-testid="bulk-email" @click="startCompose('email')"><Mail class="size-4" /> Email</button>
+            <button class="btn-outline !py-1.5" data-testid="bulk-sms" @click="startCompose('sms')"><MessageSquare class="size-4" /> Text</button>
             <button class="btn-outline !py-1.5" @click="bulk = { type: 'add_tag', value: '' }"><Tag class="size-4" /> Add tag</button>
             <button class="btn-outline !py-1.5" @click="bulk = { type: 'remove_tag', value: '' }">Remove tag</button>
             <button class="btn-outline !py-1.5" @click="bulk = { type: 'set_owner', value: '' }"><UserCog class="size-4" /> Assign owner</button>
@@ -146,8 +178,8 @@ function exportSelected() {
         </template>
 
         <template #cell-full_name="{ row: c }">
-            <div class="flex items-center gap-3"><span class="grid size-8 shrink-0 place-items-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700 max-md:hidden" aria-hidden="true">{{ initials(c) }}</span>
-                <div class="min-w-0"><Link :href="`/contacts/${c.id}`" class="whitespace-nowrap font-medium text-brand-700 hover:underline">{{ c.full_name }}</Link><div v-if="c.job_title" class="truncate text-xs text-slate-400">{{ c.job_title }}</div></div></div>
+            <div class="flex items-center gap-3"><ContactAvatar :contact="c" class="max-md:hidden" />
+                <div class="min-w-0"><a :href="`/contacts/${c.id}`" class="whitespace-nowrap font-medium text-brand-700 hover:underline" data-testid="contact-open">{{ c.full_name }}</a><div v-if="c.job_title" class="truncate text-xs text-slate-400">{{ c.job_title }}</div></div></div>
         </template>
         <template #cell-email="{ row: c }"><span class="text-slate-600">{{ c.email }}</span></template>
         <template #cell-owner="{ row: c }">{{ c.owner?.name }}</template>
@@ -168,6 +200,17 @@ function exportSelected() {
         </template>
         <template #footer><TablePagination :meta="meta" :loading="loading" @page="goTo" @size="resize" /></template>
     </DataTable>
+
+    <!-- a message to the ticked contacts -->
+    <EmailComposer v-if="composing === 'email'" :bulk="{ name: 'your selection', title: `Email ${selected.length} contact${selected.length === 1 ? '' : 's'}`, where: 'selected', count: selected.length }" @close="composing = null" @submit="sendToSelected" />
+    <Modal v-if="composing === 'sms'" :title="`Text ${selected.length} contact${selected.length === 1 ? '' : 's'}`" @close="composing = null">
+        <form id="bulk-sms-form" class="space-y-3" @submit.prevent="sendToSelected({ body: smsDraft.body })">
+            <div><div class="mb-1 flex items-center justify-between"><label class="label !mb-0" for="bulk-sms-body">Message</label><MergeFieldMenu @pick="addSmsField" /></div>
+                <textarea id="bulk-sms-body" ref="smsEl" v-model="smsDraft.body" rows="5" class="input" required maxlength="1600" />
+                <p class="mt-1 text-xs text-slate-400">Merge fields are filled in per contact when it is sent.</p></div>
+        </form>
+        <template #footer><button class="btn-ghost" @click="composing = null">Cancel</button><button class="btn-primary" form="bulk-sms-form">Send…</button></template>
+    </Modal>
 
     <Modal v-if="showNew" title="New contact" width="max-w-3xl" @close="showNew = false"><ContactForm @saved="created" @cancel="showNew = false" /></Modal>
 

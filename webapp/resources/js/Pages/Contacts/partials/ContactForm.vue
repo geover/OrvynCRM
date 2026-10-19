@@ -10,7 +10,7 @@ const props = defineProps({ contact: { type: Object, default: null }, compact: B
 const emit = defineEmits(['saved', 'cancel']);
 
 const blank = () => ({
-    first_name: '', middle_name: '', last_name: '', title: '', job_title: '', company_name: '', website: '', birthday: '',
+    first_name: '', middle_name: '', last_name: '', title: '', sex: '', job_title: '', company_name: '', website: '', birthday: '',
     email: '', emails: [], phone: '', phones: [], addresses: [{ type: 'BILLING', street1: '', street2: '', city: '', state: '', zip: '', country: '' }],
     owner_id: '', contact_type: '', timezone: '', notes: '', email_opt_out: false, tags: [],
 });
@@ -89,7 +89,8 @@ defineExpose({ save, saving });
             <div><label class="label">Middle</label><input v-model="form.middle_name" class="input" /></div>
             <div><label class="label">Last name</label><input v-model="form.last_name" class="input" /></div>
         </div>
-        <div class="mt-3 grid gap-3 sm:grid-cols-3">
+        <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div><label class="label">Sex</label><select v-model="form.sex" class="input" data-testid="contact-sex"><option value="">Not specified</option><option value="male">Male</option><option value="female">Female</option></select></div>
             <div><label class="label">Job title</label><input v-model="form.job_title" class="input" /></div>
             <div><label class="label">Company</label><input v-model="form.company_name" class="input" /></div>
             <div><label class="label">Birthday</label><input v-model="form.birthday" type="date" class="input" /></div>

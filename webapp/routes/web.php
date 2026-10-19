@@ -3,9 +3,11 @@
 use App\Http\Controllers\AccountSecurityController;
 use App\Http\Controllers\AdminOverviewController;
 use App\Http\Controllers\Api\V1\ContactAttachmentController;
+use App\Http\Controllers\Api\V1\ContactAvatarController;
 use App\Http\Controllers\Api\V1\ContactController;
 use App\Http\Controllers\Api\V1\DataObjectItemExtrasController;
 use App\Http\Controllers\Api\V1\DataTransferController;
+use App\Http\Controllers\Api\V1\NoteTaskAttachmentController;
 use App\Http\Controllers\Api\V1\PriceListController;
 use App\Http\Controllers\Api\V1\WidgetController;
 use App\Http\Controllers\BrandingController;
@@ -278,6 +280,8 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('data-objects/{dataObject}/records/{record}/attachments/{attachment}', [DataObjectItemExtrasController::class, 'download']);
         Route::get('transfers/{transfer}', [DataTransferController::class, 'download']);
         Route::get('widgets/{widget}/export', [WidgetController::class, 'export']);
+        Route::get('attachments/{attachment}', [NoteTaskAttachmentController::class, 'download']);
+        Route::get('contacts/{contact}/avatar', [ContactAvatarController::class, 'show']);
     });
 
     // Pages are thin shells; data comes from /api/v1 (same-origin, session-authenticated via Sanctum).

@@ -28,6 +28,7 @@ class Contact extends Model
             'birthday' => 'date',
             'email_opt_out' => 'boolean',
             'synced_at' => 'datetime',
+            'avatar_updated_at' => 'datetime',
         ];
     }
 
@@ -40,6 +41,26 @@ class Contact extends Model
     protected function emailSecondary(): Attribute
     {
         return Attribute::set(fn ($v) => filled($v) ? mb_strtolower(trim($v)) : null);
+    }
+
+    /**
+     * The address of the contact's photo for the page, or null. An uploaded photo is served by us (small, cached by the browser; the version in the address
+     * changes when it is replaced). Otherwise the browser may ask Gravatar for the picture of this e-mail address, which is only the hash of the address,
+     * never the address itself, and only when the company allows it. We never ask Gravatar from the server, so a list of contacts costs nothing extra.
+     *
+     * @return array{avatar_url: ?string, gravatar: ?string}
+     */
+    public function avatar(): array
+    {
+        $uploaded = $this->avatar_path ? url("/files/contacts/{$this->id}/avatar").'?v='.($this->avatar_updated_at?->timestamp ?? 1) : null;
+        $email = $this->email ? trim($this->email) : null;
+        $attributes = request()->attributes;                // asked once per request, not once per contact in a list
+        $gravatarOn = $attributes->get('avatar.gravatar') ?? tap((bool) Setting::get('app.gravatar', true), fn ($on) => $attributes->set('avatar.gravatar', $on));
+
+        return [
+            'avatar_url' => $uploaded,
+            'gravatar' => ! $uploaded && $email && $gravatarOn ? hash('sha256', mb_strtolower($email)) : null,
+        ];
     }
 
     public function owner(): BelongsTo

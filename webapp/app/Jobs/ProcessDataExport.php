@@ -9,6 +9,7 @@ use App\Models\DataTransfer;
 use App\Models\Note;
 use App\Models\SavedQuery;
 use App\Models\Task;
+use App\Services\Data\DataTransferNotices;
 use App\Services\Queries\QueryRunner;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -32,6 +33,7 @@ class ProcessDataExport implements ShouldQueue
     {
         $t = DataTransfer::findOrFail($this->transferId);
         $t->update(['status' => 'running']);
+        DataTransferNotices::started($t);
         Storage::disk('local')->makeDirectory('exports');
         $rel = "exports/{$t->id}.csv";
         $out = fopen(Storage::disk('local')->path($rel), 'w');
@@ -46,9 +48,11 @@ class ProcessDataExport implements ShouldQueue
             };
             fclose($out);
             $t->update(['status' => 'done', 'file_path' => $rel, 'processed' => $n, 'total' => $n]);
+            DataTransferNotices::finished($t->fresh());
         } catch (\Throwable $e) {
             is_resource($out) && fclose($out);
             $t->update(['status' => 'failed', 'error' => $e->getMessage()]);
+            DataTransferNotices::finished($t->fresh());
             throw $e;
         }
     }

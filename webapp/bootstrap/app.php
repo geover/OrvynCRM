@@ -5,6 +5,7 @@ use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\RedirectSignedInPlatformAdmin;
+use App\Http\Middleware\ReportIgnoredInput;
 use App\Http\Middleware\RequireTwoFactor;
 use App\Http\Middleware\ResolvePublicTenant;
 use App\Http\Middleware\ResolveTenant;
@@ -31,6 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // The company database is opened right after the session starts and before anything reads the user or any data.
         $middleware->web(append: [ResolveTenant::class, RequireTwoFactor::class, HandleInertiaRequests::class]);
         $middleware->api(append: [ResolveTenant::class, RequireTwoFactor::class]);
+        $middleware->append(ReportIgnoredInput::class);                      // does nothing in production
         $middleware->prependToPriorityList(before: AuthenticatesRequests::class, prepend: ResolveTenant::class);
         $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: ResolvePublicTenant::class);
         $middleware->alias([

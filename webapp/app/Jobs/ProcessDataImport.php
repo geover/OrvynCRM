@@ -7,6 +7,7 @@ use App\Models\DataObject;
 use App\Models\DataObjectRecord;
 use App\Models\DataTransfer;
 use App\Models\Tag;
+use App\Services\Data\DataTransferNotices;
 use App\Services\DataObjects\RecordService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -39,6 +40,7 @@ class ProcessDataImport implements ShouldQueue
     {
         $t = DataTransfer::findOrFail($this->transferId);
         $t->update(['status' => 'running']);
+        DataTransferNotices::started($t);
         $path = Storage::disk('local')->path($t->file_path);
         $map = array_filter($t->options['mapping'] ?? []);
 
@@ -81,6 +83,16 @@ class ProcessDataImport implements ShouldQueue
 
         $t->update(['status' => 'done', 'processed' => $processed, 'failed' => $failed, 'total' => $processed + $failed, 'error' => $this->errors ? implode("\n", $this->errors) : null]);
         Storage::disk('local')->delete($t->file_path);
+        DataTransferNotices::finished($t->fresh());
+    }
+
+    /** The queue gave up on it (a crash, not a bad row): say so on the transfer and to the person who started it. */
+    public function failed(\Throwable $e): void
+    {
+        if ($t = DataTransfer::find($this->transferId)) {
+            $t->update(['status' => 'failed', 'error' => $e->getMessage()]);
+            DataTransferNotices::finished($t->fresh());
+        }
     }
 
     private function importContact(array $d): void
@@ -114,6 +126,13 @@ class ProcessDataImport implements ShouldQueue
                 ? $q->whereIn('id', DB::table('data_object_field_index')->where('field_id', $field->id)->where('value_string', mb_substr($d[$idField], 0, 191))->select('record_id'))
                 : $q->where('data->'.$idField, $d[$idField]);
             $record = $q->first();
+        }
+
+        // a "Any of" cell (several choices in one CSV cell, separated by ; or ,) becomes the list the field holds
+        foreach ($object->fields->where('type', 'multiselect') as $field) {
+            if (isset($d[$field->key]) && is_string($d[$field->key])) {
+                $d[$field->key] = array_values(array_filter(array_map('trim', preg_split('/[;,]/', $d[$field->key]))));
+            }
         }
 
         $links = [];

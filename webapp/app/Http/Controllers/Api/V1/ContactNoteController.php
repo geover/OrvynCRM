@@ -13,7 +13,7 @@ class ContactNoteController extends Controller
 {
     public function index(Contact $contact)
     {
-        return $contact->notes()->with('author:id,name')->latest()->latest('id')->cursorPaginate(25);
+        return $contact->notes()->with('author:id,name', 'task:id,title,completed_at', 'attachments:id,note_id,task_id,title,mime,size,url,created_at')->latest()->latest('id')->cursorPaginate(25);
     }
 
     public function store(Request $request, Contact $contact): JsonResponse
@@ -29,7 +29,7 @@ class ContactNoteController extends Controller
             'subject_type' => Note::class, 'subject_id' => $note->id, 'data' => ['title' => $note->title],
         ]);
 
-        return response()->json(['data' => $note->load('author:id,name')], 201);
+        return response()->json(['data' => $note->load('author:id,name', 'task:id,title,completed_at', 'attachments:id,note_id,task_id,title,mime,size,url,created_at')], 201);
     }
 
     public function update(Request $request, Contact $contact, Note $note): JsonResponse
@@ -42,7 +42,7 @@ class ContactNoteController extends Controller
         ]);
         $note->update($data);
 
-        return response()->json(['data' => $note->load('author:id,name')]);
+        return response()->json(['data' => $note->load('author:id,name', 'task:id,title,completed_at', 'attachments:id,note_id,task_id,title,mime,size,url,created_at')]);
     }
 
     /** Distinct tags already used on notes (autocomplete). */

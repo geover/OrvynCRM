@@ -12,7 +12,9 @@ const props = defineProps({ contactId: Number, objectId: Number });
 const emit = defineEmits(['changed']);
 
 const object = ref(null);
-const relationships = ref([]);
+const relationships = ref([]);          // the ones this data object lists
+const allRels = ref([]);                // every relationship type: any of them can connect a contact
+const otherRels = computed(() => allRels.value.filter((r) => !relationships.value.some((o) => o.id === r.id)));
 const rows = ref([]);
 const next = ref(null);
 const loading = ref(true);
@@ -41,7 +43,8 @@ async function load(reset = true) {
 async function init() {
     object.value = (await api.get(`/data-objects/${props.objectId}`)).data;
     relationships.value = object.value.relationships;
-    relId.value = relationships.value[0]?.id ?? '';
+    allRels.value = (await api.get('/relationships')).data;
+    relId.value = relationships.value[0]?.id ?? allRels.value[0]?.id ?? '';
     q.value = '';
     await load();
 }
@@ -65,7 +68,7 @@ async function unlink(r) {
 }
 
 // connect ANOTHER contact to an item
-function openConnect(r) { target.value = r; found.value = []; search.value = ''; connectRel.value = relationships.value[0]?.id ?? ''; modal.value = 'connect'; }
+function openConnect(r) { target.value = r; found.value = []; search.value = ''; connectRel.value = relationships.value[0]?.id ?? allRels.value[0]?.id ?? ''; modal.value = 'connect'; }
 let st;
 watch(search, () => {
     clearTimeout(st);
@@ -75,7 +78,7 @@ async function connect(c) {
     const ok = await run(() => api.post(`/data-objects/${props.objectId}/records/${target.value.id}/contacts`, { contact_id: c.id, relationship_id: connectRel.value }), `Connected ${c.full_name}`);
     if (ok) { modal.value = null; load(); }
 }
-const relLabel = (id) => relationships.value.find((r) => r.id === id)?.label;
+const relLabel = (id) => relationships.value.find((r) => r.id === id)?.label ?? allRels.value.find((r) => r.id === id)?.label;
 const show = (v) => (Array.isArray(v) ? v.join(', ') : typeof v === 'boolean' ? (v ? 'Yes' : 'No') : v);
 </script>
 
@@ -115,7 +118,7 @@ const show = (v) => (Array.isArray(v) ? v.join(', ') : typeof v === 'boolean' ? 
 
         <Modal v-if="modal === 'connect'" title="Connect another contact" @close="modal = null">
             <div class="space-y-3">
-                <div><label class="label">Add as</label><select v-model="connectRel" class="input"><option v-for="r in relationships" :key="r.id" :value="r.id">{{ r.label }}</option></select></div>
+                <div><label class="label">Add as</label><select v-model="connectRel" class="input"><optgroup v-if="otherRels.length" label="For this data object"><option v-for="r in relationships" :key="r.id" :value="r.id">{{ r.label }}</option></optgroup><optgroup v-if="otherRels.length" label="Other relationships"><option v-for="r in otherRels" :key="r.id" :value="r.id">{{ r.label }}</option></optgroup><template v-else><option v-for="r in relationships" :key="r.id" :value="r.id">{{ r.label }}</option></template></select></div>
                 <div><label class="label">Find contact</label><input v-model="search" class="input" placeholder="Name or email…" autofocus /></div>
                 <div class="divide-y divide-slate-100 rounded-lg border border-slate-200">
                     <button v-for="c in found" :key="c.id" class="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-slate-50" @click="connect(c)">

@@ -62,11 +62,14 @@ class WidgetController extends Controller
         return response()->json(null, 204);
     }
 
-    public function data(Request $request, Widget $widget, QueryRunner $runner): JsonResponse
+    public function data(Request $request, Widget $widget, QueryRunner $runner, QueryActions $actions): JsonResponse
     {
         $q = $widget->savedQuery ?? abort(404, 'The query behind this widget was deleted.');
 
-        return response()->json($runner->run($q->scope, $q->definition, min($request->integer('limit', 10), 100), max($request->integer('offset', 0), 0)) + ['query' => $q->only(['id', 'name', 'scope'])]);
+        $view = $request->validate(['sort' => ['nullable', 'string', 'max:100'], 'dir' => ['nullable', 'in:asc,desc'], 'search' => ['nullable', 'string', 'max:200']]);
+        $definition = $actions->narrowed($request, (array) $q->definition);
+
+        return response()->json($runner->run($q->scope, $definition, min($request->integer('limit', 10), 100), max($request->integer('offset', 0), 0), $view) + ['query' => $q->only(['id', 'name', 'scope'])]);
     }
 
     public function export(Request $request, Widget $widget, QueryActions $actions): StreamedResponse

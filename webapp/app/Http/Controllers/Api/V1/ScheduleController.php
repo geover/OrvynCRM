@@ -55,7 +55,7 @@ class ScheduleController extends Controller
 
         $events = Task::with('contact:id,first_name,last_name')->where('assigned_to', $user->id)->whereBetween('due_at', [$from, $to])->get()
             ->map(fn ($t) => ['kind' => 'task', 'id' => $t->id, 'title' => $t->title, 'at' => $t->due_at->toIso8601String(), 'done' => (bool) $t->completed_at,
-                'overdue' => ! $t->completed_at && $t->due_at->isPast(), 'contact' => $t->contact ? ['id' => $t->contact->id, 'name' => $t->contact->full_name] : null])->all();
+                'overdue' => ! $t->completed_at && $t->due_at->isPast(), 'description' => $t->description, 'priority' => $t->priority, 'completed_at' => $t->completed_at?->toIso8601String(), 'created_at' => $t->created_at?->toIso8601String(), 'contact' => $t->contact ? ['id' => $t->contact->id, 'name' => $t->contact->full_name] : null])->all();
 
         foreach (Schedule::with('dataObject.fields')->get() as $s) {
             $field = $s->dataObject->fields->firstWhere('key', $s->start_field);

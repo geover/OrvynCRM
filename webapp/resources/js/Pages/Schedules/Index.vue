@@ -2,9 +2,12 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { CheckCircle2, ChevronLeft, ChevronRight, Circle } from 'lucide-vue-next';
+import ContactShow from '../Contacts/Show.vue';
+import Modal from '@/Components/Modal.vue';
 import PageHeader from '@/Components/PageHeader.vue';
+import TaskDetail from '@/Components/TaskDetail.vue';
 import { api } from '@/lib/api';
-import { getDisplayTimezone, run } from '@/lib/ui';
+import { confirmDialog, getDisplayTimezone, run } from '@/lib/ui';
 
 const cursor = ref(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
 const events = ref([]);
@@ -38,6 +41,15 @@ const go = (n) => (cursor.value = new Date(cursor.value.getFullYear(), cursor.va
 const today = () => { cursor.value = new Date(new Date().getFullYear(), new Date().getMonth(), 1); selected.value = ymd(new Date()); };
 const inMonth = (d) => d.getMonth() === cursor.value.getMonth();
 const time = (e) => { try { return new Date(e.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone: getDisplayTimezone() }); } catch { return new Date(e.at).toLocaleTimeString(); } };
+// a task from the day's list: its contact opens in a wide pop-up on Notes & tasks with the task open; a task without a contact opens on its own
+const openTask = ref(null);
+const taskOf = (e) => ({ id: e.id, title: e.title, description: e.description, priority: e.priority, due_at: e.at, completed_at: e.completed_at, created_at: e.created_at, contact_id: e.contact?.id ?? null, contact: e.contact ? { first_name: e.contact.name, last_name: '' } : null, assignee: null, attachments: [] });
+const closeTask = () => { openTask.value = null; load(); };
+async function toggleLoose(t) { await run(() => api.patch(`/tasks/${t.id}`, { completed: !t.completed_at }), t.completed_at ? undefined : 'Task completed'); closeTask(); }
+async function removeLoose(t) {
+    if (!(await confirmDialog({ title: `Delete “${t.title}”?`, danger: true, confirmLabel: 'Delete' }))) return;
+    if (await run(() => api.delete(`/tasks/${t.id}`), 'Task deleted')) closeTask();
+}
 async function complete(e) { await run(() => api.patch(`/tasks/${e.id}`, { completed: !e.done })); load(); }
 const chip = (e) => (e.kind === 'task' ? (e.done ? 'bg-emerald-50 text-emerald-700' : e.overdue ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-800') : 'bg-brand-50 text-brand-700');
 </script>
@@ -67,7 +79,8 @@ const chip = (e) => (e.kind === 'task' ? (e.done ? 'bg-emerald-50 text-emerald-7
                 <li v-for="e in dayEvents" :key="e.kind + e.id" class="flex gap-3 px-5 py-3 text-sm">
                     <button v-if="e.kind === 'task'" class="mt-0.5 shrink-0" @click="complete(e)"><CheckCircle2 v-if="e.done" class="size-5 text-emerald-600" /><Circle v-else class="size-5 text-slate-300 hover:text-emerald-500" /></button>
                     <span v-else class="mt-1.5 size-2.5 shrink-0 rounded-full bg-brand-600" />
-                    <div class="min-w-0"><div :class="e.done && 'text-slate-400 line-through'" class="font-medium">{{ e.title }}</div>
+                    <div class="min-w-0"><button v-if="e.kind === 'task'" type="button" :class="e.done && 'text-slate-400 line-through'" class="block max-w-full text-left font-medium hover:text-brand-700 hover:underline" data-testid="schedule-task" @click="openTask = taskOf(e)">{{ e.title }}</button>
+                        <div v-else class="font-medium">{{ e.title }}</div>
                         <div class="text-xs text-slate-500">{{ time(e) }} · {{ e.kind === 'task' ? 'Task' : e.object }}<span v-if="e.overdue" class="ml-1 text-red-600">overdue</span></div>
                         <Link v-if="e.contact" :href="`/contacts/${e.contact.id}`" class="text-xs text-brand-700 hover:underline">{{ e.contact.name }}</Link></div>
                 </li>
@@ -75,4 +88,9 @@ const chip = (e) => (e.kind === 'task' ? (e.done ? 'bg-emerald-50 text-emerald-7
             </ul>
         </aside>
     </div>
+
+    <Modal v-if="openTask?.contact_id" :title="openTask.contact.first_name" width="max-w-6xl" @close="closeTask">
+        <ContactShow :contact-id="openTask.contact_id" embedded initial-tab="notes" :focus-task="openTask.id" @deleted="closeTask" />
+    </Modal>
+    <TaskDetail v-else-if="openTask" :task="openTask" @close="closeTask" @edit="closeTask" @toggle="toggleLoose" @delete="removeLoose" />
 </template>

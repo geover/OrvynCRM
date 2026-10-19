@@ -35,6 +35,7 @@ class SettingsController extends Controller
             'favicon_url' => $favicon ? url('/branding/favicon').'?v='.substr(md5($favicon), 0, 8) : Company::platformBranding()['favicon_url'],
             'favicon_is_default' => ! $favicon,
             'timezone' => Setting::get('app.timezone', config('app.timezone')),
+            'gravatar' => (bool) Setting::get('app.gravatar', true),
         ];
     }
 
@@ -67,6 +68,7 @@ class SettingsController extends Controller
             'color' => ['sometimes', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'sidebar_color' => ['sometimes', 'nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'name' => ['sometimes', 'string', 'max:120'],
+            'gravatar' => ['sometimes', 'boolean'],
             'tagline' => ['sometimes', 'nullable', 'string', 'max:120'],
             'email_format' => ['sometimes', 'string', 'max:255', 'regex:/^[A-Za-z]+@[A-Za-z0-9.\-]+$/'],   // local part + hostname (no port)
             'internal_support_emails' => ['sometimes', 'array', 'max:50'],
@@ -75,7 +77,7 @@ class SettingsController extends Controller
             'excluded_email_domains.*' => ['string', 'max:255', 'regex:/^(?!-)[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/'],
         ]);
 
-        $map = ['timezone' => 'app.timezone', 'color' => 'app.ui_colour', 'sidebar_color' => 'app.sidebar_colour', 'name' => 'app.name', 'tagline' => 'app.tagline', 'email_format' => 'app.email_format',
+        $map = ['timezone' => 'app.timezone', 'color' => 'app.ui_colour', 'sidebar_color' => 'app.sidebar_colour', 'name' => 'app.name', 'tagline' => 'app.tagline', 'gravatar' => 'app.gravatar', 'email_format' => 'app.email_format',
             'internal_support_emails' => 'support.internal_emails', 'excluded_email_domains' => 'email.excluded_domains'];
         foreach ($d as $k => $v) {
             // ConvertEmptyStringsToNull turns a cleared tagline into null; store '' so it stays cleared instead of reverting to the default

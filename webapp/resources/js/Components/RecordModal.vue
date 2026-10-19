@@ -29,6 +29,15 @@ const found = ref([]);
 const connectRel = ref(props.object.relationships?.[0]?.id ?? '');
 const base = computed(() => `/data-objects/${props.object.id}/records/${props.record?.id}`);
 
+// Every relationship type can connect a contact, not only the ones this data object lists (those come first; the rest are under "Other relationships").
+const allRels = ref([]);
+const otherRels = computed(() => allRels.value.filter((r) => !(props.object.relationships ?? []).some((o) => o.id === r.id)));
+onMounted(async () => {
+    allRels.value = (await api.get('/relationships')).data;
+    if (!relId.value) relId.value = allRels.value[0]?.id ?? '';
+    if (!connectRel.value) connectRel.value = allRels.value[0]?.id ?? '';
+});
+
 onMounted(() => {
     // pre-fill field defaults on create
     if (isNew) for (const f of props.object.fields) if (f.options?.default && draft.value[f.key] === undefined) draft.value[f.key] = f.options.default;
@@ -73,22 +82,24 @@ async function connect(c) {
 async function unlink(c) {
     if (await confirmDialog({ title: `Unlink ${c.name}?`, confirmLabel: 'Unlink' })) { await run(() => api.delete(`${base.value}/contacts/${c.id}`), 'Unlinked'); links.value = links.value.filter((x) => x.id !== c.id); }
 }
-const relLabel = (id) => props.object.relationships?.find((r) => r.id === id)?.label;
+const relLabel = (id) => props.object.relationships?.find((r) => r.id === id)?.label ?? allRels.value.find((r) => r.id === id)?.label;
 const size = (b) => (b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB');
 const show = (v) => (v === null || v === undefined || v === '' ? '—' : Array.isArray(v) ? v.join(', ') : v);
+// a field's width in the form (set on the object's field, 25 / 33 / 50 / 100 %): side by side when there is room, one per row on a phone
+const WIDTH_CLASS = { 25: 'col-span-12 sm:col-span-3', 33: 'col-span-12 sm:col-span-4', 50: 'col-span-12 sm:col-span-6', 100: 'col-span-12' };
 const eventLabel = { 'record.created': 'Created', 'record.updated': 'Updated', 'record.linked': 'Contact linked' };
 </script>
 
 <template>
-    <Modal :title="`${isNew ? 'Add' : 'Edit'} ${object.name}`" width="max-w-2xl" @close="emit('close')">
+    <Modal :title="`${isNew ? 'Add' : 'Edit'} ${object.name}`" width="max-w-3xl" @close="emit('close')">
         <div v-if="!isNew" class="-mt-2 mb-4 flex gap-1 border-b border-slate-100 text-sm">
             <button v-for="[v, l] in [['details', 'Details'], ['contacts', 'Contacts'], ['files', 'Attachments'], ['history', 'History']]" :key="v" :class="tab === v ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500'" class="-mb-px border-b-2 px-3 py-2 font-medium" @click="openTab(v)">{{ l }}</button>
         </div>
 
-        <form v-show="tab === 'details'" id="rform" class="space-y-3" @submit.prevent="save">
-            <div v-if="isNew && contactId && object.relationships?.length"><label class="label">Link this contact as</label><select v-model="relId" class="input"><option v-for="r in object.relationships" :key="r.id" :value="r.id">{{ r.label }}</option></select></div>
-            <FieldInput v-for="f in object.fields" :key="f.id" :model-value="draft[f.key]" :field="f" :error="errors[f.key]?.[0]" @update:model-value="(v) => { draft[f.key] = v; delete errors[f.key]; }" />
-            <p v-if="!object.fields.length" class="text-sm text-slate-400">This object has no fields yet. Add some in the Object builder.</p>
+        <form v-show="tab === 'details'" id="rform" class="grid grid-cols-12 gap-3" @submit.prevent="save">
+            <div v-if="isNew && contactId && (object.relationships?.length || allRels.length)" class="col-span-12"><label class="label">Link this contact as</label><select v-model="relId" class="input"><optgroup v-if="otherRels.length" label="For this data object"><option v-for="r in object.relationships" :key="r.id" :value="r.id">{{ r.label }}</option></optgroup><optgroup v-if="otherRels.length" label="Other relationships"><option v-for="r in otherRels" :key="r.id" :value="r.id">{{ r.label }}</option></optgroup><template v-else><option v-for="r in object.relationships" :key="r.id" :value="r.id">{{ r.label }}</option></template></select></div>
+            <FieldInput v-for="f in object.fields" :key="f.id" :class="WIDTH_CLASS[Number(f.options?.width)] ?? 'col-span-12'" :model-value="draft[f.key]" :field="f" :error="errors[f.key]?.[0]" @update:model-value="(v) => { draft[f.key] = v; delete errors[f.key]; }" />
+            <p v-if="!object.fields.length" class="col-span-12 text-sm text-slate-400">This object has no fields yet. Add some in the Object builder.</p>
         </form>
 
         <div v-if="tab === 'contacts'" class="space-y-3 text-sm">
@@ -97,7 +108,7 @@ const eventLabel = { 'record.created': 'Created', 'record.updated': 'Updated', '
                     <button class="btn-ghost !px-1.5 text-slate-400 hover:text-red-600" @click="unlink(c)"><X class="size-4" /></button></li>
                 <li v-if="!links.length" class="px-3 py-4 text-center text-slate-400">No contacts linked.</li>
             </ul>
-            <div class="flex gap-2"><select v-model="connectRel" class="input !w-40"><option v-for="r in object.relationships" :key="r.id" :value="r.id">{{ r.label }}</option></select><input v-model="search" class="input" placeholder="Find a contact to connect…" @input="searchContacts" /></div>
+            <div class="flex gap-2"><select v-model="connectRel" class="input !w-40"><optgroup v-if="otherRels.length" label="For this data object"><option v-for="r in object.relationships" :key="r.id" :value="r.id">{{ r.label }}</option></optgroup><optgroup v-if="otherRels.length" label="Other relationships"><option v-for="r in otherRels" :key="r.id" :value="r.id">{{ r.label }}</option></optgroup><template v-else><option v-for="r in object.relationships" :key="r.id" :value="r.id">{{ r.label }}</option></template></select><input v-model="search" class="input" placeholder="Find a contact to connect…" @input="searchContacts" /></div>
             <div v-if="found.length" class="divide-y divide-slate-100 rounded-lg border border-slate-200"><button v-for="c in found" :key="c.id" class="flex w-full justify-between px-3 py-2 text-left hover:bg-slate-50" @click="connect(c)"><span>{{ c.full_name }}</span><span class="text-xs text-slate-400">{{ c.email }}</span></button></div>
         </div>
 

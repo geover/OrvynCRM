@@ -70,10 +70,10 @@ async function send(test = false) {
 </script>
 
 <template>
-    <Modal :title="bulk ? `Email everyone in “${bulk.name}”` : `Email ${contact.full_name}`" width="max-w-3xl" @close="emit('close')">
+    <Modal :title="bulk ? (bulk.title ?? `Email everyone in “${bulk.name}”`) : `Email ${contact.full_name}`" width="max-w-3xl" @close="emit('close')">
         <div class="space-y-3">
             <div class="grid gap-3 sm:grid-cols-3">
-                <div><label class="label">To</label><input :value="bulk ? `${bulk.count ?? 'Everyone'} contacts in this widget` : contact.email" class="input" disabled /></div>
+                <div><label class="label">To</label><input :value="bulk ? `${bulk.count ?? 'Everyone'} contacts ${bulk.where ?? 'in this widget'}` : contact.email" class="input" disabled /></div>
                 <div><label class="label">Template group</label><select v-model="group" class="input"><option value="">All</option><option v-for="g in groups" :key="g">{{ g }}</option></select></div>
                 <div><label class="label">Use template</label>
                     <select v-model="templateId" class="input" @change="useTemplate"><option value="">— choose —</option><option v-for="t in visibleTemplates" :key="t.id" :value="t.id">{{ t.name }}</option></select></div>

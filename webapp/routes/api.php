@@ -96,6 +96,7 @@ Route::prefix('v1')->group(function () {
         Route::get('forms/{form}/submissions', [V1\FormController::class, 'submissions']);
         Route::apiResource('forms', V1\FormController::class)->whereNumber('form');
         Route::post('transfers/preview', [V1\DataTransferController::class, 'preview']);
+        Route::post('transfers/rows', [V1\DataTransferController::class, 'rows']);
         Route::get('transfers', [V1\DataTransferController::class, 'index']);
         Route::post('transfers', [V1\DataTransferController::class, 'store']);
         Route::get('transfers/{transfer}/download', [V1\DataTransferController::class, 'download']);
@@ -120,6 +121,8 @@ Route::prefix('v1')->group(function () {
         Route::get('contacts/{contact}/relationships', [V1\ContactRelationshipController::class, 'index']);
         Route::post('contacts/{contact}/relationships', [V1\ContactRelationshipController::class, 'store']);
         Route::delete('contacts/{contact}/relationships/{relationship}', [V1\ContactRelationshipController::class, 'destroy']);
+        Route::post('contacts/{contact}/avatar', [V1\ContactAvatarController::class, 'store']);
+        Route::delete('contacts/{contact}/avatar', [V1\ContactAvatarController::class, 'destroy']);
         Route::get('contacts/{contact}/attachments', [V1\ContactAttachmentController::class, 'index']);
         Route::post('contacts/{contact}/attachments', [V1\ContactAttachmentController::class, 'store']);
         Route::get('contacts/{contact}/attachments/{attachment}', [V1\ContactAttachmentController::class, 'download']);
@@ -129,6 +132,10 @@ Route::prefix('v1')->group(function () {
 
         // Tasks
         Route::apiResource('tasks', V1\TaskController::class)->except('show');
+        Route::post('notes/{note}/attachments', [V1\NoteTaskAttachmentController::class, 'forNote']);
+        Route::post('tasks/{task}/attachments', [V1\NoteTaskAttachmentController::class, 'forTask']);
+        Route::get('attachments/{attachment}', [V1\NoteTaskAttachmentController::class, 'download']);
+        Route::delete('attachments/{attachment}', [V1\NoteTaskAttachmentController::class, 'destroy']);
 
         // Data objects (custom objects) + records
         Route::get('relationships', [V1\RelationshipController::class, 'index']);

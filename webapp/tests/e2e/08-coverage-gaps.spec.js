@@ -149,7 +149,9 @@ test.describe('contacts list', () => {
         await expect(page.getByText('No contacts found.')).toBeVisible();
         await page.getByPlaceholder('Search name, email, company, phone…').fill(`${co}-5@`);
         await expect(rows).toHaveCount(1);
-        await rows.first().getByRole('link').first().click();
+        await rows.first().getByTestId('contact-open').click();            // the contact opens in a wide pop-up
+        await expect(page).toHaveURL(/\/contacts$/);
+        await page.getByTestId('contact-open-page').click();                // and can still be opened as a page
         await expect(page).toHaveURL(/\/contacts\/\d+$/);
     });
 });

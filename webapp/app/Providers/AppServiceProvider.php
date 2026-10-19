@@ -8,6 +8,7 @@ use App\Services\DataObjects\RecordIndexer;
 use App\Services\ScheduleLog;
 use App\Services\Tenancy\JobMetrics;
 use App\Services\Tenancy\MailSettings;
+use App\Support\IgnoredInput;
 use App\Support\Tenancy\Company;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -42,6 +43,9 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // a form field that is sent but never saved is reported on the response and in the log (everywhere but production)
+        app()->isProduction() || IgnoredInput::install();
+
         // Remember how each scheduled job went (shown on the Background services page)
         Event::listen(ScheduledTaskFinished::class, [ScheduleLog::class, 'finished']);
         Event::listen(ScheduledTaskFailed::class, [ScheduleLog::class, 'failed']);

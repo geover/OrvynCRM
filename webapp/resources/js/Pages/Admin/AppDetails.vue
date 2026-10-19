@@ -14,6 +14,7 @@ const timezone = ref('');
 const format = ref('ContactId');
 const name = ref('');
 const tagline = ref('');
+const gravatar = ref(true);
 const tokens = ref([]);
 const tokenName = ref('');
 const newToken = ref('');
@@ -26,7 +27,7 @@ const saving = ref(false);
 
 async function load() {
     s.value = (await api.get('/settings')).data;
-    timezone.value = s.value.timezone; name.value = s.value.name; tagline.value = s.value.tagline ?? '';
+    timezone.value = s.value.timezone; name.value = s.value.name; tagline.value = s.value.tagline ?? ''; gravatar.value = s.value.gravatar !== false;
     format.value = (s.value.email_format || 'ContactId@').split('@')[0];
     tokens.value = (await api.get('/me/tokens')).data;
 }
@@ -38,6 +39,7 @@ async function saveGeneral() {
     if (timezone.value !== s.value.timezone) body.timezone = timezone.value;
     if (name.value !== s.value.name) body.name = name.value;
     if (tagline.value !== (s.value.tagline ?? '')) body.tagline = tagline.value;
+    if (gravatar.value !== (s.value.gravatar !== false)) body.gravatar = gravatar.value;
     const fmt = `${format.value}@${host()}`;
     if (fmt !== s.value.email_format) body.email_format = fmt;
     if (!Object.keys(body).length) return run(async () => {}, 'Nothing to save');
@@ -75,6 +77,8 @@ async function revoke(t) {
                 <div><label class="label">App name</label><input v-model="name" class="input" /></div>
                 <div><label class="label">Tagline</label><input v-model="tagline" class="input" maxlength="120" placeholder="Build. Connect. Automate." />
                     <p class="mt-1 text-xs text-slate-400">Shown under your logo in the sidebar and on the sign-in page. Leave empty to hide it.</p></div>
+                <label class="flex cursor-pointer items-start gap-2 text-sm"><input v-model="gravatar" type="checkbox" class="mt-0.5 rounded" data-testid="gravatar-toggle" />
+                    <span><span class="font-medium">Show Gravatar pictures</span><span class="mt-0.5 block text-xs text-slate-400">For contacts without their own photo, the browser looks for a picture registered with their e-mail address at gravatar.com. Only a one-way code of the address is sent, never the address. Turn it off to keep contact e-mail addresses from ever being looked up outside your company.</span></span></label>
                 <div><label class="label">Timezone</label><select v-model="timezone" class="input"><option v-for="z in zones" :key="z">{{ z }}</option></select>
                     <p class="mt-1 text-xs text-slate-400">Used for scheduled automations and date display.</p></div>
                 <div><label class="label">Generated email format</label>

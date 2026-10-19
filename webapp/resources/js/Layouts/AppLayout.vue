@@ -6,6 +6,7 @@ import { ArrowLeftRight, BookOpen, Bell, Building2, ChevronDown, LifeBuoy, Megap
 import Hosts from '@/Components/Hosts.vue';
 import { useFavicon } from '@/lib/favicon';
 import Modal from '@/Components/Modal.vue';
+import ContactModalHost from '@/Components/ContactModalHost.vue';
 import ContactForm from '@/Pages/Contacts/partials/ContactForm.vue';
 import AdvancedSearch from '@/Components/AdvancedSearch.vue';
 import CommandPalette from '@/Components/CommandPalette.vue';
@@ -215,6 +216,9 @@ const logout = () => router.post('/logout');
             <main id="main" tabindex="-1" class="p-4 outline-none lg:p-8"><slot /></main>
         </div>
     </div>
+
+    <!-- every link to a contact opens it here, in a wide pop-up -->
+    <ContactModalHost />
 
     <CommandPalette v-if="palette" @close="palette = false" />
     <AdvancedSearch v-if="advanced" @close="advanced = false" />

@@ -13,9 +13,10 @@ COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-scripts --prefer-dist --optimize-autoloader --ignore-platform-reqs
 
 FROM php:8.3-fpm-alpine AS app
-RUN apk add --no-cache nginx supervisor tini icu-libs libzip \
-    && apk add --no-cache --virtual .build icu-dev libzip-dev $PHPIZE_DEPS \
-    && docker-php-ext-install pdo_mysql intl zip opcache pcntl \
+RUN apk add --no-cache nginx supervisor tini icu-libs libzip libpng libjpeg-turbo libwebp \
+    && apk add --no-cache --virtual .build icu-dev libzip-dev libpng-dev libjpeg-turbo-dev libwebp-dev $PHPIZE_DEPS \
+    && docker-php-ext-configure gd --with-jpeg --with-webp \
+    && docker-php-ext-install pdo_mysql intl zip opcache pcntl gd \
     && pecl install redis && docker-php-ext-enable redis \
     && apk del .build
 WORKDIR /var/www/html

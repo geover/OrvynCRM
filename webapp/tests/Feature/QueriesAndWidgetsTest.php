@@ -117,4 +117,35 @@ class QueriesAndWidgetsTest extends TestCase
         $this->assertSame('Hello Ann', EmailMessage::first()->subject);
         $this->assertSame($this->admin->id, EmailMessage::first()->user_id);
     }
+
+    public function test_widget_results_can_be_searched_sorted_and_narrowed_to_ticked_rows(): void
+    {
+        $contacts = $this->postJson('/api/v1/queries', ['name' => 'Everybody', 'scope' => 'contact', 'definition' => ['contact_filter' => ['rules' => []]]])->assertCreated()->json('data.id');
+        $wid = $this->postJson('/api/v1/widgets', ['name' => 'All', 'saved_query_id' => $contacts])->assertCreated()->json('data.id');
+
+        $names = fn (string $qs) => collect($this->getJson("/api/v1/widgets/$wid/data?$qs")->assertOk()->json('rows'))->pluck('values.first_name')->all();
+        $this->assertSame(['Ann', 'Bob', 'Cy'], $names('sort=first_name&dir=asc'));
+        $this->assertSame(['Cy', 'Bob', 'Ann'], $names('sort=first_name&dir=desc'));
+        $this->assertSame(['Bob'], $names('search=bob'));
+        $this->assertSame(['Ann'], $names('search=x.io+ann'));                       // every word has to match somewhere
+        $this->getJson("/api/v1/widgets/$wid/data?search=bob")->assertJsonPath('total', 1);
+        $this->assertCount(3, $names('sort=not_a_column&dir=asc'));                  // an unknown column is ignored, not an error
+
+        // the actions act on the ticked rows only
+        $ann = Contact::where('first_name', 'Ann')->value('id');
+        $csv = $this->get("/api/v1/widgets/$wid/export?ids[]=$ann")->assertOk()->streamedContent();
+        $this->assertStringContainsString('Ann', $csv);
+        $this->assertStringNotContainsString('Bob', $csv);
+
+        Bus::fake([SendEmailMessage::class]);
+        $this->postJson("/api/v1/widgets/$wid/batch/email", ['subject' => 'Hi', 'html' => '<p>Hi</p>', 'ids' => [$ann]])->assertAccepted();
+        $this->assertSame(1, EmailMessage::count());
+
+        // a data object query sorts by its columns too
+        $oid = $this->postJson('/api/v1/queries', ['name' => 'Deals', 'scope' => 'data_object', 'data_object_id' => $this->deals->id, 'definition' => []])->assertCreated()->json('data.id');
+        $dw = $this->postJson('/api/v1/widgets', ['name' => 'Deals', 'saved_query_id' => $oid])->assertCreated()->json('data.id');
+        $titles = fn (string $dir) => collect($this->getJson("/api/v1/widgets/$dw/data?sort=title&dir=$dir")->assertOk()->json('rows'))->pluck('values.title')->all();
+        $this->assertSame(['=cmd|calc', 'ok', 'ok'], $titles('asc'));
+        $this->assertSame(['ok', 'ok', '=cmd|calc'], $titles('desc'));
+    }
 }

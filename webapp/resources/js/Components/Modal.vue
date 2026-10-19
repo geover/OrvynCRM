@@ -1,3 +1,7 @@
+<script>
+const open = [];                       // the pop-ups on screen, last one on top: a pop-up opened from inside another answers keys first
+</script>
+
 <script setup>
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { X } from 'lucide-vue-next';
@@ -15,6 +19,7 @@ let opener = null;
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 // Escape closes; Tab stays inside the dialog; focus moves in on open and returns to the opener on close.
 const onKey = (e) => {
+    if (open[open.length - 1] !== panel) return;
     if (e.key === 'Escape') return close();
     if (e.key !== 'Tab' || !panel.value) return;
     const items = [...panel.value.querySelectorAll(FOCUSABLE)].filter((el) => el.offsetParent !== null);
@@ -25,10 +30,11 @@ const onKey = (e) => {
 };
 onMounted(() => {
     opener = document.activeElement;
+    open.push(panel);
     document.addEventListener('keydown', onKey);
     nextTick(() => { if (!panel.value?.contains(document.activeElement)) (panel.value?.querySelector('.overflow-y-auto input, .overflow-y-auto select, .overflow-y-auto textarea') ?? panel.value)?.focus(); });
 });
-onBeforeUnmount(() => { document.removeEventListener('keydown', onKey); if (opener && document.contains(opener)) opener.focus?.(); });
+onBeforeUnmount(() => { open.splice(open.indexOf(panel), 1); document.removeEventListener('keydown', onKey); if (opener && document.contains(opener)) opener.focus?.(); });
 </script>
 
 <template>
