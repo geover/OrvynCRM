@@ -27,6 +27,7 @@ function watchIgnoredInput(page) {
 
 export async function login(page, creds = ADMIN) {
     watchIgnoredInput(page);
+    await page.route('https://gravatar.com/**', (r) => r.fulfill({ status: 404, body: '' }));       // the tests never go out to the internet: nobody has a Gravatar here
     await page.goto('/login');
     await submitSignIn(page, creds.email, creds.password);
     try {

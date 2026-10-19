@@ -40,7 +40,7 @@ class TwoFactorChallengeController extends Controller
             return back()->withErrors(['code' => 'That code is not right. Check the time on your phone and try again, or use a recovery code.']);
         }
 
-        return $signIn->complete($request, $identity, (bool) $request->session()->get(SignIn::PENDING)['remember']);
+        return $signIn->complete($request, $identity, (bool) $request->session()->get(SignIn::PENDING)['remember'], (string) ($request->session()->get(SignIn::PENDING)['method'] ?? 'password'), twoStep: true);
     }
 
     private function pending(Request $request): ?AccountUser

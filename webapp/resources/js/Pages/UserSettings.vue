@@ -4,6 +4,7 @@ import { Head, usePage } from '@inertiajs/vue3';
 import { Link2 } from 'lucide-vue-next';
 import PasswordField from '@/Components/PasswordField.vue';
 import PageHeader from '@/Components/PageHeader.vue';
+import RichTextEditor from '@/Components/RichTextEditor.vue';
 import { api } from '@/lib/api';
 import { timezones } from '@/lib/tz';
 import { run } from '@/lib/ui';
@@ -14,7 +15,7 @@ const page = usePage();
 const me = ref(null);
 const profile = ref({ name: '', timezone: 'UTC' });
 const pw = ref({ current_password: '', password: '' });
-const sigEl = ref(null);
+const signature = ref('');
 const blast = ref(null);
 const pwError = ref('');
 const zones = computed(() => timezones(profile.value.timezone));
@@ -23,13 +24,12 @@ const guides = computed(() => Object.entries(page.props.auth.user.permissions?.g
 onMounted(async () => {
     me.value = (await api.get('/me')).data;
     profile.value = { name: me.value.name, timezone: me.value.timezone };
-    requestAnimationFrame(() => { if (sigEl.value) sigEl.value.innerHTML = me.value.signature ?? ''; });
+    signature.value = me.value.signature ?? '';
     blast.value = await api.get('/messages/blast', { user_id: me.value.id });
 });
 
 const saveProfile = () => run(() => api.patch('/me', profile.value), 'Profile saved');
-const saveSignature = () => run(() => api.patch('/me', { signature: sigEl.value.innerHTML.trim() || null }), 'Signature saved');
-const fmt = (cmd) => document.execCommand(cmd);
+const saveSignature = () => run(() => api.patch('/me', { signature: signature.value.trim() || null }), 'Signature saved');
 async function changePassword() {
     pwError.value = '';
     try { await api.patch('/me', pw.value); pw.value = { current_password: '', password: '' }; run(async () => {}, 'Password changed'); }
@@ -53,8 +53,7 @@ const label = (k) => k.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase())
 
         <section class="card space-y-3 p-5">
             <h2 class="text-sm font-semibold">Email signature</h2>
-            <div class="flex gap-1 text-sm"><button class="btn-ghost !px-2 !py-1 font-bold" @click="fmt('bold')">B</button><button class="btn-ghost !px-2 !py-1 italic" @click="fmt('italic')">I</button><button class="btn-ghost !px-2 !py-1 underline" @click="fmt('underline')">U</button></div>
-            <div ref="sigEl" contenteditable class="input min-h-32" />
+            <RichTextEditor v-model="signature" min-height="min-h-32" />
             <p class="text-xs text-slate-400">Appended to every email you send from a contact.</p>
             <button class="btn-primary" @click="saveSignature">Save signature</button>
         </section>

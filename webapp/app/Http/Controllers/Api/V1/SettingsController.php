@@ -131,6 +131,7 @@ class SettingsController extends Controller
             Storage::disk('public')->delete($old);
         }
         Setting::put('app.favicon_path', $request->file('favicon')->store('branding', 'public'));
+        tenant()?->update(['favicon_version' => time()]);                  // the platform's Companies list shows it as the company's icon
 
         return response()->json(['data' => self::branding()]);
     }
@@ -142,6 +143,7 @@ class SettingsController extends Controller
             Storage::disk('public')->delete($old);
         }
         Setting::put('app.favicon_path', null);
+        tenant()?->update(['favicon_version' => null]);
 
         return response()->json(['data' => self::branding()]);
     }

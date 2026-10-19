@@ -8,6 +8,7 @@ use App\Models\SavedQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use InvalidArgumentException;
@@ -55,7 +56,7 @@ class QueryActions
      */
     public function narrowed(Request $request, array $definition): array
     {
-        $d = $request->validate(['search' => ['nullable', 'string', 'max:200'], 'ids' => ['nullable', 'array', 'max:500'], 'ids.*' => ['integer']]);
+        $d = Validator::make($request->only(['search', 'ids']), ['search' => ['nullable', 'string', 'max:200'], 'ids' => ['nullable', 'array', 'max:500'], 'ids.*' => ['integer']])->validate();
         if (filled($d['search'] ?? null)) {
             $definition['_search'] = trim($d['search']);
         }

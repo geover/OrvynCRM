@@ -303,8 +303,8 @@ test.describe('email templates & webhooks', () => {
         await field(m, 'Template name').fill('Welcome mail');
         await field(m, 'Group').fill('Onboarding');
         await field(m, 'Subject').fill('Welcome {{contact.first_name}}');
-        await m.locator('select').selectOption({ label: 'First Name' });                    // "Insert merge field…" appends the token
-        await expect(m.locator('textarea')).toHaveValue(/\{\{contact\.first_name\}\}/);
+        await m.locator('select').filter({ hasText: 'Insert merge field' }).selectOption({ label: 'First Name' });        // puts the token in the message
+        await expect(m.locator('[contenteditable]')).toContainText('{{contact.first_name}}');
         await m.getByRole('button', { name: 'Preview' }).click();
         await expect(m.locator('iframe')).toBeVisible();
         await m.getByRole('button', { name: 'Edit', exact: true }).click();

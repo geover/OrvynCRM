@@ -90,7 +90,7 @@ class SocialAuthController extends Controller
         }
         SocialIdentity::where('account_user_id', $identity->id)->where('provider', $profile['key'])->update(['last_used_at' => now(), 'email' => $profile['email']]);
 
-        return app(SignIn::class)->proven($request, $identity, false);
+        return app(SignIn::class)->proven($request, $identity, false, method: 'social');
     }
 
     /** @param  array<string, mixed>  $profile */

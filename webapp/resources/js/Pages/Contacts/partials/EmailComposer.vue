@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { Paperclip, X } from 'lucide-vue-next';
 import Modal from '@/Components/Modal.vue';
+import RichTextEditor from '@/Components/RichTextEditor.vue';
 import { api } from '@/lib/api';
 import { run, toast } from '@/lib/ui';
 
@@ -20,7 +21,7 @@ const attachments = ref([]);
 const sending = ref(false);
 const showMerge = ref(false);
 const preview = ref(false);
-const bodyEl = ref(null);
+const editor = ref(null);          // the rich text editor of the message
 
 onMounted(async () => {
     const t = await api.get('/email-templates', { light: 1 });
@@ -35,15 +36,12 @@ async function useTemplate() {
     const t = (await api.get(`/email-templates/${templateId.value}`)).data;
     subject.value = t.subject || subject.value;
     html.value = t.html;
-    if (bodyEl.value) bodyEl.value.innerHTML = t.html;
 }
 function insertToken(token) {
-    bodyEl.value?.focus();
-    document.execCommand('insertText', false, token);
-    html.value = bodyEl.value.innerHTML;
+    editor.value?.insertText(token);
     showMerge.value = false;
 }
-const format = (cmd) => { document.execCommand(cmd); html.value = bodyEl.value.innerHTML; };
+const plainText = (h) => new DOMParser().parseFromString(h || '', 'text/html').body.textContent.trim();
 
 async function attach(e) {
     for (const file of e.target.files) {
@@ -57,8 +55,7 @@ async function attach(e) {
 }
 
 async function send(test = false) {
-    html.value = bodyEl.value.innerHTML;
-    if (!subject.value.trim() || !bodyEl.value.innerText.trim()) return toast('Add a subject and a message first.', 'error');
+    if (!subject.value.trim() || !plainText(html.value)) return toast('Add a subject and a message first.', 'error');
     if (props.bulk) { emit('submit', { subject: subject.value, html: html.value, attachments: attachments.value.map(({ path, name }) => ({ path, name })) }); return; }
     sending.value = true;
     const res = await run(() => api.post(`/contacts/${props.contact.id}/email`, {
@@ -84,10 +81,6 @@ async function send(test = false) {
                 <div class="mb-1 flex items-center justify-between">
                     <label class="label !mb-0">Message</label>
                     <div class="relative flex items-center gap-1 text-sm">
-                        <button type="button" class="btn-ghost !px-2 !py-1 font-bold" @click="format('bold')">B</button>
-                        <button type="button" class="btn-ghost !px-2 !py-1 italic" @click="format('italic')">I</button>
-                        <button type="button" class="btn-ghost !px-2 !py-1 underline" @click="format('underline')">U</button>
-                        <button type="button" class="btn-ghost !px-2 !py-1" @click="format('insertUnorderedList')">• List</button>
                         <button type="button" class="btn-outline !px-2 !py-1" @click="showMerge = !showMerge">Merge fields</button>
                         <div v-if="showMerge" class="card absolute right-0 top-9 z-10 max-h-64 w-60 overflow-y-auto p-2 shadow-lg">
                             <template v-for="g in mergeGroups" :key="g.group">
@@ -97,7 +90,7 @@ async function send(test = false) {
                         </div>
                     </div>
                 </div>
-                <div ref="bodyEl" contenteditable class="input min-h-48 max-h-96 overflow-y-auto" @input="html = bodyEl.innerHTML" />
+                <RichTextEditor ref="editor" v-model="html" />
                 <p class="mt-1 text-xs text-slate-400"><template v-if="!bulk">Your signature is added automatically. </template>Merge fields like <code v-text="'{{contact.first_name}}'" /> are filled in per contact.<template v-if="bulk"> Contacts who opted out or are suppressed are skipped, and every e-mail ends with an unsubscribe link.</template></p>
             </div>
 

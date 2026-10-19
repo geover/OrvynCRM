@@ -314,4 +314,25 @@ class ContactRecordApiTest extends TestCase
         $this->assertTrue(Contact::whereKey($ann->id)->exists() && $record->fresh()->exists);          // the contact and the item stay
         $this->assertSame(['Agent'], $object->relationships()->pluck('label')->all());
     }
+
+    public function test_the_message_history_comes_in_pages(): void
+    {
+        $c = Contact::create(['first_name' => 'A', 'email' => 'a@x.io']);
+        foreach (range(1, 5) as $n) {
+            EmailMessage::create(['contact_id' => $c->id, 'subject' => "Mail $n", 'html' => '<p>x</p>', 'from_email' => 'me@x.io', 'to' => [['email' => 'a@x.io']], 'status' => 'sent']);
+        }
+
+        $first = $this->getJson("/api/v1/contacts/{$c->id}/messages?limit=2")->assertOk();
+        $this->assertSame(['Mail 5', 'Mail 4'], collect($first->json('emails'))->pluck('subject')->all());           // newest first
+        $this->assertTrue($first->json('emails_more'));
+
+        $oldest = collect($first->json('emails'))->last()['id'];
+        $next = $this->getJson("/api/v1/contacts/{$c->id}/messages?limit=2&email_before=$oldest")->assertOk();
+        $this->assertSame(['Mail 3', 'Mail 2'], collect($next->json('emails'))->pluck('subject')->all());
+        $this->assertTrue($next->json('emails_more'));
+
+        $last = $this->getJson("/api/v1/contacts/{$c->id}/messages?limit=2&email_before=".collect($next->json('emails'))->last()['id'])->assertOk();
+        $this->assertSame(['Mail 1'], collect($last->json('emails'))->pluck('subject')->all());
+        $this->assertFalse($last->json('emails_more'));                                                                // the end
+    }
 }

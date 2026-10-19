@@ -27,20 +27,24 @@ test('without a photo the list shows an icon by sex with the initials under it; 
     const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
     await page.getByTestId('avatar-file').setInputFiles({ name: 'me.png', mimeType: 'image/png', buffer: png });
     await expect(page.getByTestId('contact-avatar').locator('img')).toHaveAttribute('src', new RegExp(`/files/contacts/${f.id}/avatar\\?v=`));
-    await page.getByTestId('avatar-remove').click({ force: true });
+    await page.getByTestId('contact-avatar').hover();                                           // the remove cross shows on hover
+    await page.getByTestId('avatar-remove').click();
     await expect(page.getByTestId('contact-avatar').locator('img')).toHaveCount(0);
 
     for (const c of [f, m, t]) await api(page, 'DELETE', `/contacts/${c.id}`);
 });
 
 test('a company can switch Gravatar off', async ({ page }) => {
+    const gravatar = async () => (await api(page, 'GET', '/settings')).json.data.gravatar;
     await page.goto('/admin/app-details');
     const box = page.getByTestId('gravatar-toggle');
     await expect(box).toBeChecked();
-    await box.uncheck();
-    await page.getByRole('button', { name: 'Save' }).first().click();
-    expect((await api(page, 'GET', '/settings')).json.data.gravatar).toBe(false);
-    await box.check();
-    await page.getByRole('button', { name: 'Save' }).first().click();
-    expect((await api(page, 'GET', '/settings')).json.data.gravatar).toBe(true);
+    try {
+        await box.uncheck();
+        await page.getByRole('button', { name: 'Save' }).first().click();
+        await expect.poll(gravatar).toBe(false);                      // the save is a request of its own: wait for it
+    } finally {
+        await api(page, 'PUT', '/settings', { gravatar: true });      // leave the company as it was, whatever happened above
+    }
+    await expect.poll(gravatar).toBe(true);
 });

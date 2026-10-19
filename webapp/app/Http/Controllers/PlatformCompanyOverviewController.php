@@ -8,6 +8,7 @@ use App\Models\CompanyInvoice;
 use App\Models\CompanyManualInvoice;
 use App\Models\CompanyUsage;
 use App\Models\DataObject;
+use App\Models\Setting;
 use App\Models\Tenant;
 use App\Models\TenantMetric;
 use App\Models\TenantStat;
@@ -21,6 +22,7 @@ use App\Services\Tenancy\Subscriptions;
 use App\Services\Tenancy\UsageTracker;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -93,6 +95,17 @@ class PlatformCompanyOverviewController extends Controller
             'id' => $o->id, 'name' => $o->name, 'automations' => (int) ($counts[$o->id] ?? 0),
             'services' => $paused->map(fn (array $ids) => ['enabled' => ! in_array($o->id, $ids, true)])->all(),
         ])->all();
+    }
+
+    /** The company's own favicon, for its icon in the platform's lists. Kept by the browser until the company changes it (the address carries the version). */
+    public function favicon(Tenant $tenant): \Symfony\Component\HttpFoundation\Response
+    {
+        return $tenant->run(function () {
+            $path = Setting::get('app.favicon_path');
+            abort_unless($path && Storage::disk('public')->exists($path), 404);
+
+            return Storage::disk('public')->response($path, null, ['Cache-Control' => 'private, max-age=604800, immutable', 'X-Content-Type-Options' => 'nosniff']);
+        });
     }
 
     /** Collect this company's numbers now instead of waiting for the next hourly run. */

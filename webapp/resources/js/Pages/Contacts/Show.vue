@@ -90,6 +90,8 @@ async function destroy() {
     if (!(await confirmDialog({ title: `Delete ${contact.value.full_name}?`, message: 'The contact is moved out of lists. Notes, tasks and links are kept for audit.', danger: true, confirmLabel: 'Delete contact' }))) return;
     if (await run(() => api.delete(`/contacts/${props.contactId}`), 'Contact deleted')) { if (props.embedded) emit('deleted'); else router.visit('/contacts'); }
 }
+// in the wide window the long lists scroll inside it (the header and the tabs stay), and have a Load more at the end of what is shown
+const SCROLLS = ['notes', 'communication', 'activity'];
 const label = (t) => t.replace(/\./g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 // the photo: choose a picture (it is cut to a square and made small on our side), or take it away to go back to Gravatar / the icon
 async function uploadPhoto(e) {
@@ -181,7 +183,7 @@ const navBtn = (active) => [active ? 'bg-brand-50 text-brand-700 font-medium' : 
             </nav>
 
             <!-- tab body -->
-            <section class="min-w-0">
+            <section class="min-w-0" :class="embedded && SCROLLS.includes(tab) && 'max-h-[52vh] overflow-y-auto pr-1'" data-testid="tab-body">
                 <OverviewTab v-if="tab === 'overview'" :contact="contact" :stats="stats" :can-edit="canEdit" :save="patchContact" />
                 <NotesTasksTab v-else-if="tab === 'notes' && allowed('notes')" :contact-id="contactId" :focus-task="focusTask" @changed="load" />
                 <ObjectItemsTab v-else-if="objectTab" :key="objectTab" :contact-id="contactId" :object-id="objectTab" @changed="load" />

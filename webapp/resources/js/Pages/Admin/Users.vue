@@ -3,8 +3,9 @@ import { computed, onMounted, ref } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import { KeyRound, Pencil, Plus, ShieldOff, Trash2 } from 'lucide-vue-next';
 import AdminPage from '@/Components/AdminPage.vue';
+import PeopleBoard from '@/Components/people/PeopleBoard.vue';
+import UserFormFields from '@/Components/people/UserFormFields.vue';
 import Modal from '@/Components/Modal.vue';
-import PasswordField from '@/Components/PasswordField.vue';
 import RequestOutcome from '@/Components/RequestOutcome.vue';
 import SeatMeter from '@/Components/SeatMeter.vue';
 import { api } from '@/lib/api';
@@ -46,13 +47,14 @@ onMounted(load);
 function open(u = null) {
     if (!u && seats.value?.full) return openRequest();       // no free user: ask for more instead
     errors.value = {};
-    draft.value = u ? { id: u.id, name: u.name, email: u.email, role: u.role, status: u.status, permission_template_id: u.permission_template_id ?? '', caller_id: u.caller_id ?? '' }
-        : { name: '', email: '', role: 'user', permission_template_id: templates.value.find((t) => !t.is_admin)?.id ?? '', password: '', password_confirmation: '', link_contact: true };
+    draft.value = u ? { id: u.id, name: u.name, email: u.email, role: u.role, status: u.status, permission_template_id: u.permission_template_id ?? '', caller_id: u.caller_id ?? '', job_title: u.job_title ?? '', phone: u.phone ?? '', timezone: u.timezone ?? 'UTC', notes: u.notes ?? '' }
+        : { name: '', email: '', role: 'user', permission_template_id: templates.value.find((t) => !t.is_admin)?.id ?? '', password: '', password_confirmation: '', link_contact: true, job_title: '', phone: '', timezone: 'UTC', notes: '' };
     modal.value = true;
 }
 async function save() {
     errors.value = {};
     const body = { ...draft.value, permission_template_id: draft.value.permission_template_id || null };
+    delete body.id;                                  // the address says which user
     if (!body.password) { delete body.password; delete body.password_confirmation; }
     else if (body.password !== body.password_confirmation) { errors.value = { password_confirmation: ['The passwords do not match.'] }; return; }
     try {
@@ -74,6 +76,7 @@ async function removeTemplate(t) {
     if (await confirmDialog({ title: `Delete template “${t.name}”?`, danger: true, confirmLabel: 'Delete' })) { await run(() => api.delete(`/permission-templates/${t.id}`), 'Template deleted'); load(); }
 }
 const err = (k) => errors.value[k]?.[0];
+const editing = computed(() => (draft.value.id ? users.value.find((x) => x.id === draft.value.id) ?? null : null));     // the person being edited, as the list now has them (the photo changes without closing)
 </script>
 
 <template>
@@ -83,43 +86,34 @@ const err = (k) => errors.value[k]?.[0];
             <button v-else class="btn-primary" :title="seats?.full ? 'You have reached your user limit' : undefined" @click="open()"><Plus class="size-4" /> {{ seats?.full ? 'Request more users' : 'Add user' }}</button>
         </template>
 
-        <section v-if="seats" class="card mb-4 flex flex-wrap items-center gap-x-6 gap-y-3 p-4" aria-label="User limit" data-testid="seats-panel">
-            <SeatMeter :used="seats.used" :max="seats.max" />
-            <div class="min-w-0 flex-1 text-sm text-slate-500">
-                <template v-if="seats.request?.status === 'pending'"><span class="font-medium text-slate-700">Request sent:</span> you asked for {{ seats.request.requested_limit }} users. The platform will get back to you.</template>
-                <template v-else-if="seats.full">You have reached your limit. Request more users to add people.</template>
-                <template v-else-if="seats.max && seats.left <= 1">{{ seats.left }} {{ seats.left === 1 ? 'seat' : 'seats' }} left.</template>
-                <template v-else>Your company can have up to {{ seats.max }} active users.</template>
-                <div v-if="seats.pricing?.price != null" class="mt-0.5 text-xs text-slate-400">Additional users: {{ fmtMoney(seats.pricing.price, seats.pricing.currency) }} per user per {{ periodLabel(seats.pricing.period) }}.</div>
-                <RequestOutcome v-if="seats.request && seats.request.status !== 'pending'" :request="seats.request" what="users" class="mt-0.5" @dismissed="seats.request = null" />
-            </div>
-            <button v-if="seats.request?.status !== 'pending'" class="btn-outline" data-testid="request-seats" @click="openRequest">Request more users</button>
-        </section>
-
         <div class="mb-4 flex w-fit rounded-lg bg-slate-100 p-1 text-sm">
             <button :class="tab === 'users' ? 'bg-white shadow-sm' : 'text-slate-500'" class="rounded-md px-4 py-1.5" @click="tab = 'users'">Users ({{ users.length }})</button>
             <button :class="tab === 'templates' ? 'bg-white shadow-sm' : 'text-slate-500'" class="rounded-md px-4 py-1.5" @click="tab = 'templates'">Permission templates ({{ templates.length }})</button>
         </div>
 
-        <div v-if="tab === 'users'" class="card table-scroll">
-            <table class="w-full text-sm">
-                <thead class="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Name</th><th class="px-5 py-3">Role</th><th class="px-5 py-3">Permission template</th><th class="px-5 py-3">Status</th><th class="px-5 py-3">Added</th><th /></tr></thead>
-                <tbody class="divide-y divide-slate-100">
-                    <tr v-for="u in users" :key="u.id" class="hover:bg-slate-50">
-                        <td class="px-5 py-3"><div class="font-medium">{{ u.name }} <span v-if="u.two_factor" class="badge ml-1 !bg-emerald-50 !text-emerald-700" title="Signs in with two-step verification" data-testid="user-two-factor">2-step</span></div><div class="text-xs text-slate-400">{{ u.email }}</div></td>
-                        <td class="px-5 py-3 capitalize">{{ u.role }}</td><td class="px-5 py-3">{{ u.template || '—' }}</td>
-                        <td class="px-5 py-3"><span :class="u.status === 'active' ? '!bg-emerald-50 !text-emerald-700' : '!bg-red-50 !text-red-600'" class="badge">{{ u.status }}</span></td>
-                        <td class="px-5 py-3 text-slate-400">{{ fmtDate(u.created_at) }}</td>
-                        <td class="whitespace-nowrap px-3 text-right">
-                            <button class="btn-ghost !px-1.5" title="Edit" @click="open(u)"><Pencil class="size-4" /></button>
-                            <button class="btn-ghost !px-1.5" title="Send password reset" @click="reset(u)"><KeyRound class="size-4" /></button>
-                            <button v-if="u.two_factor" class="btn-ghost !px-1.5" title="Reset two-step verification" data-testid="user-reset-two-factor" @click="resetTwoFactor(u)"><ShieldOff class="size-4" /></button>
-                            <button v-if="u.id !== me.id" class="btn-ghost !px-1.5 text-slate-400 hover:text-red-600" title="Delete" @click="remove(u)"><Trash2 class="size-4" /></button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        <PeopleBoard v-if="tab === 'users'" :people="users" show-template label="Users">
+            <template v-if="seats" #people>
+                <div class="flex flex-wrap items-center gap-x-6 gap-y-3" aria-label="User limit" data-testid="seats-panel">
+                <SeatMeter :used="seats.used" :max="seats.max" />
+                <div class="min-w-0 flex-1 text-sm text-slate-500">
+                    <template v-if="seats.request?.status === 'pending'"><span class="font-medium text-slate-700">Request sent:</span> you asked for {{ seats.request.requested_limit }} users. The platform will get back to you.</template>
+                    <template v-else-if="seats.full">You have reached your limit. Request more users to add people.</template>
+                    <template v-else-if="seats.max && seats.left <= 1">{{ seats.left }} {{ seats.left === 1 ? 'seat' : 'seats' }} left.</template>
+                    <template v-else>Your company can have up to {{ seats.max }} active users.</template>
+                    <div v-if="seats.pricing?.price != null" class="mt-0.5 text-xs text-slate-400">Additional users: {{ fmtMoney(seats.pricing.price, seats.pricing.currency) }} per user per {{ periodLabel(seats.pricing.period) }}.</div>
+                    <RequestOutcome v-if="seats.request && seats.request.status !== 'pending'" :request="seats.request" what="users" class="mt-0.5" @dismissed="seats.request = null" />
+                </div>
+                <button v-if="seats.request?.status !== 'pending'" class="btn-outline" data-testid="request-seats" @click="openRequest">Request more users</button>
+        
+                </div>
+            </template>
+            <template #actions="{ person: u }">
+                <button class="btn-ghost !px-1.5" title="Edit" @click="open(u)"><Pencil class="size-4" /></button>
+                <button class="btn-ghost !px-1.5" title="Send password reset" @click="reset(u)"><KeyRound class="size-4" /></button>
+                <button v-if="u.two_factor" class="btn-ghost !px-1.5" title="Reset two-step verification" data-testid="user-reset-two-factor" @click="resetTwoFactor(u)"><ShieldOff class="size-4" /></button>
+                <button v-if="u.id !== me.id" class="btn-ghost !px-1.5 text-slate-400 hover:text-red-600" title="Delete" @click="remove(u)"><Trash2 class="size-4" /></button>
+            </template>
+        </PeopleBoard>
 
         <div v-else class="card divide-y divide-slate-100">
             <div v-for="t in templates" :key="t.id" class="flex items-center justify-between gap-4 px-5 py-4 text-sm">
@@ -147,18 +141,7 @@ const err = (k) => errors.value[k]?.[0];
 
         <Modal v-if="modal" :title="draft.id ? 'Edit user' : 'Add user'" @close="modal = false">
             <form id="uf" class="space-y-3" @submit.prevent="save">
-                <div><label class="label">Name</label><input v-model="draft.name" class="input" required /><p v-if="err('name')" class="mt-1 text-xs text-red-600">{{ err('name') }}</p></div>
-                <div><label class="label">Email</label><input v-model="draft.email" type="email" class="input" required /><p v-if="err('email')" class="mt-1 text-xs text-red-600">{{ err('email') }}</p></div>
-                <div class="grid gap-3 sm:grid-cols-2">
-                    <div><label class="label">Role</label><select v-model="draft.role" class="input"><option value="user">User</option><option value="manager">Manager</option><option value="admin">Administrator</option></select><p v-if="err('role')" class="mt-1 text-xs text-red-600">{{ err('role') }}</p></div>
-                    <div><label class="label">Permission template</label><select v-model="draft.permission_template_id" class="input"><option value="">None</option><option v-for="t in templates" :key="t.id" :value="t.id">{{ t.name }}</option></select></div>
-                </div>
-                <div v-if="draft.id"><label class="label">Status</label><select v-model="draft.status" class="input"><option value="active">Active</option><option value="suspended">Suspended</option></select><p v-if="err('status')" class="mt-1 text-xs text-red-600">{{ err('status') }}</p></div>
-                <template v-else>
-                    <div><label class="label" for="uf-password">Password <span class="normal-case text-slate-400">(optional)</span></label><PasswordField id="uf-password" v-model="draft.password" check /><p class="mt-1 text-xs text-slate-400">Leave empty to email an invitation link instead.</p><p v-if="err('password')" class="mt-1 text-xs text-red-600">{{ err('password') }}</p></div>
-                    <div v-if="draft.password"><label class="label" for="uf-password-confirm">Confirm password</label><PasswordField id="uf-password-confirm" v-model="draft.password_confirmation" required /><p v-if="err('password_confirmation')" class="mt-1 text-xs text-red-600">{{ err('password_confirmation') }}</p></div>
-                    <label class="flex items-center gap-2 text-sm"><input v-model="draft.link_contact" type="checkbox" class="rounded" /> Link to the existing contact with this email</label>
-                </template>
+                <UserFormFields :draft="draft" :errors="errors" :templates="templates" :photo="editing?.avatar_url" :avatar-url="draft.id ? `/api/v1/users/${draft.id}/avatar` : null" id-prefix="uf" @photo-changed="load" />
             </form>
             <template #footer><button class="btn-ghost" @click="modal = false">Cancel</button><button class="btn-primary" form="uf">Save</button></template>
         </Modal>

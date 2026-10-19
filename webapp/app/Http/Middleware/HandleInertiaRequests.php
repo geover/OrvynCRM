@@ -115,7 +115,7 @@ class HandleInertiaRequests extends Middleware
             'platformThreadsUnread' => fn () => Company::isOpen() && ! Company::isSignInPage($request) && ! Company::isPlatformArea($request) && $request->user()?->isAdmin() && tenancy()->initialized
                 ? MessageThread::unreadForTenant((string) tenant('id'))->count() : 0,
             // who is signed in at the platform level (the platform area has no company profile to show)
-            'identity' => fn () => $identityId && ($who = AccountUser::find($identityId)) ? ['name' => $who->name, 'email' => $who->email] : null,
+            'identity' => fn () => $identityId && ($who = AccountUser::find($identityId)) ? ['name' => $who->name, 'email' => $who->email, 'avatar_url' => $who->avatarUrl()] : null,
             'platform' => fn () => $identityId && AccountUser::whereKey($identityId)->where('is_platform_admin', true)->exists(),
             'flash' => ['success' => fn () => $request->session()->get('success'), 'warning' => fn () => $request->session()->get('warning')],
         ]);

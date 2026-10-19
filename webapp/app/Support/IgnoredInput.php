@@ -19,6 +19,9 @@ class IgnoredInput
     /** @var list<string> */
     private static array $found = [];
 
+    /** @var list<string> */
+    private static array $covered = [];
+
     public static function install(): void
     {
         Validator::resolver(fn ($translator, $data, $rules, $messages, $attributes) => new class($translator, $data, $rules, $messages, $attributes) extends BaseValidator
@@ -45,7 +48,10 @@ class IgnoredInput
         }
         $allowed = (array) config('ignored_input.allowed', []);
         $kept = array_keys(Arr::dot($validated));
-        foreach (array_keys(Arr::dot($sent)) as $key) {
+        foreach (Arr::dot($sent) as $key => $value) {
+            if ($value === []) {
+                continue;                                           // an empty list is left out of validated() whatever its rules: nothing was lost
+            }
             $generic = preg_replace('/\.\d+(?=\.|$)/', '.*', $key);
             if (in_array($key, $kept, true) || str_starts_with($key, '_') || array_filter($allowed, fn ($a) => fnmatch($a, $generic) || fnmatch($a, $key))) {
                 continue;
@@ -54,11 +60,17 @@ class IgnoredInput
         }
     }
 
+    /** The fields under `$prefix` are checked by the code that uses them (a data object's own field rules, say), so they are not reported here. */
+    public static function covers(string $prefix): void
+    {
+        self::$covered[] = $prefix;
+    }
+
     /** @return list<string> */
     public static function take(): array
     {
-        $found = array_values(array_unique(self::$found));
-        self::$found = [];
+        $found = array_values(array_filter(array_unique(self::$found), fn ($f) => ! collect(self::$covered)->contains(fn ($c) => $f === $c || str_starts_with($f, $c.'.'))));
+        self::$found = self::$covered = [];
 
         return $found;
     }

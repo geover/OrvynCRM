@@ -236,7 +236,7 @@ test.describe('data import & export', () => {
             `Bob,Import,${state.imp}-b@example.com,Imp Co`,
         ]) });
         await expect(page.getByText('rows found')).toContainText('2');
-        const tbl = page.locator('table').first();
+        const tbl = page.getByTestId('mapping-table');
         await expect(tbl.locator('tbody tr')).toHaveCount(4);
         // auto-mapping guessed every column, including the "Company" alias
         const companyRow = tbl.locator('tbody tr').filter({ has: page.locator('td:first-child', { hasText: /^Company$/ }) });

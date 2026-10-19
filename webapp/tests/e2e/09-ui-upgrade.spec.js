@@ -236,6 +236,9 @@ test.describe('dashboard', () => {
         await expect(feed).toContainText('Feed note title');
         await expect(feed).toContainText('just now');
         await feed.getByRole('link', { name: new RegExp(c.last_name) }).first().click();
+        await expect(page.getByRole('dialog', { name: 'Contact' })).toBeVisible();                  // the contact opens in the wide window
+        await expect(page).toHaveURL(/127\.0\.0\.1:8123\/$/);
+        await page.getByTestId('contact-open-page').click();                                         // and has a page of its own
         await expect(page).toHaveURL(new RegExp(`/contacts/${c.id}$`));
     });
 

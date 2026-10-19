@@ -64,6 +64,18 @@ test.describe('platform administrators', () => {
         await expect(page.getByRole('heading', { name: 'Platform administrators' })).toBeVisible();
         await expect(page.locator('tr[data-admin="platform@orvyncrm.test"]').getByRole('button', { name: 'Demote' })).toBeDisabled();
 
+        // who they are and how active: the numbers on top, the sign-in that was just made, and the detail of a row
+        await expect(page.getByTestId('admin-summary')).toContainText('Online now');
+        const me = page.locator('tr[data-admin="platform@orvyncrm.test"]');
+        await expect(me).toHaveAttribute('data-activity', 'online');                                  // signed in a moment ago
+        await expect(me).toContainText('Online now');
+        await me.getByTestId('admin-expand').click();
+        await expect(page.locator('[data-detail="platform@orvyncrm.test"]')).toContainText('Latest sign-ins');
+        await expect(page.locator('[data-detail="platform@orvyncrm.test"]')).toContainText('Password');
+        await page.getByTestId('admin-search').fill('zzz-nobody');
+        await expect(page.getByText('No administrator matches.')).toBeVisible();
+        await page.getByTestId('admin-search').fill('');
+
         await page.getByRole('button', { name: 'Add administrator' }).click();
         const dialog = page.getByRole('dialog');
         await dialog.locator('input').nth(0).fill('Second Platform');
@@ -74,9 +86,17 @@ test.describe('platform administrators', () => {
         await expect(row).toContainText('Second Platform');
 
         await row.getByRole('button', { name: 'Edit' }).click();
-        await page.getByRole('dialog').locator('input').nth(0).fill('Renamed Platform');
-        await page.getByRole('dialog').getByRole('button', { name: 'Save' }).click();
+        const edit = page.getByRole('dialog');
+        await edit.locator('div:has(> label:text-is("Name")) input').fill('Renamed Platform');
+        await edit.locator('div:has(> label:text-is("Job title")) input').fill('Head of support');
+        await edit.locator('div:has(> label:text-is("Phone")) input').fill('+15550100');
+        const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+        await edit.getByTestId('admin-photo-file').setInputFiles({ name: 'me.png', mimeType: 'image/png', buffer: png });
+        await expect(edit.getByTestId('admin-photo').locator('img')).toBeVisible();                       // the photo shows at once
+        await edit.getByRole('button', { name: 'Save' }).click();
         await expect(row).toContainText('Renamed Platform');
+        await expect(row).toContainText('Head of support');
+        await expect(row.locator('img').first()).toBeVisible();                                           // the photo is the avatar in the list
 
         await row.getByRole('button', { name: 'Demote' }).click();
         await page.locator('#keep-in').selectOption({ label: 'Other Co' });

@@ -16,6 +16,8 @@ installUnsavedGuard();
 // The platform area: all companies. No company is open here, so there is no company sidebar or search. It has its own
 // look (the platform's colour and its own light/dark choice), whatever a company has set for itself.
 const page = usePage();
+// shown inside a pop-up (a company's overview in the Companies list): only the page itself, without the menu around it
+const embedded = typeof window !== 'undefined' && window.self !== window.top;
 useFavicon();
 const brand = computed(() => page.props.app);
 const identity = computed(() => page.props.identity);
@@ -26,7 +28,7 @@ const logout = () => router.post('/logout');
 // The Messages badge follows new messages without a page load; a fresh page load (props) takes over again.
 const badgeCount = (key) => (key === 'platformMessagesUnread' ? (liveCounts.platformMessages ?? page.props[key]) : page.props[key]);
 watch(() => page.props.platformMessagesUnread, () => { liveCounts.platformMessages = null; });
-usePolling(async () => { liveCounts.platformMessages = (await getJson('/platform/messages/poll', { counts: 1 })).unread; }, { every: 15000 });
+embedded || usePolling(async () => { liveCounts.platformMessages = (await getJson('/platform/messages/poll', { counts: 1 })).unread; }, { every: 15000 });
 
 const open = ref(false);
 const groups = [
@@ -55,11 +57,11 @@ const themes = [['system', 'System', SunMoon], ['light', 'Light', Sun], ['dark',
 </script>
 
 <template>
-    <a href="#main" class="skip-link">Skip to main content</a>
+    <a v-if="!embedded" href="#main" class="skip-link">Skip to main content</a>
     <Hosts />
     <div class="min-h-screen lg:flex">
-        <div v-if="open" class="fixed inset-0 z-20 bg-slate-900/40 lg:hidden" @click="open = false" />
-        <aside :class="open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'" class="fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-slate-200 bg-white transition-transform lg:sticky lg:top-0 lg:h-screen">
+        <div v-if="open && !embedded" class="fixed inset-0 z-20 bg-slate-900/40 lg:hidden" @click="open = false" />
+        <aside v-if="!embedded" :class="open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'" class="fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-slate-200 bg-white transition-transform lg:sticky lg:top-0 lg:h-screen">
             <div class="flex items-center justify-between px-5 py-5">
                 <Link href="/platform" class="flex items-center gap-2 font-semibold" @click="open = false"><img :src="brand.mark_url ?? '/brand/orvyn-mark.svg'" alt="" class="size-8" /><span class="leading-tight">{{ brand.name }}<span class="block text-[11px] font-medium uppercase tracking-wide text-slate-400">Platform</span></span></Link>
                 <button class="btn-ghost !p-1.5 lg:hidden" aria-label="Close menu" @click="open = false"><X class="size-4" /></button>
@@ -81,14 +83,14 @@ const themes = [['system', 'System', SunMoon], ['light', 'Light', Sun], ['dark',
                     </div>
                 </div>
                 <DarkStylePicker v-if="platformTheme !== 'light'" v-model="platformDarkStyle" />
-                <div v-if="identity" class="min-w-0"><div class="truncate font-medium">{{ identity.name }}</div><div class="truncate text-xs text-slate-500">{{ identity.email }}</div></div>
+                <div v-if="identity" class="flex min-w-0 items-center gap-2.5"><img v-if="identity.avatar_url" :src="identity.avatar_url" alt="" class="size-8 shrink-0 rounded-full object-cover" /><div class="min-w-0"><div class="truncate font-medium">{{ identity.name }}</div><div class="truncate text-xs text-slate-500">{{ identity.email }}</div></div></div>
                 <Link href="/platform/security" class="btn-ghost w-full !justify-start" data-testid="platform-my-security"><KeyRound class="size-4" /> Sign-in security</Link>
                 <button class="btn-ghost w-full !justify-start" @click="logout"><LogOut class="size-4" /> Sign out</button>
             </div>
         </aside>
 
         <div class="min-w-0 flex-1">
-            <header class="sticky top-0 z-10 flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 lg:hidden">
+            <header v-if="!embedded" class="sticky top-0 z-10 flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 lg:hidden">
                 <button class="btn-ghost !p-1.5" aria-label="Open menu" @click="open = true"><Menu class="size-5" /></button>
                 <img :src="brand.mark_url ?? '/brand/orvyn-mark.svg'" alt="" class="size-6" /><span class="font-semibold">Platform</span>
             </header>

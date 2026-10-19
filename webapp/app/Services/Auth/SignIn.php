@@ -19,25 +19,26 @@ class SignIn
     public function __construct(private readonly CompanySession $companies, private readonly TwoFactor $twoFactor) {}
 
     /** @param  bool  $secondStepDone  the way they came in already counts as strong (a passkey): no code is asked for */
-    public function proven(Request $request, AccountUser $identity, bool $remember, bool $secondStepDone = false): RedirectResponse
+    public function proven(Request $request, AccountUser $identity, bool $remember, bool $secondStepDone = false, string $method = 'password'): RedirectResponse
     {
         if (! $secondStepDone && $this->twoFactor->isEnabled($identity)) {
             // Not signed in yet: only this browser session knows who is being asked, for ten minutes
             $request->session()->regenerate();
-            $request->session()->put(self::PENDING, ['id' => $identity->id, 'remember' => $remember, 'until' => now()->addMinutes(10)->getTimestamp()]);
+            $request->session()->put(self::PENDING, ['id' => $identity->id, 'remember' => $remember, 'until' => now()->addMinutes(10)->getTimestamp(), 'method' => $method]);
 
             return redirect('/two-factor-challenge');
         }
 
-        return $this->complete($request, $identity, $remember);
+        return $this->complete($request, $identity, $remember, $method, twoStep: $secondStepDone || $this->twoFactor->isEnabled($identity));
     }
 
     /** Opens the session. */
-    public function complete(Request $request, AccountUser $identity, bool $remember): RedirectResponse
+    public function complete(Request $request, AccountUser $identity, bool $remember, string $method = 'password', bool $twoStep = false): RedirectResponse
     {
         $request->session()->regenerate();
         $request->session()->forget(self::PENDING);
         $request->session()->put('identity_id', $identity->id);
+        app(AccountSessions::class)->open($request, $identity, $method, $twoStep);                 // the record of this sign-in
 
         $mine = $this->companies->companiesFor($identity);
         if ($mine->count() === 1) {

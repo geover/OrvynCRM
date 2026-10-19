@@ -8,7 +8,22 @@ import PasswordField from '@/Components/PasswordField.vue';
 import SeatMeter from '@/Components/SeatMeter.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import TierChangeDialog from '@/Components/company/TierChangeDialog.vue';
+import { useStored } from '@/lib/stored';
 import { confirmDialog, fmtDate, fmtRelative, toast } from '@/lib/ui';
+
+// a company's overview opens in a wide pop-up over the list (the page itself in a frame), with a link to open it as a page
+const overviewing = ref(null);
+const inFrame = typeof window !== 'undefined' && window.self !== window.top;                 // never a pop-up inside a pop-up
+const openIn = useStored('platform:company-open', 'window');                              // 'window' (the pop-up) or 'page': the choice is kept in this browser
+function openOverview(c, e) {
+    if (inFrame || e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return;
+    e.preventDefault();
+    if (openIn.value === 'page') return router.visit(`/platform/companies/${c.id}`);
+    frameReady.value = false;
+    overviewing.value = c;
+}
+const frameReady = ref(false);
+const closeOverview = () => { overviewing.value = null; router.reload({ preserveScroll: true }); };            // what was changed in there shows in the list
 
 const props = defineProps({ companies: Array, email: String, inactivity: Object, tiers: Array, trial_months: Number });
 const page = usePage();
@@ -103,7 +118,13 @@ const open = (c) => router.post(`/platform/companies/${c.id}/open`);
             :class="view === v ? 'border-brand-600 bg-brand-50 font-medium text-brand-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'" @click="view = v">
             {{ label }} <span class="ml-1 tabular-nums" :class="v === 'inactive' && counts.inactive ? 'font-semibold text-amber-700' : 'text-slate-400'">{{ counts[v] }}</span>
         </button>
-        <Link href="/platform/settings/inactive-companies" class="ml-auto text-xs text-slate-500 hover:text-brand-700 hover:underline">Inactive after {{ inactivityDays }} days{{ inactivity?.enabled ? '' : ' (check is off)' }}</Link>
+        <div class="ml-auto flex items-center gap-2 text-xs text-slate-500" data-testid="open-mode">
+            <span id="open-mode-label">Open a company in</span>
+            <div class="flex rounded-lg bg-slate-100 p-0.5" role="group" aria-labelledby="open-mode-label">
+                <button v-for="[v, label] in [['window', 'Window'], ['page', 'Full page']]" :key="v" type="button" :aria-pressed="openIn === v" :data-testid="`open-${v}`" class="rounded-md px-2.5 py-1 font-medium transition" :class="openIn === v ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'" @click="openIn = v">{{ label }}</button>
+            </div>
+        </div>
+        <Link href="/platform/settings/inactive-companies" class="text-xs text-slate-500 hover:text-brand-700 hover:underline">Inactive after {{ inactivityDays }} days{{ inactivity?.enabled ? '' : ' (check is off)' }}</Link>
     </div>
     <div v-if="counts.inactive && view !== 'inactive'" class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status" data-testid="inactive-banner">
         <span class="flex items-center gap-2"><Hourglass class="size-4 shrink-0" /> {{ counts.inactive }} {{ counts.inactive === 1 ? 'company has' : 'companies have' }} had no activity for {{ inactivityDays }} days or more.</span>
@@ -117,8 +138,8 @@ const open = (c) => router.post(`/platform/companies/${c.id}/open`);
             </tr></thead>
             <tbody class="divide-y divide-slate-100">
                 <tr v-for="c in rows" :key="c.id" :data-company="c.slug" :class="c.inactive && 'bg-amber-50/40'">
-                    <td class="px-4 py-3"><div class="flex items-center gap-3"><span class="hidden size-9 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600 sm:grid"><Building2 class="size-4" /></span>
-                        <div class="min-w-0"><Link :href="`/platform/companies/${c.id}`" class="block truncate font-medium hover:underline" :data-overview="c.slug">{{ c.name }}</Link><div class="truncate text-xs text-slate-400">{{ c.slug }}</div><div class="truncate font-mono text-[11px] text-slate-400" :title="`Database: ${c.database}`" data-testid="company-database"><Database class="mr-1 inline size-3 align-[-1px]" />{{ c.database }}</div></div></div></td>
+                    <td class="px-4 py-3"><div class="flex items-center gap-3"><span class="hidden size-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-brand-50 text-brand-600 sm:grid" data-testid="company-icon"><img v-if="c.favicon_url" :src="c.favicon_url" :alt="`${c.name} icon`" class="size-9 object-contain p-1" loading="lazy" /><Building2 v-else class="size-4" /></span>
+                        <div class="min-w-0"><a :href="`/platform/companies/${c.id}`" class="block truncate font-medium hover:underline" :data-overview="c.slug" @click="openOverview(c, $event)">{{ c.name }}</a><div class="truncate text-xs text-slate-400">{{ c.slug }}</div><div class="truncate font-mono text-[11px] text-slate-400" :title="`Database: ${c.database}`" data-testid="company-database"><Database class="mr-1 inline size-3 align-[-1px]" />{{ c.database }}</div></div></div></td>
                     <td class="px-3 py-3"><span class="badge" :class="c.status === 'active' ? '!bg-emerald-50 !text-emerald-700' : c.status === 'closed' ? '!bg-slate-200 !text-slate-700' : '!bg-amber-50 !text-amber-700'">{{ c.status }}</span><div v-if="c.status_note && c.status !== 'active'" class="mt-1 max-w-40 truncate text-xs text-slate-400" :title="c.status_note">{{ c.status_note }}</div>
                         <div class="mt-1 whitespace-nowrap text-xs text-slate-500" data-cell="plan">Tier {{ c.tier }}<span v-if="c.trial.state === 'trial'" class="ml-1 text-sky-700" data-testid="trial-badge">· trial, {{ c.trial.days_left }}d left</span><span v-else-if="c.trial.state === 'expired'" class="ml-1 font-medium text-red-600" data-testid="trial-ended-badge">· trial ended</span><Link v-if="c.usage_level !== 'ok'" href="/platform/usage" class="ml-1 rounded-full px-1.5 py-0.5 text-[11px] font-medium" :class="c.usage_level === 'at' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'" :data-testid="`usage-${c.usage_level}`" :title="c.usage_level === 'at' ? 'At a limit of its plan' : 'Near a limit of its plan (80% or more)'">{{ c.usage_level === 'at' ? 'at limit' : 'near limit' }}</Link><span v-if="c.subscription" class="ml-1" :class="['active', 'trialing'].includes(c.subscription) ? 'text-emerald-700' : 'text-amber-700'" data-testid="subscription-badge">· {{ { active: 'paying', trialing: 'subscribed', past_due: 'payment late', canceled: 'cancelled', unpaid: 'unpaid' }[c.subscription] ?? c.subscription }}</span></div></td>
                     <td class="px-3 py-3"><SeatMeter :used="c.users" :max="c.max_users" compact /><Link v-if="c.pending_user_requests" href="/platform/seat-requests" class="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800" data-testid="company-request-badge">asks for more</Link><Link v-if="c.pending_other_requests" href="/platform/seat-requests" class="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800 xl:hidden" data-testid="company-request-badge-narrow">asks for more</Link></td>
@@ -218,4 +239,14 @@ const open = (c) => router.post(`/platform/companies/${c.id}/open`);
 
     <!-- after the edit window, so it opens on top of it -->
     <TierChangeDialog v-if="tierDialog" :data="tierDialog" :processing="editForm.processing" :error="tierError" @cancel="tierDialog = null" @confirm="send" />
+
+    <Modal v-if="overviewing" :title="overviewing.name" width="max-w-7xl" @close="closeOverview">
+        <div class="mb-2 flex justify-end"><Link :href="`/platform/companies/${overviewing.id}`" class="text-sm text-brand-700 hover:underline" data-testid="overview-full-page">Open as a full page</Link></div>
+        <div class="relative">
+            <div v-if="!frameReady" class="absolute inset-0 z-10 grid place-items-center rounded-lg bg-white/90 text-sm text-slate-500" role="status" aria-live="polite" data-testid="overview-loading">
+                <div class="w-64 space-y-3"><div class="h-4 w-2/3 animate-pulse rounded bg-slate-200" /><div class="h-3 animate-pulse rounded bg-slate-100" /><div class="h-3 w-5/6 animate-pulse rounded bg-slate-100" /><p class="pt-1 text-center">Opening {{ overviewing.name }}…</p></div>
+            </div>
+            <iframe :src="`/platform/companies/${overviewing.id}`" :title="`${overviewing.name}: overview`" class="h-[72vh] w-full rounded-lg border border-slate-200 bg-white" data-testid="overview-frame" @load="frameReady = true" />
+        </div>
+    </Modal>
 </template>

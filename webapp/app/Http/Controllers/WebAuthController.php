@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AccountUser;
 use App\Models\Tenant;
+use App\Services\Auth\AccountSessions;
 use App\Services\Auth\SignIn;
 use App\Services\Auth\SignInSecurity;
 use App\Services\Auth\SocialProviders;
@@ -78,6 +79,7 @@ class WebAuthController extends Controller
 
     public function destroy(Request $request): RedirectResponse
     {
+        app(AccountSessions::class)->close($request);                       // the sign-in ends here
         Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

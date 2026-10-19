@@ -78,7 +78,7 @@ class SavedQueryController extends Controller
 
     public function preview(Request $request, QueryRunner $runner): JsonResponse
     {
-        $d = $request->validate(['scope' => ['required', Rule::in(['contact', 'data_object'])], 'definition' => ['present', 'array']]);
+        $d = $request->validate(['scope' => ['required', Rule::in(['contact', 'data_object'])], 'definition' => ['present', 'array'], 'limit' => ['nullable', 'integer', 'min:1', 'max:200']]);
 
         return $this->execute($request, $runner, $d['scope'], $d['definition']);
     }

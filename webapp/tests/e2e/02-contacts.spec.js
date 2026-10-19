@@ -189,7 +189,7 @@ test.describe('notes & tasks', () => {
         await expect(row).toBeVisible();
         await row.locator('input[type=checkbox]').check();
         await expect(row).toHaveCount(0);                                   // moves out of "Open"
-        await page.locator('main select').selectOption('done');
+        await page.getByLabel('Show tasks that are').selectOption('done');
         await expect(row).toBeVisible();
         await expect(row.locator('input[type=checkbox]')).toBeChecked();
     });
@@ -283,7 +283,7 @@ test.describe('relationships, attachments, merge', () => {
 
     test('attachments: upload a file, attach a link, download, delete', async ({ page }) => {
         await openContact(page, state.contactId, 'attachments');
-        await page.locator('input[type=file]').setInputFiles({ name: 'quote.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 test') });
+        await page.getByLabel('Upload files').setInputFiles({ name: 'quote.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 test') });
         await expect(page.locator('.card', { hasText: 'quote.pdf' })).toBeVisible();
 
         await page.getByRole('button', { name: 'Attach link' }).click();

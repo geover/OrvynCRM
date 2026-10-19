@@ -14,7 +14,7 @@ const indirect = by('indirect');
 const add = (kind) => items.value.push({ id: null, label: '', description: '', kind });
 const remove = (i) => items.value.splice(i, 1);
 async function save() {
-    const r = await run(() => api.put('/contact-relationship-types', { items: items.value }), 'Relationships saved');
+    const r = await run(() => api.put('/contact-relationship-types', { items: items.value.map(({ id, label, description, kind }) => ({ id, label, description, kind })) }), 'Relationships saved');
     if (r?.data) items.value = r.data;
 }
 </script>

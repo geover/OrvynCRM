@@ -74,11 +74,14 @@ test('each company has an overview with its contacts, data objects, records and 
     await expect(row.locator('[data-cell="records"]')).toHaveText(/\d/);
 
     await row.locator('[data-overview="demo"]').click();
+    await expect(page.getByTestId('overview-frame')).toBeVisible();                                  // the overview opens in a wide pop-up
+    await expect(page).toHaveURL(/\/platform$/);
+    await page.getByTestId('overview-full-page').click();                                            // and can be opened as a page
     await expect(page).toHaveURL(/\/platform\/companies\/[a-z0-9]+$/);
     await expect(page.getByRole('heading', { name: 'Demo Company', level: 1 })).toBeVisible();
     for (const key of ['contacts', 'data_objects', 'records', 'users']) await expect(page.locator(`[data-count="${key}"]`)).toBeVisible();
     await expect(page.locator('[data-count="contacts"]')).not.toHaveText(/^Contacts0(?!\d)/);                  // not zero
-    await expect(page.getByRole('heading', { name: 'Records per data object' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Data objects', exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Everything else it holds' })).toBeVisible();
     await expect(page.locator('[data-other="Tasks (open)"]')).toBeVisible();
     await expect(page.locator('[data-other="Notes"]')).toBeVisible();
@@ -119,7 +122,7 @@ test('dashboard and company page cards can be moved, hidden, shown again and res
     await expect(page.getByTestId('reset-layout')).toBeDisabled();
 
     await page.goto('/platform');                                                                    // the company page has its own board
-    await page.locator('a[href^="/platform/companies/"]').first().click();
+    await page.goto(await page.locator('a[href^="/platform/companies/"]').first().getAttribute('href'));          // the overview as a page (in the list it opens in a pop-up)
     await expect(page.getByTestId('card-board')).toBeVisible();
     await page.locator('[data-card="other"]').hover();
     await page.locator('[data-card="other"]').getByTestId('card-hide').click();
@@ -127,4 +130,39 @@ test('dashboard and company page cards can be moved, hidden, shown again and res
     await page.getByTestId('hidden-cards-button').click();
     await page.locator('[data-show="other"]').click();
     await expect(page.locator('[data-card="other"]')).toBeVisible();
+});
+
+test('the Companies list can open a company in a window or as a full page, and remembers the choice', async ({ page }) => {
+    await signIn(page, 'platform@orvyncrm.test');
+    await expect(page).toHaveURL(/\/platform$/);
+    await expect(page.getByTestId('open-window')).toHaveAttribute('aria-pressed', 'true');           // the window is the default
+    await page.getByTestId('open-page').click();
+    await page.reload();
+    await expect(page.getByTestId('open-page')).toHaveAttribute('aria-pressed', 'true');             // kept in this browser
+
+    await page.locator('tr[data-company="demo"] [data-overview="demo"]').click();
+    await expect(page).toHaveURL(/\/platform\/companies\/[a-z0-9]+$/);                                // straight to the page, no window
+    await expect(page.getByTestId('overview-frame')).toHaveCount(0);
+});
+
+test('the Usage page: the platform in numbers, a trend, and each company with its details, search and sort', async ({ page }) => {
+    await signIn(page, 'platform@orvyncrm.test');
+    await expect(page).toHaveURL(/\/platform$/);
+    await page.goto('/platform/usage');
+    await expect(page.getByRole('heading', { name: 'Usage', level: 1 })).toBeVisible();
+    await expect(page.getByTestId('usage-summary')).toContainText('Texts sent');
+    await expect(page.getByTestId('usage-summary')).toContainText('E-mails sent');
+    await expect(page.getByRole('img', { name: 'Texts sent per month' })).toBeVisible();
+
+    const first = page.locator('[data-testid="usage-table"] tbody tr[data-company]').first();
+    await expect(first).toBeVisible();
+    await first.getByTestId('usage-expand').click();                                                  // the detail: six months, this month's work, alerts
+    await expect(page.locator('[data-detail]').first()).toContainText('Last six months');
+    await expect(page.locator('[data-detail]').first()).toContainText('Alerts sent to the company');
+
+    await page.getByTestId('usage-search').fill('zzz-no-such-company');
+    await expect(page.getByText('No company matches.')).toBeVisible();
+    await page.getByTestId('usage-search').fill('');
+    await page.getByTestId('usage-sort').selectOption('name');
+    await expect(first).toBeVisible();
 });

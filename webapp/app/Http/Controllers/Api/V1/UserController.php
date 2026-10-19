@@ -6,32 +6,39 @@ use App\Http\Controllers\Controller;
 use App\Models\AccountUser;
 use App\Models\Contact;
 use App\Models\User;
+use App\Services\Auth\SignInActivity;
 use App\Services\Auth\TwoFactor;
 use App\Services\Tenancy\CallSettings;
 use App\Services\Tenancy\CompanyCallerIds;
 use App\Services\Tenancy\CompanyUsers;
+use App\Services\Tenancy\UserProfiles;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password as PasswordBroker;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Symfony\Component\HttpFoundation\Response;
 
 class UserController extends Controller
 {
-    private const ADMIN_COLUMNS = ['id', 'name', 'email', 'role', 'status', 'permission_template_id', 'caller_id', 'contact_id', 'timezone', 'created_at'];
+    private const ADMIN_COLUMNS = ['id', 'name', 'email', 'role', 'status', 'permission_template_id', 'caller_id', 'contact_id', 'timezone', 'created_at', 'phone', 'job_title', 'notes'];
 
-    public function index(Request $request): JsonResponse
+    public function index(Request $request, SignInActivity $signIns, UserProfiles $profiles): JsonResponse
     {
         // Light list for assignee pickers is open to all; full detail is admin-only.
         $admin = $request->user()->isAdmin();
         $q = User::listed()->orderBy('name');
         $admin && $q->with('permissionTemplate:id,name');
 
-        $rows = $q->get($admin ? [...self::ADMIN_COLUMNS, 'central_user_id'] : ['id', 'name']);
+        $rows = $q->get($admin ? [...self::ADMIN_COLUMNS, 'central_user_id', 'avatar_path', 'avatar_updated_at'] : ['id', 'name']);
         $secured = $admin ? AccountUser::whereIn('id', $rows->pluck('central_user_id')->filter())->whereNotNull('two_factor_confirmed_at')->pluck('id')->all() : [];
+        // when they were last here and how long they stay: this company's part of their sign-ins
+        $activity = $admin ? $signIns->for($rows->pluck('central_user_id'), (string) tenant('id')) : [];
 
         return response()->json(['data' => $rows->map(fn ($u) => $admin
-            ? collect($u->toArray())->except('central_user_id')->all() + ['template' => $u->permissionTemplate?->name, 'two_factor' => in_array($u->central_user_id, $secured, true)]
+            ? collect($u->toArray())->except(['central_user_id', 'avatar_path', 'avatar_updated_at'])->all()
+                + ['template' => $u->permissionTemplate?->name, 'two_factor' => in_array($u->central_user_id, $secured, true), 'avatar_url' => $profiles->url($u, '/files/users')]
+                + ($activity[$u->central_user_id] ?? $signIns->blank())
             : $u->only(['id', 'name']))]);
     }
 
@@ -39,7 +46,7 @@ class UserController extends Controller
      * Add a user to this company. Without a password an invitation (set-password link) is e-mailed instead.
      * An email that already has an account (another company) is simply added here and keeps its password.
      */
-    public function store(Request $request, CompanyUsers $users, CallSettings $calls, CompanyCallerIds $callerIds): JsonResponse
+    public function store(Request $request, CompanyUsers $users, CallSettings $calls, CompanyCallerIds $callerIds, UserProfiles $profiles): JsonResponse
     {
         abort_unless($request->user()->isAdmin(), 403);
         $data = $request->validate([
@@ -49,7 +56,7 @@ class UserController extends Controller
             'permission_template_id' => ['nullable', 'exists:permission_templates,id'],
             'caller_id' => ['nullable', 'string', 'max:40'],
             'link_contact' => ['boolean'],
-        ]);
+        ] + $profiles->rules());
 
         if (isset($data['caller_id'])) {
             $calls->ensureCompaniesMaySet();
@@ -62,7 +69,7 @@ class UserController extends Controller
         return response()->json(['data' => $result['user']->only(['id', 'name', 'email', 'role']), 'invited' => $result['invited'], 'existing_account' => $result['existing']], 201);
     }
 
-    public function update(Request $request, User $user, CompanyUsers $users, CallSettings $calls, CompanyCallerIds $callerIds): JsonResponse
+    public function update(Request $request, User $user, CompanyUsers $users, CallSettings $calls, CompanyCallerIds $callerIds, UserProfiles $profiles): JsonResponse
     {
         abort_unless($request->user()->isAdmin(), 403);
         abort_if($user->is_platform_support, 404);
@@ -72,7 +79,7 @@ class UserController extends Controller
             'role' => ['sometimes', Rule::in(['admin', 'manager', 'user'])], 'status' => ['sometimes', Rule::in(['active', 'suspended'])],
             'permission_template_id' => ['nullable', 'exists:permission_templates,id'],
             'caller_id' => ['nullable', 'string', 'max:40'],
-        ]);
+        ] + $profiles->rules());
 
         if (array_key_exists('caller_id', $data) && ($data['caller_id'] ?? null) !== $user->caller_id) {
             $calls->ensureCompaniesMaySet();
@@ -91,6 +98,34 @@ class UserController extends Controller
         }
 
         return response()->json(['data' => $user->only(self::ADMIN_COLUMNS)]);
+    }
+
+    /** A person's photo, cut to a small square once. */
+    public function uploadAvatar(Request $request, User $user, UserProfiles $profiles): JsonResponse
+    {
+        abort_unless($request->user()->isAdmin() || $request->user()->is($user), 403);
+        abort_if($user->is_platform_support, 404);
+        $request->validate(['file' => ['required', 'file', 'max:5120', 'mimes:png,jpg,jpeg,webp,gif']]);
+        $profiles->save($user, $request->file('file'));
+
+        return response()->json(['data' => ['avatar_url' => $profiles->url($user->fresh(), '/files/users')]]);
+    }
+
+    public function removeAvatar(Request $request, User $user, UserProfiles $profiles): JsonResponse
+    {
+        abort_unless($request->user()->isAdmin() || $request->user()->is($user), 403);
+        abort_if($user->is_platform_support, 404);
+        $profiles->remove($user);
+
+        return response()->json(['data' => ['avatar_url' => null]]);
+    }
+
+    /** The photo itself: anybody signed in to the company may see it. */
+    public function avatar(User $user, UserProfiles $profiles): Response
+    {
+        abort_if($user->is_platform_support, 404);
+
+        return $profiles->response($user);
     }
 
     /** What the Phone page needs to know: the platform's default caller ID, and whether the company may set its own. */

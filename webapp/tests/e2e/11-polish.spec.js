@@ -120,6 +120,7 @@ test.describe('accessibility', () => {
         await expect(page.locator('main#main')).toBeFocused();
 
         await page.goto('/contacts');
+        await expect(page.getByPlaceholder('Search contacts and records…')).toBeVisible();          // the page is up before the keys are pressed
         await page.keyboard.press('Tab');
         await page.keyboard.press('Tab');                                                          // first sidebar link
         const outline = await page.evaluate(() => { const s = getComputedStyle(document.activeElement); return `${s.outlineStyle} ${s.outlineWidth}`; });

@@ -4,6 +4,7 @@ import { router } from '@inertiajs/vue3';
 import { ArrowDown, ArrowUp, Plus, Trash2, TriangleAlert } from 'lucide-vue-next';
 import AdminPage from '@/Components/AdminPage.vue';
 import DelayInput from '@/Components/DelayInput.vue';
+import RichTextEditor from '@/Components/RichTextEditor.vue';
 import FilterBuilder from '@/Components/FilterBuilder.vue';
 import { api } from '@/lib/api';
 import { run } from '@/lib/ui';
@@ -118,7 +119,7 @@ async function save() {
                         <div class="grid gap-3 sm:grid-cols-2"><div><label class="label">Use template</label><select v-model="a.template_id" class="input"><option value="">— write below —</option><option v-for="t in templates" :key="t.id" :value="t.id">{{ t.name }}</option></select></div>
                             <div><label class="label">Merge field</label><select class="input" @change="insertInto(a, 'html', $event.target.value); $event.target.value = ''"><option value="">Insert into message…</option><option v-for="t in tokens" :key="t.token" :value="t.token">{{ t.group }} · {{ t.label }}</option></select></div></div>
                         <div><label class="label">Subject</label><input v-model="a.subject" class="input" /></div>
-                        <div><label class="label">Message (HTML)</label><textarea v-model="a.html" rows="5" class="input font-mono" /></div>
+                        <div><label class="label">Message</label><RichTextEditor v-model="a.html" min-height="min-h-40" /></div>
                     </template>
                     <template v-else-if="a.type === 'send_sms'"><div><label class="label">Message</label><textarea v-model="a.body" rows="3" maxlength="1600" class="input" placeholder="Hi {{contact.first_name}}, …" /></div></template>
                     <template v-else-if="a.type === 'add_tag' || a.type === 'remove_tag'"><div><label class="label">Tag</label><input v-model="a.tag" class="input" /></div></template>

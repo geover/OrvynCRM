@@ -15,6 +15,7 @@ const users = ref([]);
 const knownTags = ref([]);
 const loading = ref(true);
 const nextNotes = ref(null);     // cursor of the next page of notes
+const nextTasks = ref(null);     // cursor of the next page of tasks
 const filter = ref(props.focusTask ? 'tasks' : 'all');       // all | notes | tasks | open (opened from a task: the Tasks filter is on)
 const q = ref('');
 const modal = ref(null);         // 'note' | 'task' | null
@@ -24,13 +25,17 @@ const errors = ref({});
 
 async function load() {
     const [n, t] = await Promise.all([api.get(`/contacts/${props.contactId}/notes`), api.get('/tasks', { 'filter[contact_id]': props.contactId, per_page: 100 })]);
-    notes.value = n.data; nextNotes.value = n.next_cursor ?? null; tasks.value = t.data; loading.value = false;
+    notes.value = n.data; nextNotes.value = n.next_cursor ?? null; tasks.value = t.data; nextTasks.value = t.next_cursor ?? null; loading.value = false;
     if (props.focusTask && !focused && tasks.value.some((x) => x.id === props.focusTask)) { focused = true; viewing.value = { kind: 'task', id: props.focusTask }; }
 }
 let focused = false;
 async function moreNotes() {
     const n = await api.get(`/contacts/${props.contactId}/notes`, { cursor: nextNotes.value });
     notes.value = [...notes.value, ...n.data]; nextNotes.value = n.next_cursor ?? null;
+}
+async function moreTasks() {
+    const t = await api.get('/tasks', { 'filter[contact_id]': props.contactId, per_page: 100, cursor: nextTasks.value });
+    tasks.value = [...tasks.value, ...t.data]; nextTasks.value = t.next_cursor ?? null;
 }
 onMounted(async () => {
     load();
@@ -99,7 +104,7 @@ async function save() {
             const saved = editing.value ? await api.patch(`/contacts/${props.contactId}/notes/${editing.value.id}`, body) : await api.post(`/contacts/${props.contactId}/notes`, body);
             await syncAttachments(`/notes/${saved.data.id}`);
         } else {
-            const body = { ...draft.value, assigned_to: draft.value.assigned_to || null, due_at: draft.value.due_at || null, note_id: draft.value.note_id || null, contact_id: props.contactId };
+            const body = { ...draft.value, assigned_to: draft.value.assigned_to || null, due_at: draft.value.due_at || null, note_id: draft.value.note_id || null, ...(editing.value ? {} : { contact_id: props.contactId }) };
             const saved = editing.value ? await api.patch(`/tasks/${editing.value.id}`, body) : await api.post('/tasks', body);
             await syncAttachments(`/tasks/${saved.data.id}`);
         }
@@ -195,7 +200,10 @@ const overdue = (i) => i.kind === 'task' && !i.done && i.due && new Date(i.due) 
                 </div>
             </div>
             <div v-if="!items.length" class="card px-5 py-10 text-center text-sm text-slate-400">Nothing here yet.</div>
-            <div v-if="nextNotes" class="text-center"><button class="btn-outline" @click="moreNotes">Load more notes</button></div>
+            <div v-if="nextNotes || nextTasks" class="flex justify-center gap-2">
+                <button v-if="nextNotes" class="btn-outline" data-testid="nt-load-more-notes" @click="moreNotes">Load more notes</button>
+                <button v-if="nextTasks" class="btn-outline" data-testid="nt-load-more-tasks" @click="moreTasks">Load more tasks</button>
+            </div>
         </div>
 
         <Modal v-if="viewed" :title="viewed.title || (viewed.kind === 'note' ? 'Note' : 'Task')" width="max-w-2xl" @close="viewing = null">

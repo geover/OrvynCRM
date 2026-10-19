@@ -20,7 +20,9 @@ test.describe('workflow boards', () => {
         await expect(field(m, 'Key field (columns)')).toHaveValue('stage');
         await m.getByText('Title', { exact: true }).click();
         await m.getByText('Amount', { exact: true }).click();
-        await m.locator('div:has(> span.w-32:text-is("Won")) button').nth(2).click();         // colour for "Won"
+        await m.locator('li[data-column="Won"] button[aria-label^="Colour"]').nth(2).click();   // colour for "Won"
+        for (let i = 0; i < 3; i++) await m.locator('li[data-column="Lost"]').getByTestId('column-up').click();         // arrange: Lost goes first
+        await expect(m.locator('li[data-column]').first()).toHaveAttribute('data-column', 'Lost');
         await m.getByRole('button', { name: 'Save board' }).click();
         await expect(row(page, state.boardName)).toContainText('grouped by stage');
 
@@ -33,6 +35,7 @@ test.describe('workflow boards', () => {
         // the board page: columns from the dropdown choices, cards from the records; drag New -> Won
         await page.goto(`/boards/${b.id}`);
         const cols = page.locator('main section');
+        await expect(cols.first()).toContainText('Lost');                                         // the columns follow the arrangement
         await expect(cols.filter({ hasText: 'New' }).first()).toBeVisible();
         const card = cols.filter({ has: page.locator('header span', { hasText: /^New$/ }) }).locator('article').first();
         const cardText = (await card.innerText()).split('\n')[0];
@@ -89,7 +92,7 @@ test.describe('scheduler & calendar', () => {
         expect(task.status).toBe(201);
         await page.reload();
         await expect(page.locator('aside').last()).toContainText('Calendar task');
-        await page.locator('aside').last().locator('li', { hasText: 'Calendar task' }).locator('button').click();
+        await page.locator('aside').last().locator('li', { hasText: 'Calendar task' }).locator('button').first().click();      // the circle (the title is a button too)
         await expect.poll(async () => (await api(page, 'GET', '/tasks?filter[status]=done')).json.data.some((t) => t.title === 'Calendar task')).toBe(true);
 
         // month navigation works

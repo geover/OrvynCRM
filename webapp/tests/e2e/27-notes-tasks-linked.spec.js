@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { api, field, login, modal, uniq } from './helpers.js';
 
 /** Notes and tasks of a contact know about each other, and both can carry files and links. */
+test.describe.configure({ mode: 'serial' });                  // the tests build on one contact
 test.beforeEach(async ({ page }) => { await login(page); });
 
 const state = {};
@@ -56,14 +57,15 @@ test('a task can take a file and be about a note, and an attachment can be remov
     const task = page.getByTestId('nt-task').filter({ hasText: 'Prepare proposal' });
     await expect(task.getByTestId('nt-attachments').getByRole('link')).toHaveCount(1);
 
-    await task.getByTestId('nt-attachments').getByRole('button', { name: /Remove/ }).click({ force: true });
+    await task.getByTestId('nt-attachments').locator('li').first().hover();                 // the remove cross shows on hover
+    await task.getByTestId('nt-attachments').getByRole('button', { name: /Remove/ }).click();
     await page.locator('div.fixed.inset-0[class*="z-[55]"]').getByRole('button', { name: 'Remove', exact: true }).click();
     await expect(task.getByTestId('nt-attachments')).toHaveCount(0);
 });
 
 test('a note or task opens in full: its text, details, attachments and actions', async ({ page }) => {
     await page.goto(`/contacts/${state.contact.id}?tab=notes`);
-    const note = page.getByTestId('nt-note').filter({ hasText: 'Quote request' }).first();
+    const note = page.getByTestId('nt-note').filter({ has: page.getByRole('button', { name: 'Quote request', exact: true }) });      // the note itself, not the one written when its task was completed
     await note.getByTestId('nt-open').click();
     const detail = page.getByTestId('nt-detail');
     await expect(detail.getByTestId('nt-detail-body')).toContainText('Wants a quote for twenty seats.');

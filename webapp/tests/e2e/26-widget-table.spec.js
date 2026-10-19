@@ -4,6 +4,7 @@ import { api, confirm, login, modal, uniq } from './helpers.js';
 /**
  * "View all" on a dashboard widget opens every result as a table in a wide pop-up: search, sort by a column, numbered pages, and actions for the ticked rows.
  */
+test.describe.configure({ mode: 'serial' });                  // the tests build on one widget
 test.beforeEach(async ({ page }) => { await login(page); });
 
 const state = {};
@@ -23,6 +24,7 @@ test('a widget with many results opens as a table that can be searched, sorted a
 
     await openTable(page);
     await expect(page.getByRole('dialog', { name: `Zq table ${state.tag}` })).toBeVisible();
+    const rows = page.getByTestId('widget-results').locator('tbody tr');            // the pop-up's table (the dashboard's own widget tables are behind it)
     await expect(page.getByTestId('pagination-range')).toHaveText('1–25 of 30');
 
     // numbered pages
@@ -32,14 +34,14 @@ test('a widget with many results opens as a table that can be searched, sorted a
 
     // sort by a column: first name, ascending then descending
     await page.locator('button[data-sort="first_name"]').click();
-    await expect(page.locator('tbody tr').first()).toContainText('Wt01');
+    await expect(rows.first()).toContainText('Wt01');
     await page.locator('button[data-sort="first_name"]').click();
-    await expect(page.locator('tbody tr').first()).toContainText('Wt30');
+    await expect(rows.first()).toContainText('Wt30');
 
     // search narrows the results
     await page.getByTestId('widget-search').fill('Wt07');
     await expect(page.getByTestId('pagination-range')).toHaveText('1–1 of 1');
-    await expect(page.locator('tbody tr')).toHaveCount(1);
+    await expect(rows).toHaveCount(1);
     await page.getByTestId('widget-search').fill('');
     await expect(page.getByTestId('pagination-range')).toHaveText('1–25 of 30');
 });
@@ -70,6 +72,7 @@ test('the actions apply to the ticked rows, or to everything when "all results" 
     await modal(page).last().getByRole('button', { name: 'Cancel' }).click();
 
     // the CSV link carries the ticked rows
+    await page.getByRole('checkbox', { name: 'Select all rows' }).uncheck();
     await page.getByRole('checkbox', { name: 'Select row' }).nth(0).check();
     await expect(page.getByTestId('widget-csv-selected')).toHaveAttribute('href', /export\?ids%5B%5D=\d+/);
 });
@@ -88,7 +91,7 @@ test.describe('contact list', () => {
         await page.goto('/contacts');
         await page.getByPlaceholder('Search name, email, company, phone…').fill(tag);
         await page.getByTestId('contact-open').first().click();
-        const dialog = page.getByRole('dialog', { name: `Popup ${tag}` });
+        const dialog = page.getByRole('dialog', { name: 'Contact' });
         await expect(dialog).toBeVisible();
         await expect(page).toHaveURL(/\/contacts$/);
         await dialog.getByRole('button', { name: 'Notes & tasks' }).click();
@@ -118,4 +121,22 @@ test.describe('contact list', () => {
         await expect(page.getByTestId('bulk-email')).toBeVisible();
         for (const c of made) await api(page, 'DELETE', `/contacts/${c.id}`);
     });
+});
+
+test('in the contact window the long lists scroll inside it and load more on request', async ({ page }) => {
+    const c = (await api(page, 'POST', '/contacts', { first_name: 'Busy', last_name: uniq('Scroll'), email: `${uniq('busy')}@example.test` })).json.data;
+    for (let i = 0; i < 28; i++) await api(page, 'POST', `/contacts/${c.id}/notes`, { title: `Note ${i}`, body: `Body ${i}` });
+    await page.goto('/contacts');
+    await page.getByPlaceholder('Search name, email, company, phone…').fill(c.last_name);
+    await page.getByTestId('contact-open').first().click();
+    const dialog = page.getByRole('dialog', { name: 'Contact' });
+    await dialog.getByRole('button', { name: 'Notes & tasks' }).click();
+    const body = dialog.getByTestId('tab-body');
+    await expect(body.getByTestId('nt-note').first()).toBeVisible();
+    const scrolls = await body.evaluate((el) => el.scrollHeight > el.clientHeight && getComputedStyle(el).overflowY === 'auto');
+    expect(scrolls).toBe(true);                                                                     // the list scrolls, the window does not grow
+    await expect(body.getByTestId('nt-note')).toHaveCount(25);                                      // one page of notes
+    await body.getByTestId('nt-load-more-notes').click();
+    await expect(body.getByTestId('nt-note').nth(27)).toBeAttached();                               // and the rest after Load more
+    await api(page, 'DELETE', `/contacts/${c.id}`);
 });

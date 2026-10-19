@@ -53,7 +53,10 @@ class WorkflowBoardController extends Controller
         $object = DataObject::with('fields')->findOrFail($board->data_object_id);
         abort_unless($request->user()->isAdmin() || $request->user()->hasPermission("data_objects.{$object->id}.view") || $request->user()->hasPermission('data_objects.view'), 403);
         $field = $object->fields->firstWhere('key', $board->key_field) ?? abort(422, 'The board\'s key field no longer exists.');
+        // the columns in the order the administrator arranged them; a choice that was added to the field since comes last, one that was removed is gone
         $choices = $field->options['choices'] ?? [];
+        $arranged = collect((array) $board->column_order)->filter(fn ($c) => in_array($c, $choices, true))->unique();
+        $choices = $arranged->merge(collect($choices)->reject(fn ($c) => $arranged->contains($c)))->values()->all();
         $display = $object->fields->whereIn('key', $board->display_fields ?: $object->fields->where('show_in_list', true)->pluck('key')->all())->values();
 
         // One grouped query on the covering field index gives every column's total (instead of one COUNT per column).
@@ -116,6 +119,7 @@ class WorkflowBoardController extends Controller
             'relationship_id' => ['nullable', 'exists:data_object_relationships,id'],
             'display_fields' => ['nullable', 'array', 'max:8'], 'display_fields.*' => ['string'],
             'colors' => ['nullable', 'array'], 'colors.*' => ['regex:/^#[0-9a-fA-F]{6}$/'],
+            'column_order' => ['nullable', 'array', 'max:200'], 'column_order.*' => ['string', 'max:255'],
             'status' => ['sometimes', Rule::in(['active', 'inactive'])],
         ]);
 

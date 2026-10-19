@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\DataObjectItemExtrasController;
 use App\Http\Controllers\Api\V1\DataTransferController;
 use App\Http\Controllers\Api\V1\NoteTaskAttachmentController;
 use App\Http\Controllers\Api\V1\PriceListController;
+use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\WidgetController;
 use App\Http\Controllers\BrandingController;
 use App\Http\Controllers\PasskeyController;
@@ -117,9 +118,14 @@ Route::middleware('platform')->prefix('platform')->group(function () {
     Route::post('companies/{tenant}/collect', [PlatformCompanyOverviewController::class, 'collect']);
     Route::put('companies/{tenant}/object-limits/{object}', [PlatformObjectLimitController::class, 'update'])->whereNumber('object');
     Route::delete('companies/{tenant}/object-limits/{object}', [PlatformObjectLimitController::class, 'destroy'])->whereNumber('object');
+    Route::get('companies/{tenant}/favicon', [PlatformCompanyOverviewController::class, 'favicon']);
     Route::get('companies/{tenant}/users', [PlatformCompanyUsersController::class, 'index']);
     Route::post('companies/{tenant}/users', [PlatformCompanyUsersController::class, 'store']);
     Route::post('companies/{tenant}/users/{user}/reset-two-factor', [PlatformCompanyUsersController::class, 'resetTwoFactor'])->whereNumber('user');
+    Route::patch('companies/{tenant}/users/{user}', [PlatformCompanyUsersController::class, 'update'])->whereNumber('user');
+    Route::post('companies/{tenant}/users/{user}/avatar', [PlatformCompanyUsersController::class, 'uploadAvatar'])->whereNumber('user');
+    Route::delete('companies/{tenant}/users/{user}/avatar', [PlatformCompanyUsersController::class, 'removeAvatar'])->whereNumber('user');
+    Route::get('companies/{tenant}/users/{user}/avatar', [PlatformCompanyUsersController::class, 'avatar'])->whereNumber('user');
     Route::get('messages', [PlatformMessageController::class, 'index']);
     Route::get('messages/poll', [PlatformMessageController::class, 'poll'])->middleware('throttle:120,1');
     Route::get('attachments/{attachment}', [PlatformMessageController::class, 'attachment']);
@@ -225,6 +231,9 @@ Route::middleware('platform')->prefix('platform')->group(function () {
     Route::get('administrators', [PlatformAdministratorController::class, 'index']);
     Route::post('administrators', [PlatformAdministratorController::class, 'store']);
     Route::patch('administrators/{administrator}', [PlatformAdministratorController::class, 'update']);
+    Route::post('administrators/{administrator}/avatar', [PlatformAdministratorController::class, 'uploadAvatar']);
+    Route::delete('administrators/{administrator}/avatar', [PlatformAdministratorController::class, 'removeAvatar']);
+    Route::get('administrators/{administrator}/avatar', [PlatformAdministratorController::class, 'showAvatar']);
     Route::post('administrators/{administrator}/reset-password', [PlatformAdministratorController::class, 'sendReset']);
     Route::post('administrators/{administrator}/reset-two-factor', [PlatformAdministratorController::class, 'resetTwoFactor']);
     Route::delete('administrators/{administrator}', [PlatformAdministratorController::class, 'destroy']);
@@ -281,6 +290,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('transfers/{transfer}', [DataTransferController::class, 'download']);
         Route::get('widgets/{widget}/export', [WidgetController::class, 'export']);
         Route::get('attachments/{attachment}', [NoteTaskAttachmentController::class, 'download']);
+        Route::get('users/{user}/avatar', [UserController::class, 'avatar'])->whereNumber('user');
         Route::get('contacts/{contact}/avatar', [ContactAvatarController::class, 'show']);
     });
 

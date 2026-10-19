@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Contact;
+use App\Support\SquareImage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -22,7 +23,7 @@ class ContactAvatarController extends Controller
         abort_unless($request->user()->hasPermission('contacts.edit'), 403);
         $request->validate(['file' => ['required', 'file', 'max:5120', 'mimes:png,jpg,jpeg,webp,gif']]);
 
-        $bytes = $this->square((string) file_get_contents($request->file('file')->getRealPath()));
+        $bytes = SquareImage::jpeg((string) file_get_contents($request->file('file')->getRealPath()), self::SIZE);
         $path = "avatars/{$contact->id}.jpg";
         $old = $contact->avatar_path;
         Storage::disk('local')->put($path, $bytes);
@@ -50,27 +51,5 @@ class ContactAvatarController extends Controller
             'Cache-Control' => 'private, max-age=604800, immutable',        // the address changes with the photo
             'X-Content-Type-Options' => 'nosniff',
         ]);
-    }
-
-    /** The middle of the picture as a SIZE x SIZE JPEG. */
-    private function square(string $bytes): string
-    {
-        if (! function_exists('imagecreatefromstring')) {
-            abort_if(strlen($bytes) > 400 * 1024, 422, 'This server cannot resize pictures; use one under 400 KB.');
-
-            return $bytes;
-        }
-        $src = @imagecreatefromstring($bytes);
-        abort_unless($src, 422, 'That is not a picture we can read.');
-        [$w, $h] = [imagesx($src), imagesy($src)];
-        abort_if($w * $h > 40_000_000, 422, 'That picture is too large.');
-        $side = min($w, $h);
-        $dst = imagecreatetruecolor(self::SIZE, self::SIZE);
-        imagefill($dst, 0, 0, imagecolorallocate($dst, 255, 255, 255));                    // a transparent picture sits on white
-        imagecopyresampled($dst, $src, 0, 0, intdiv($w - $side, 2), intdiv($h - $side, 2), self::SIZE, self::SIZE, $side, $side);
-        ob_start();
-        imagejpeg($dst, null, 82);
-
-        return (string) ob_get_clean();
     }
 }

@@ -1,67 +1,74 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { ArrowLeft, Plus, ShieldOff } from 'lucide-vue-next';
+import { ArrowLeft, Pencil, Plus, ShieldOff } from 'lucide-vue-next';
 import Modal from '@/Components/Modal.vue';
-import PasswordField from '@/Components/PasswordField.vue';
+import PeopleBoard from '@/Components/people/PeopleBoard.vue';
+import UserFormFields from '@/Components/people/UserFormFields.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import SeatMeter from '@/Components/SeatMeter.vue';
 import { fmtDate, toast } from '@/lib/ui';
 
-const props = defineProps({ company: Object, users: Array, used: Number });
+const props = defineProps({ company: Object, users: Array, used: Number, templates: { type: Array, default: () => [] } });
 const page = usePage();
-const adding = ref(false);
-const form = useForm({ name: '', email: '', role: 'user', password: '', password_confirmation: '' });
+// Add and Edit are one form, the same as the company's own User management
+const draft = ref(null);
+const errors = ref({});
+const saving = ref(false);
+const blank = () => ({ name: '', email: '', role: 'user', permission_template_id: props.templates.find((t) => !t.is_admin)?.id ?? '', password: '', password_confirmation: '', link_contact: true, job_title: '', phone: '', timezone: 'UTC', notes: '' });
+const current = computed(() => (draft.value?.id ? props.users.find((x) => x.id === draft.value.id) ?? null : null));     // the person as the page has them now (the photo changes without closing)
+const open = (u = null) => {
+    errors.value = {};
+    draft.value = u ? { id: u.id, name: u.name, email: u.email, role: u.role, status: u.status, permission_template_id: u.permission_template_id ?? '', job_title: u.job_title ?? '', phone: u.phone ?? '', timezone: u.timezone ?? 'UTC', notes: u.notes ?? '' } : blank();
+};
+const edit = (u) => open(u);
 const full = () => props.used >= props.company.max_users;
 
 function save() {
-    if (form.password && form.password !== form.password_confirmation) { form.setError('password_confirmation', 'The passwords do not match.'); return; }
-    form.transform((d) => (d.password ? d : { ...d, password: '', password_confirmation: '' })).post(`/platform/companies/${props.company.id}/users`, {
-        preserveScroll: true,
-        onSuccess: () => { adding.value = false; form.reset(); toast(page.props.flash.success ?? 'Added'); },
-    });
+    const body = { ...draft.value, permission_template_id: draft.value.permission_template_id || null };
+    delete body.id;                                  // the address says which person
+    if (!body.password) { delete body.password; delete body.password_confirmation; }
+    else if (body.password !== body.password_confirmation) { errors.value = { password_confirmation: ['The passwords do not match.'] }; return; }
+    const url = `/platform/companies/${props.company.id}/users`;
+    const options = {
+        preserveScroll: true, onStart: () => { saving.value = true; errors.value = {}; }, onFinish: () => { saving.value = false; },
+        onError: (e) => { errors.value = Object.fromEntries(Object.entries(e).map(([k, v]) => [k, [v]])); },
+        onSuccess: () => { const was = draft.value.id; draft.value = null; toast(page.props.flash.success ?? (was ? 'Saved' : 'Added')); },
+    };
+    draft.value.id ? router.patch(`${url}/${draft.value.id}`, body, options) : router.post(url, body, options);
 }
 const resetTwoFactor = (u) => router.post(`/platform/companies/${props.company.id}/users/${u.id}/reset-two-factor`, {}, { preserveScroll: true, onSuccess: () => toast('Two-step verification reset') });
-const raise = () => router.visit('/platform');
+const embedded = typeof window !== 'undefined' && window.self !== window.top;          // in the pop-up of a company's overview
+const raise = () => (embedded ? (window.top.location.href = '/platform') : router.visit('/platform'));
 </script>
 
 <template>
     <Head :title="`${company.name} users`" />
     <PageHeader :title="`${company.name}: people`" subtitle="Add people to this company without opening it. They are counted against its user limit.">
-        <Link href="/platform" class="btn-ghost"><ArrowLeft class="size-4" /> Companies</Link>
-        <button class="btn-primary" :disabled="full()" :title="full() ? 'The company is at its user limit' : undefined" data-testid="platform-add-user" @click="adding = true"><Plus class="size-4" /> Add user</button>
+        <Link v-if="embedded" :href="`/platform/companies/${company.id}`" class="btn-ghost" data-testid="back-to-overview"><ArrowLeft class="size-4" /> Overview</Link>
+        <Link v-else href="/platform" class="btn-ghost"><ArrowLeft class="size-4" /> Companies</Link>
+        <button class="btn-primary" :disabled="full()" :title="full() ? 'The company is at its user limit' : undefined" data-testid="platform-add-user" @click="open()"><Plus class="size-4" /> Add user</button>
     </PageHeader>
 
-    <div class="card mb-5 flex flex-wrap items-center gap-6 p-4">
-        <SeatMeter :used="used" :max="company.max_users" />
-        <p v-if="full()" class="min-w-0 flex-1 text-sm text-amber-700">At the limit of {{ company.max_users }} users. Raise it on the <Link href="/platform" class="underline" @click.prevent="raise">Companies</Link> page (Edit) before adding more.</p>
-        <p v-else class="min-w-0 flex-1 text-sm text-slate-500">{{ company.max_users - used }} more {{ company.max_users - used === 1 ? 'user' : 'users' }} can be added.</p>
-    </div>
+    <PeopleBoard :people="users" label="People" show-template>
+        <template #people>
+            <div class="flex flex-wrap items-center gap-x-6 gap-y-2" data-testid="company-seats">
+            <SeatMeter :used="used" :max="company.max_users" />
+            <p v-if="full()" class="min-w-0 flex-1 text-sm text-amber-700">At the limit of {{ company.max_users }} users. Raise it on the <Link href="/platform" class="underline" @click.prevent="raise">Companies</Link> page (Edit) before adding more.</p>
+            <p v-else class="min-w-0 flex-1 text-sm text-slate-500">{{ company.max_users - used }} more {{ company.max_users - used === 1 ? 'user' : 'users' }} can be added.</p>
+    
+            </div>
+        </template>
+        <template #actions="{ person: u }">
+            <button class="btn-ghost !py-1.5" data-testid="company-user-edit" @click="edit(u)"><Pencil class="size-4" /> Edit</button>
+            <button v-if="u.two_factor" class="btn-ghost !py-1.5" data-testid="company-user-reset-two-factor" @click="resetTwoFactor(u)"><ShieldOff class="size-4" /> Reset 2-step</button>
+        </template>
+    </PeopleBoard>
 
-    <div class="card table-scroll">
-        <table class="w-full text-sm" aria-label="People of the company">
-            <thead class="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Name</th><th class="px-5 py-3">Role</th><th class="px-5 py-3">Status</th><th class="px-5 py-3">Added</th><th /></tr></thead>
-            <tbody class="divide-y divide-slate-100">
-                <tr v-for="u in users" :key="u.id" :data-user="u.email">
-                    <td class="px-5 py-3"><div class="font-medium">{{ u.name }} <span v-if="u.two_factor" class="badge ml-1 !bg-emerald-50 !text-emerald-700">2-step</span></div><div class="text-xs text-slate-400">{{ u.email }}</div></td>
-                    <td class="px-5 py-3 capitalize">{{ u.role }}</td>
-                    <td class="px-5 py-3"><span class="badge" :class="u.status === 'active' ? '!bg-emerald-50 !text-emerald-700' : '!bg-red-50 !text-red-600'">{{ u.status }}</span></td>
-                    <td class="px-5 py-3 text-slate-400">{{ fmtDate(u.created_at) }}</td>
-                    <td class="px-5 py-3 text-right"><button v-if="u.two_factor" class="btn-ghost !py-1.5" data-testid="company-user-reset-two-factor" @click="resetTwoFactor(u)"><ShieldOff class="size-4" /> Reset 2-step</button></td>
-                </tr>
-                <tr v-if="!users.length"><td colspan="5" class="px-5 py-10 text-center text-slate-400">No people yet.</td></tr>
-            </tbody>
-        </table>
-    </div>
-
-    <Modal v-if="adding" :title="`Add a user to ${company.name}`" @close="adding = false">
+    <Modal v-if="draft" :title="draft.id ? `Edit ${draft.name}` : `Add a user to ${company.name}`" @close="draft = null">
         <form id="platform-user-form" class="space-y-3" @submit.prevent="save">
-            <div><label class="label" for="pu-name">Name</label><input id="pu-name" v-model="form.name" class="input" required /><p v-if="form.errors.name" class="mt-1 text-xs text-red-600">{{ form.errors.name }}</p></div>
-            <div><label class="label" for="pu-email">Email</label><input id="pu-email" v-model="form.email" type="email" class="input" required /><p v-if="form.errors.email" class="mt-1 text-xs text-red-600">{{ form.errors.email }}</p></div>
-            <div><label class="label" for="pu-role">Role</label><select id="pu-role" v-model="form.role" class="input"><option value="user">User</option><option value="manager">Manager</option><option value="admin">Administrator</option></select></div>
-            <div><label class="label" for="pu-pw">Password <span class="normal-case text-slate-400">(leave empty to email them an invitation)</span></label><PasswordField id="pu-pw" v-model="form.password" check /><p v-if="form.errors.password" class="mt-1 text-xs text-red-600">{{ form.errors.password }}</p></div>
-            <div v-if="form.password"><label class="label" for="pu-pw2">Confirm password</label><PasswordField id="pu-pw2" v-model="form.password_confirmation" required /><p v-if="form.errors.password_confirmation" class="mt-1 text-xs text-red-600">{{ form.errors.password_confirmation }}</p></div>
+            <UserFormFields :draft="draft" :errors="errors" :templates="templates" :photo="current?.avatar_url" :avatar-url="draft.id ? `/platform/companies/${company.id}/users/${draft.id}/avatar` : null" id-prefix="pu" note-hint="visible to the platform team and the company's administrators" @photo-changed="router.reload({ only: ['users'] })" />
         </form>
-        <template #footer><button class="btn-ghost" @click="adding = false">Cancel</button><button class="btn-primary" form="platform-user-form" :disabled="form.processing">Add user</button></template>
+        <template #footer><button class="btn-ghost" @click="draft = null">Cancel</button><button class="btn-primary" form="platform-user-form" :disabled="saving">{{ draft.id ? 'Save' : 'Add user' }}</button></template>
     </Modal>
 </template>

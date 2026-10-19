@@ -33,6 +33,12 @@ class DataObject extends Model
         return $this->hasMany(DataObjectRecord::class);
     }
 
+    /** The name of this data object as it is written inside a merge field: {{record.<this>.<field>}}. "Veterinary Patients" is veterinary_patients. */
+    public function mergeSlug(): string
+    {
+        return Str::slug($this->name, '_');
+    }
+
     public function relationships(): BelongsToMany
     {
         return $this->belongsToMany(DataObjectRelationship::class, 'data_object_relationship_rules', 'data_object_id', 'relationship_id')

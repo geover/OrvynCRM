@@ -41,7 +41,7 @@ class PasskeyController extends Controller
         if (! $identity || ! $identity->isActive()) {
             return response()->json(['message' => 'This account is not active. Ask your administrator.'], 422);
         }
-        $redirect = $signIn->proven($request, $identity, false, secondStepDone: true);
+        $redirect = $signIn->proven($request, $identity, false, secondStepDone: true, method: 'passkey');
 
         return response()->json(['redirect' => $redirect->getTargetUrl()]);
     }

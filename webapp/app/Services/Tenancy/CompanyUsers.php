@@ -57,6 +57,7 @@ class CompanyUsers
             'central_user_id' => $identity->id, 'name' => $identity->name, 'email' => $identity->email,
             'role' => $data['role'] ?? 'user', 'permission_template_id' => $data['permission_template_id'] ?? null,
             'caller_id' => $data['caller_id'] ?? null, 'contact_id' => $data['contact_id'] ?? null,
+            'phone' => $data['phone'] ?? null, 'job_title' => $data['job_title'] ?? null, 'notes' => $data['notes'] ?? null, 'timezone' => $data['timezone'] ?? 'UTC',
         ]);
 
         app(Seats::class)->sync();

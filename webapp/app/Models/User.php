@@ -12,14 +12,14 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['central_user_id', 'name', 'email', 'password', 'role', 'status', 'timezone', 'signature', 'preferences', 'permission_template_id', 'contact_id', 'caller_id', 'is_platform_support'])]
+#[Fillable(['central_user_id', 'name', 'email', 'password', 'role', 'status', 'timezone', 'signature', 'preferences', 'permission_template_id', 'contact_id', 'caller_id', 'is_platform_support', 'phone', 'job_title', 'notes', 'avatar_path', 'avatar_updated_at'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
     /** Mirror DB defaults so freshly created instances never trip missing-attribute checks. */
-    protected $attributes = ['central_user_id' => null, 'role' => 'user', 'status' => 'active', 'timezone' => 'UTC', 'permission_template_id' => null, 'contact_id' => null, 'signature' => null, 'caller_id' => null, 'preferences' => null, 'is_platform_support' => false];
+    protected $attributes = ['central_user_id' => null, 'role' => 'user', 'status' => 'active', 'timezone' => 'UTC', 'permission_template_id' => null, 'contact_id' => null, 'signature' => null, 'caller_id' => null, 'preferences' => null, 'is_platform_support' => false, 'phone' => null, 'job_title' => null, 'notes' => null, 'avatar_path' => null, 'avatar_updated_at' => null];
 
     /**
      * Always the ACTIVE connection (the open company's database). Without this, a relation from a central model (an API
@@ -37,6 +37,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'preferences' => 'array',
             'is_platform_support' => 'boolean',
+            'avatar_updated_at' => 'datetime',
         ];
     }
 

@@ -10,6 +10,7 @@ use App\Http\Middleware\RequireTwoFactor;
 use App\Http\Middleware\ResolvePublicTenant;
 use App\Http\Middleware\ResolveTenant;
 use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\TrackAccountSession;
 use App\Support\UploadLimit;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
@@ -30,8 +31,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
         // The company database is opened right after the session starts and before anything reads the user or any data.
-        $middleware->web(append: [ResolveTenant::class, RequireTwoFactor::class, HandleInertiaRequests::class]);
-        $middleware->api(append: [ResolveTenant::class, RequireTwoFactor::class]);
+        $middleware->web(append: [ResolveTenant::class, RequireTwoFactor::class, HandleInertiaRequests::class, TrackAccountSession::class]);
+        $middleware->api(append: [ResolveTenant::class, RequireTwoFactor::class, TrackAccountSession::class]);
         $middleware->append(ReportIgnoredInput::class);                      // does nothing in production
         $middleware->prependToPriorityList(before: AuthenticatesRequests::class, prepend: ResolveTenant::class);
         $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: ResolvePublicTenant::class);

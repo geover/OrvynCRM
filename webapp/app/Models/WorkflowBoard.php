@@ -11,7 +11,7 @@ class WorkflowBoard extends Model
 
     protected function casts(): array
     {
-        return ['display_fields' => 'array', 'colors' => 'array'];
+        return ['display_fields' => 'array', 'colors' => 'array', 'column_order' => 'array'];
     }
 
     public function dataObject(): BelongsTo

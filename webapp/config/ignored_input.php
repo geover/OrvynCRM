@@ -11,5 +11,6 @@ return [
         'g-recaptcha-response',
         'cf-turnstile-response',
         'h-captcha-response',
+        'recaptcha_token',
     ],
 ];

@@ -178,4 +178,17 @@ class UsageTrackerTest extends TenantTestCase
         $this->get('/platform/usage')->assertOk()->assertInertia(fn ($p) => $p->has('companies', 1));
         $this->assertSame(1, CompanyUsage::count());
     }
+
+    public function test_the_usage_page_carries_the_trend_the_history_and_the_work_done(): void
+    {
+        $acme = $this->company('Acme', 'owner@acme.test');
+        app(UsageTracker::class)->refresh($acme);
+        AccountUser::create(['name' => 'Platform Admin', 'email' => 'platform@x.test', 'password' => 'Platform-Passw0rd-1', 'is_platform_admin' => true]);
+        $this->defaultHeaders = [];
+        $this->post('/login', ['email' => 'platform@x.test', 'password' => 'Platform-Passw0rd-1']);
+
+        $this->get('/platform/usage')->assertOk()->assertInertia(fn ($p) => $p->component('Platform/Usage')
+            ->has('trend', 6)                                              // the last six months, ending with this one
+            ->has('companies.0.history', 6)->has('companies.0.work')->has('companies.0.alerts')->where('companies.0.before', null));
+    }
 }

@@ -16,7 +16,7 @@ async function remove(i) {
     items.value.splice(i, 1);
 }
 async function save() {
-    const r = await run(() => api.put('/custom-tabs', { items: items.value }), 'Custom tabs saved');
+    const r = await run(() => api.put('/custom-tabs', { items: items.value.map(({ id, title, type, content }) => ({ id, title, type, content })) }), 'Custom tabs saved');
     if (r?.data) items.value = r.data;
 }
 </script>

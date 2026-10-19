@@ -3,7 +3,6 @@ import { computed, ref } from 'vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { ArrowLeft, ExternalLink, RefreshCw, Users } from 'lucide-vue-next';
 import CardBoard from '@/Components/CardBoard.vue';
-import HBars from '@/Components/charts/HBars.vue';
 import LineChart from '@/Components/charts/LineChart.vue';
 import CompanyServicesCard from '@/Components/company/CompanyServicesCard.vue';
 import ObjectLimitsCard from '@/Components/company/ObjectLimitsCard.vue';
@@ -20,6 +19,7 @@ import { saved } from '@/lib/visit';
 // The company's subscription: cancel it (when the paid period ends, or now), take a cancellation back, or let a company that
 // cancelled subscribe again.
 const page = usePage();
+const embedded = typeof window !== 'undefined' && window.self !== window.top;          // in the pop-up on the Companies list
 const cancelling = ref(false);
 const cancelForm = useForm({ immediately: false, reason: '', tell: true });
 const subErrors = computed(() => page.props.errors?.subscription);
@@ -64,13 +64,34 @@ const others = computed(() => [
     ['E-mails', props.counts.emails], ['Text messages', props.counts.sms], ['Saved queries', props.counts.saved_queries], ['Dashboard widgets', props.counts.widgets],
     ['Webhooks', props.counts.webhooks], ['Price lists', props.counts.price_lists], ['Attachments', props.counts.attachments], ['Activities (all time)', props.activities_total],
 ]);
-const breakdownBars = computed(() => props.breakdown.map((b, i) => ({ label: b.name, value: b.records, color: [INDIGO, CYAN, AMBER, GREEN, '#ec4899', '#8b5cf6'][i % 6] })));
+// Every data object in one table: its records, its automations against the limit, and how many of its background services are paused. (The cards
+// further down are where the limits and the switches are changed.)
+const objectRows = computed(() => {
+    const byName = (list) => Object.fromEntries((list ?? []).map((o) => [o.name, o]));
+    const limits = byName(props.limits?.objects);
+    const services = byName(props.services?.objects);
+    const names = [...new Set([...props.breakdown.map((b) => b.name), ...Object.keys(limits), ...Object.keys(services)])];
+    const records = Object.fromEntries(props.breakdown.map((b) => [b.name, b.records]));
+    return names.map((name) => ({
+        name, records: records[name] ?? 0,
+        automations: limits[name]?.used ?? services[name]?.automations ?? 0, max: limits[name]?.max ?? null, custom: !!limits[name]?.custom,
+        paused: Object.values(services[name]?.services ?? {}).filter((x) => !x.enabled).length,
+    })).sort((a, b) => b.records - a.records);
+});
+const biggest = computed(() => Math.max(1, ...objectRows.value.map((o) => o.records)));
+const totals = computed(() => ({ records: objectRows.value.reduce((n, o) => n + o.records, 0), automations: objectRows.value.reduce((n, o) => n + o.automations, 0) }));
+const jump = (href) => document.querySelector(href)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+// where the page's parts are, for the links at the top
+const sections = computed(() => [
+    ['Standing', '#co-standing'], ['Plan & billing', '#co-plan'], ['Activity', '#co-activity'], ['Data objects', '#co-summary'], ...(props.limits ? [['Limits', '#co-limits']] : []),
+    ['Services', '#co-services'], ['Everything else', '#co-other'], ['Background work', '#co-load'],
+]);
 
 // The cards of the board, in their default order (the viewer can rearrange, hide and reset them: see CardBoard).
 const cards = computed(() => [
     ...tiles.value.map((t) => ({ id: `kpi-${t.key}`, title: `${t.label} (number)`, span: 3, slot: 'kpi' })),
-    { id: 'activity', title: 'Activity, last 30 days', span: 8 },
-    { id: 'objects', title: 'Records per data object', span: 4 },
+    { id: 'activity', title: 'Activity, last 30 days', span: 6 },
+    { id: 'objects', title: 'Data objects', span: 6 },
     { id: 'services', title: 'Background services', span: 12 },
     ...(props.services.objects.length ? [{ id: 'object-services', title: 'Background services per data object', span: 12 }] : []),
     ...(props.limits ? [{ id: 'limits', title: 'Data objects and automations', span: 12 }] : []),
@@ -82,12 +103,16 @@ const cards = computed(() => [
 <template>
     <Head :title="`${company.name} overview`" />
     <PageHeader :title="company.name" :subtitle="`${company.slug} · ${company.status}${company.plan ? ` · ${company.plan}` : ''} · created ${fmtDate(company.created_at)}`">
-        <Link href="/platform" class="btn-ghost"><ArrowLeft class="size-4" /> Companies</Link>
+        <Link v-if="!embedded" href="/platform" class="btn-ghost"><ArrowLeft class="size-4" /> Companies</Link>
         <Link :href="`/platform/companies/${company.id}/users`" class="btn-outline"><Users class="size-4" /> People</Link>
-        <button class="btn-outline" :disabled="company.status !== 'active'" @click="open"><ExternalLink class="size-4" /> Open</button>
+        <button v-if="!embedded" class="btn-outline" :disabled="company.status !== 'active'" @click="open"><ExternalLink class="size-4" /> Open</button>
         <button class="btn-outline" data-testid="collect-company" :disabled="company.status !== 'active'" @click="collect"><RefreshCw class="size-4" /> Refresh numbers</button>
     </PageHeader>
     <p class="-mt-3 mb-5 text-xs text-slate-400">{{ collected_at ? `Counted ${fmtRelative(collected_at)}` : 'Not counted yet: use "Refresh numbers"' }}. Counts update every hour. Database {{ mb(db_mb) }}.</p>
+
+    <nav class="mb-5 flex flex-wrap gap-1.5 text-xs" aria-label="Parts of this page" data-testid="overview-nav">
+        <a v-for="[label, href] in sections" :key="href" :href="href" class="rounded-full border border-slate-200 bg-white px-3 py-1 font-medium text-slate-600 hover:border-brand-500 hover:text-brand-700" @click.prevent="jump(href)">{{ label }}</a>
+    </nav>
 
     <Modal v-if="invoicing" title="Add an invoice" @close="invoicing = false">
         <form id="invoice-form" class="space-y-3" @submit.prevent="saveInvoice">
@@ -111,7 +136,7 @@ const cards = computed(() => [
             <span v-else-if="standing.renews_at" class="text-xs text-slate-500">Renews {{ fmtDate(standing.renews_at) }}<template v-if="standing.card"> · {{ standing.card.brand }} ••••{{ standing.card.last4 }}</template></span>
             <span v-if="standing.last_reminder" class="text-xs text-slate-400">Last reminded {{ fmtRelative(standing.last_reminder.at) }}</span>
             <button v-if="standing.can_remind" type="button" class="btn-outline ml-auto !py-1 text-xs" data-testid="company-remind" @click="router.post(`/platform/standing/${company.id}/remind`, {}, { preserveScroll: true, onSuccess: () => toast(page.props.flash.success ?? 'Sent', 'success') })">Remind</button>
-            <Link href="/platform/standing" class="text-xs text-slate-500 hover:text-brand-700 hover:underline" :class="!standing.can_remind && 'ml-auto'">All companies</Link>
+            <component :is="embedded ? 'a' : Link" href="/platform/standing" :target="embedded ? '_top' : undefined" class="text-xs text-slate-500 hover:text-brand-700 hover:underline" :class="!standing.can_remind && 'ml-auto'">All companies</component>
         </div>
         <div v-if="invoices.length" class="mt-4 overflow-x-auto" data-testid="company-invoices">
             <table class="w-full text-sm" aria-label="Payment history">
@@ -157,7 +182,7 @@ const cards = computed(() => [
             <span v-else-if="plan.trial.state === 'expired'" class="badge !bg-red-50 !text-red-700">Trial ended: billing information missing</span>
             <span v-else-if="plan.trial.state === 'subscribed'" class="badge !bg-emerald-50 !text-emerald-700">Billing information on file</span>
             <span v-else class="badge">No trial</span>
-            <Link href="/platform" class="ml-auto text-xs text-slate-500 hover:text-brand-700 hover:underline">Change the tier or trial under Edit on the Companies page</Link>
+            <component :is="embedded ? 'a' : Link" href="/platform" :target="embedded ? '_top' : undefined" class="ml-auto text-xs text-slate-500 hover:text-brand-700 hover:underline">Change the tier or trial under Edit on the Companies page</component>
         </div>
         <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             <div><p class="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">Active users</p><SeatMeter :used="plan.users.used" :max="plan.users.max" compact /></div>
@@ -235,10 +260,23 @@ const cards = computed(() => [
         </template>
 
         <template #objects>
-            <section class="card p-5" aria-labelledby="co-objects">
-                <h2 id="co-objects" class="mb-1 text-sm font-semibold">Records per data object</h2>
-                <p class="mb-3 text-xs text-slate-400">{{ num(counts.records) }} records in {{ num(counts.data_objects ?? 0) }} {{ counts.data_objects === 1 ? 'object' : 'objects' }}.</p>
-                <HBars :items="breakdownBars" empty="No data objects yet" />
+            <section class="card p-5" aria-labelledby="co-summary" data-testid="object-summary">
+                <h2 id="co-summary" class="mb-1 text-sm font-semibold">Data objects</h2>
+                <p class="mb-3 text-xs text-slate-400">{{ num(totals.records) }} records and {{ num(totals.automations) }} {{ totals.automations === 1 ? 'automation' : 'automations' }} in {{ num(objectRows.length) }} {{ objectRows.length === 1 ? 'data object' : 'data objects' }}.</p>
+                <div v-if="objectRows.length" class="overflow-x-auto">
+                    <table class="w-full text-left text-sm" aria-label="Data objects: records, automations and paused services">
+                        <thead class="text-xs uppercase tracking-wide text-slate-500"><tr><th class="py-1.5 pr-3 font-medium">Data object</th><th class="py-1.5 pr-3 font-medium">Records</th><th class="py-1.5 pr-3 font-medium">Automations</th><th class="py-1.5 font-medium">Paused</th></tr></thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr v-for="o in objectRows" :key="o.name" :data-object-summary="o.name">
+                                <td class="py-2 pr-3 font-medium">{{ o.name }}</td>
+                                <td class="py-2 pr-3"><span class="tabular-nums">{{ num(o.records) }}</span><span class="mt-1 block h-1 rounded bg-slate-100" aria-hidden="true"><span class="block h-1 rounded bg-brand-500" :style="{ width: `${Math.round((100 * o.records) / biggest)}%` }" /></span></td>
+                                <td class="py-2 pr-3 tabular-nums">{{ num(o.automations) }}<span v-if="o.max !== null" class="text-slate-400"> of {{ num(o.max) }}</span><span v-if="o.custom" class="badge ml-1">custom</span></td>
+                                <td class="py-2 tabular-nums" :class="o.paused ? 'text-amber-700' : 'text-slate-400'">{{ o.paused ? `${o.paused} paused` : 'none' }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p v-else class="text-sm text-slate-400">No data objects yet.</p>
             </section>
         </template>
 

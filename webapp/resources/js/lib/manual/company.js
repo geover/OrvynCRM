@@ -146,6 +146,7 @@ export default {
                     blocks: [
                         { h: "E-mail" },
                         { steps: ["On the contact press **Email**.", "Optionally choose a **Template group** and a template with **Use template**.", "Write the **Subject** and the **Message**. **Merge fields** drops in the contact's own details, such as their first name.", "Attach files if you need to, then press **Send email**. Your **signature** (User settings) is added at the end."] },
+                        { p: "**Connected data in a message.** The Merge fields list also has the fields of your data objects, for example `{{record.patient_name}}`. When you write to a contact (one e-mail or text, Email all or Text all), such a field is filled from the items connected to that contact: the most recently changed item first, and for each field the first value that is filled in. A contact with nothing connected gets an empty value. The Merge fields list names each field after its data object, for example `{{record.veterinary_patients.name}}`, so two data objects that both have a field called *name* stay apart. The short form `{{record.name}}` still works and takes the most recently changed item. Multi-choice fields read \"a, b\", and checkboxes read Yes or No." },
                         { p: "Messages are queued and sent by a background worker, usually within moments. The Communication tab shows the status, and later the opens and clicks. A failed message shows its error and can be **Resend**." },
                         { tip: "Use the test option to send a copy to yourself before you send the real one." },
                         { h: "Text messages" },
@@ -456,6 +457,7 @@ export default {
                     adminOnly: true,
                     lead: "Reusable messages that everyone can choose in the composer.",
                     blocks: [
+                        { p: "Every place you write an e-mail (the composer, Email all, templates, the e-mail step of an automation, and your signature) has the same editor, like a word processor: paragraph style and headings, font and size, **bold**, *italic*, underline and strike-through, text colour and highlight, alignment, bulleted and numbered lists, indent, quote, links, pictures (by web address), a divider line, clear formatting, undo and redo. The **&lt;/&gt;** button shows the HTML itself for those who prefer to edit it. Text pasted from Word or a web page keeps its formatting; anything unsafe in it is removed." },
                         { list: ["**New template** opens the editor: group, name, subject and body, with merge fields.", "**Preview** shows how it will read, **Duplicate** makes a copy to adapt, and templates can be deleted.", "Groups keep long lists tidy: people choose a **Template group** first in the composer."] },
                     ],
                 },

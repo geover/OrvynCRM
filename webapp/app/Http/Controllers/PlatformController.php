@@ -46,6 +46,7 @@ class PlatformController extends Controller
         return Inertia::render('Platform/Companies', [
             'companies' => Tenant::withCount('members')->orderBy('name')->get()->map(fn (Tenant $t) => [
                 'id' => $t->getTenantKey(), 'name' => $t->name, 'slug' => $t->slug, 'status' => $t->status, 'plan' => $t->plan, 'database' => $t->database()->getName(),
+                'favicon_url' => $t->favicon_version ? "/platform/companies/{$t->getTenantKey()}/favicon?v={$t->favicon_version}" : null,
                 'members' => $t->members_count, 'created_at' => $t->created_at?->toIso8601String(),
                 'users' => (int) ($stats[$t->getTenantKey()] ?? $seats->usedFor($t)), 'max_users' => (int) $t->max_users,
                 'max_data_objects' => (int) $t->max_data_objects, 'max_automations_per_object' => (int) $t->max_automations_per_object,

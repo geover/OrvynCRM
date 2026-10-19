@@ -1,10 +1,11 @@
 <script setup>
 import { onMounted, ref } from 'vue';
+import RichTextEditor from '@/Components/RichTextEditor.vue';
 import { Copy, Pencil, Plus, Trash2 } from 'lucide-vue-next';
 import AdminPage from '@/Components/AdminPage.vue';
 import Modal from '@/Components/Modal.vue';
 import { api } from '@/lib/api';
-import { confirmDialog, run } from '@/lib/ui';
+import { confirmDialog, run, toast } from '@/lib/ui';
 
 const items = ref(null);
 const groups = ref([]);
@@ -18,8 +19,10 @@ async function load() { const r = await api.get('/email-templates'); items.value
 onMounted(async () => { load(); merge.value = (await api.get('/email-templates/merge-fields')).data; });
 
 function open(t = null) { d.value = t ? { ...t } : { name: '', group: '', subject: '', html: '<p>Hi {{contact.first_name}},</p>' }; preview.value = false; modal.value = true; }
-const insert = (token) => { d.value.html += token; };
+const editor = ref(null);
+const insert = (token) => (editor.value ? editor.value.insertText(token) : (d.value.html += token));
 async function save() {
+    if (!d.value.html?.replace(/<[^>]*>/g, '').trim()) return toast('The template has no text yet.', 'error');
     const body = { name: d.value.name, group: d.value.group || null, subject: d.value.subject || null, html: d.value.html };
     if (await run(() => (d.value.id ? api.put(`/email-templates/${d.value.id}`, body) : api.post('/email-templates', body)), 'Template saved')) { modal.value = false; load(); }
 }
@@ -44,10 +47,10 @@ async function remove(t) { if (await confirmDialog({ title: `Delete “${t.name}
                     <div><label class="label">Group</label><input v-model="d.group" list="tg" class="input" placeholder="e.g. Onboarding" /><datalist id="tg"><option v-for="g in groups" :key="g" :value="g" /></datalist></div></div>
                 <div><label class="label">Subject</label><input v-model="d.subject" class="input" /></div>
                 <div>
-                    <div class="mb-1 flex items-center justify-between"><label class="label !mb-0">HTML</label>
+                    <div class="mb-1 flex items-center justify-between"><label class="label !mb-0">Message</label>
                         <div class="flex gap-2 text-sm"><select class="input !w-48 !py-1" @change="insert($event.target.value); $event.target.value = ''"><option value="">Insert merge field…</option><optgroup v-for="g in merge" :key="g.group" :label="g.group"><option v-for="f in g.fields" :key="f.token" :value="f.token">{{ f.label }}</option></optgroup></select>
                             <button type="button" class="btn-outline !py-1" @click="preview = !preview">{{ preview ? 'Edit' : 'Preview' }}</button></div></div>
-                    <textarea v-if="!preview" v-model="d.html" rows="14" class="input font-mono" required />
+                    <RichTextEditor v-if="!preview" ref="editor" v-model="d.html" min-height="min-h-72" max-height="max-h-[60vh]" />
                     <iframe v-else sandbox="" :srcdoc="d.html" class="h-80 w-full rounded-lg border border-slate-200 bg-white" title="Preview" />
                 </div>
             </form>

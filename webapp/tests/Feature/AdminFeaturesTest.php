@@ -56,6 +56,21 @@ class AdminFeaturesTest extends TestCase
         return $this->post('/api/v1/uploads', ['file' => $f], ['Accept' => 'application/json'])->assertCreated()->json('path');
     }
 
+    public function test_a_board_shows_its_columns_in_the_order_they_were_arranged(): void
+    {
+        app(RecordService::class)->create($this->deals, ['title' => 'C']);          // no stage: the "No value" column appears, after the others
+        $id = $this->postJson('/api/v1/boards', ['name' => 'Pipeline', 'data_object_id' => $this->deals->id, 'key_field' => 'stage', 'column_order' => ['Lost', 'Won']])->assertCreated()->json('data.id');
+
+        // the choices are New, Won, Lost: the arranged ones first, one that was not mentioned (New) after them, "No value" last
+        $this->assertSame(['Lost', 'Won', 'New', ''], collect($this->getJson("/api/v1/boards/$id")->json('columns'))->pluck('key')->all());
+
+        $this->putJson("/api/v1/boards/$id", ['name' => 'Pipeline', 'data_object_id' => $this->deals->id, 'key_field' => 'stage', 'column_order' => ['Won', 'Gone', 'New', 'Lost']])->assertOk();
+        $this->assertSame(['Won', 'New', 'Lost', ''], collect($this->getJson("/api/v1/boards/$id")->json('columns'))->pluck('key')->all());     // a choice that is not in the field any more is ignored
+
+        $this->putJson("/api/v1/boards/$id", ['name' => 'Pipeline', 'data_object_id' => $this->deals->id, 'key_field' => 'stage', 'column_order' => null])->assertOk();
+        $this->assertSame(['New', 'Won', 'Lost', ''], collect($this->getJson("/api/v1/boards/$id")->json('columns'))->pluck('key')->all());      // no arrangement: the order of the field
+    }
+
     public function test_workflow_board_columns_cards_and_moving(): void
     {
         $svc = app(RecordService::class);

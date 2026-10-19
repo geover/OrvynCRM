@@ -12,7 +12,18 @@ const data = ref(null);
 const view = ref('email');
 const preview = ref(null);
 
+const loadingMore = ref(false);
 async function load() { data.value = await api.get(`/contacts/${props.contact.id}/messages`); }
+// the next page of the list being shown (they are 50 at a time)
+async function more() {
+    const emails = view.value === 'email';
+    const rows = emails ? data.value.emails : data.value.sms;
+    loadingMore.value = true;
+    try {
+        const r = await api.get(`/contacts/${props.contact.id}/messages`, { [emails ? 'email_before' : 'sms_before']: rows[rows.length - 1]?.id });
+        if (emails) { data.value.emails.push(...r.emails); data.value.emails_more = r.emails_more; } else { data.value.sms.push(...r.sms); data.value.sms_more = r.sms_more; }
+    } finally { loadingMore.value = false; }
+}
 onMounted(load);
 defineExpose({ load });
 
@@ -65,6 +76,7 @@ const color = { sent: 'bg-emerald-50 text-emerald-700', delivered: 'bg-emerald-5
                     <tr v-if="!data.emails.length"><td colspan="6" class="px-4 py-10 text-center text-slate-400">No emails yet.</td></tr>
                 </tbody>
             </table>
+            <div v-if="data.emails_more" class="border-t border-slate-100 p-3 text-center"><button class="btn-outline" :disabled="loadingMore" data-testid="comm-load-more" @click="more">{{ loadingMore ? 'Loading…' : 'Load more emails' }}</button></div>
         </div>
         <div v-else class="space-y-2">
             <div v-for="m in data.sms" :key="m.id" class="card p-4 text-sm">
@@ -73,6 +85,7 @@ const color = { sent: 'bg-emerald-50 text-emerald-700', delivered: 'bg-emerald-5
                 <p v-if="m.error" class="mt-1 text-xs text-red-600">{{ m.error }}</p>
             </div>
             <div v-if="!data.sms.length" class="card px-4 py-10 text-center text-sm text-slate-400">No text messages yet.</div>
+            <div v-if="data.sms_more" class="text-center"><button class="btn-outline" :disabled="loadingMore" data-testid="comm-load-more" @click="more">{{ loadingMore ? 'Loading…' : 'Load more texts' }}</button></div>
         </div>
 
         <Modal v-if="preview" :title="preview.subject" width="max-w-3xl" @close="preview = null">

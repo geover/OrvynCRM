@@ -32,11 +32,15 @@ class MessageController extends Controller
     public function history(Request $request, Contact $contact): JsonResponse
     {
         $limit = min($request->integer('limit', 50), 200);
+        // `email_before` / `sms_before`: the id of the oldest message already shown, to get the page after it
+        $emails = $contact->emails()->when($request->integer('email_before'), fn ($q, $id) => $q->where('id', '<', $id))->latest('id')->limit($limit + 1)
+            ->get(['id', 'subject', 'status', 'open_count', 'click_count', 'sent_at', 'created_at', 'scheduled_at', 'user_id', 'error', 'from_email']);
+        $sms = SmsMessage::where('contact_id', $contact->id)->when($request->integer('sms_before'), fn ($q, $id) => $q->where('id', '<', $id))->latest('id')->limit($limit + 1)
+            ->get(['id', 'body', 'status', 'direction', 'sent_at', 'created_at', 'error', 'to_number']);
 
         return response()->json([
-            'emails' => $contact->emails()->latest('id')->limit($limit)
-                ->get(['id', 'subject', 'status', 'open_count', 'click_count', 'sent_at', 'created_at', 'scheduled_at', 'user_id', 'error', 'from_email']),
-            'sms' => SmsMessage::where('contact_id', $contact->id)->latest('id')->limit($limit)->get(['id', 'body', 'status', 'direction', 'sent_at', 'created_at', 'error', 'to_number']),
+            'emails' => $emails->take($limit)->values(), 'emails_more' => $emails->count() > $limit,
+            'sms' => $sms->take($limit)->values(), 'sms_more' => $sms->count() > $limit,
             'suppressed' => $contact->email ? EmailSuppression::where('email', $contact->email)->exists() : false,
         ]);
     }

@@ -8,6 +8,7 @@ use App\Models\DataObject;
 use App\Models\DataObjectRecord;
 use App\Services\DataObjects\RecordQuery;
 use App\Services\DataObjects\RecordService;
+use App\Support\IgnoredInput;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -84,6 +85,7 @@ class DataObjectRecordController extends Controller
             'contacts.*.relationship_id' => ['required', 'exists:data_object_relationships,id'],
         ])['contacts'] ?? [];
 
+        IgnoredInput::covers('data');                                      // the item's own field rules check these
         $record = $service->create($dataObject, (array) $request->input('data', []), $request->user()->id, $links);
 
         return (new RecordResource($record->load('contacts:id,first_name,last_name')))->response()->setStatusCode(201);
@@ -93,6 +95,8 @@ class DataObjectRecordController extends Controller
     {
         $this->authorizeObject($request, $dataObject, 'edit');
         abort_unless($record->data_object_id === $dataObject->id, 404);
+
+        IgnoredInput::covers('data');
 
         return new RecordResource($service->update($record, (array) $request->input('data', [])));
     }

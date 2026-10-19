@@ -20,7 +20,8 @@ const one = (j) => (j.data?.id ? j.data : rec(j));       // a created thing: {da
 /** Watches a page for failed API/asset requests and script errors. */
 function watch(page) {
     const issues = [];
-    page.on('response', (r) => { if (r.status() >= 400 && !r.url().includes('favicon')) issues.push(`${r.status()} ${r.request().method()} ${r.url()}`); });
+    page.on('response', (r) => { if (r.status() >= 400 && !r.url().includes('favicon') && r.url().startsWith('http://127.0.0.1')) issues.push(      // our own pages only (Gravatar answers 404 for people without a picture)
+            `${r.status()} ${r.request().method()} ${r.url()}`); });
     page.on('pageerror', (e) => issues.push(`script error: ${e.message}`));
     page.on('console', (m) => { if (m.type() === 'error' && !m.text().startsWith('Failed to load resource')) issues.push(`console: ${m.text()}`); });
     return issues;
@@ -64,7 +65,7 @@ test.describe('every page loads clean', () => {
         test.setTimeout(300000);
         const bad = [];
         let issues = [];
-        page.on('response', (r) => { if (r.status() >= 400 && !r.url().includes('favicon')) issues.push(`${r.status()} ${r.request().method()} ${r.url()}`); });
+        page.on('response', (r) => { if (r.status() >= 400 && !r.url().includes('favicon') && r.url().startsWith('http://127.0.0.1')) issues.push(`${r.status()} ${r.request().method()} ${r.url()}`); });
         page.on('pageerror', (e) => issues.push(`script error: ${e.message}`));
         page.on('console', (m) => { if (m.type() === 'error' && !m.text().startsWith('Failed to load resource')) issues.push(`console: ${m.text()}`); });
         for (const url of urls) {
@@ -298,18 +299,18 @@ test.describe('my tasks filters', () => {
         await expect(list).not.toContainText(c);
         await expect(list.locator('div', { hasText: a }).locator('.badge').first()).toHaveClass(/text-red-600/);   // overdue is flagged red
 
-        await page.locator('main select').selectOption('overdue');
+        await page.getByLabel('Show tasks that are').selectOption('overdue');
         await expect(list).toContainText(a);
         await expect(list).not.toContainText(b);
-        await page.locator('main select').selectOption('done');
+        await page.getByLabel('Show tasks that are').selectOption('done');
         await expect(list).toContainText(c);
         await expect(list).not.toContainText(a);
         await expect(list.locator('div', { hasText: c }).locator('.line-through')).toBeVisible();
         await list.locator('div', { hasText: c }).locator('input[type=checkbox]').uncheck();                    // reopen it
         await expect(list).not.toContainText(c);
-        await page.locator('main select').selectOption('open');
+        await page.getByLabel('Show tasks that are').selectOption('open');
         await expect(list).toContainText(c);
-        await page.locator('main select').selectOption('overdue');
+        await page.getByLabel('Show tasks that are').selectOption('overdue');
         await expect(list).not.toContainText('Nothing here.', { timeout: 100 }).catch(() => {});
     });
 });

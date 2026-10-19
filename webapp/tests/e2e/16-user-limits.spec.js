@@ -49,8 +49,8 @@ test('the platform adds a person to that company; at the limit it cannot add mor
         const dialog = page.getByRole('dialog');
         await dialog.locator('input').nth(0).fill(`${n} Person`);
         await dialog.locator('input[type=email]').fill(`${n.toLowerCase()}@${state.slug}.test`);
-        await dialog.locator('#pu-pw').fill('Person-Passw0rd-1');
-        await dialog.locator('#pu-pw2').fill('Person-Passw0rd-1');
+        await dialog.locator('#pu-password').fill('Person-Passw0rd-1');
+        await dialog.locator('#pu-password-confirm').fill('Person-Passw0rd-1');
         await dialog.getByRole('button', { name: 'Add user' }).click();
         await expect(toast(page, 'success').last()).toContainText('was added');
         await expect(page.locator(`tr[data-user="${n.toLowerCase()}@${state.slug}.test"]`)).toBeVisible();

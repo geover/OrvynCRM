@@ -205,6 +205,8 @@ Route::prefix('v1')->group(function () {
         Route::delete('integrations/keap', [V1\KeapIntegrationController::class, 'destroy']);
         Route::post('integrations/keap/test', [V1\KeapIntegrationController::class, 'test'])->middleware('throttle:10,1');
         Route::post('integrations/keap/sync', [V1\KeapIntegrationController::class, 'sync'])->middleware('throttle:10,1');
+        Route::post('users/{user}/avatar', [V1\UserController::class, 'uploadAvatar']);
+        Route::delete('users/{user}/avatar', [V1\UserController::class, 'removeAvatar']);
         Route::post('users/{user}/reset-password', [V1\UserController::class, 'sendReset']);
         Route::post('users/{user}/reset-two-factor', [V1\UserController::class, 'resetTwoFactor']);
         Route::apiResource('users', V1\UserController::class)->except('show');

@@ -148,4 +148,37 @@ class QueriesAndWidgetsTest extends TestCase
         $this->assertSame(['=cmd|calc', 'ok', 'ok'], $titles('asc'));
         $this->assertSame(['ok', 'ok', '=cmd|calc'], $titles('desc'));
     }
+
+    public function test_two_objects_with_a_field_of_the_same_name_can_be_told_apart_by_the_name_of_the_object(): void
+    {
+        Bus::fake([SendEmailMessage::class]);
+        $cy = Contact::where('email', 'cy@x.io')->first();                          // a Deals item with title "ok"
+        $homes = DataObject::create(['name' => 'Real Estate Homes']);
+        $homes->fields()->create(['key' => 'title', 'label' => 'Title', 'type' => 'text']);
+        app(RecordService::class)->create($homes->fresh('fields'), ['title' => 'Lake House'], null, [['contact_id' => $cy->id, 'relationship_id' => $this->owner->id]]);
+
+        // the menu offers each object's fields under its own name
+        $tokens = collect($this->getJson('/api/v1/email-templates/merge-fields')->assertOk()->json('data'))->flatMap(fn ($g) => collect($g['fields'])->pluck('token'));
+        $this->assertTrue($tokens->contains('{{record.deals.title}}'));
+        $this->assertTrue($tokens->contains('{{record.real_estate_homes.title}}'));
+
+        $this->postJson("/api/v1/contacts/{$cy->id}/email", ['subject' => 'x', 'html' => '<p>{{record.deals.title}} | {{record.real_estate_homes.title}} | {{record.title}}</p>'])->assertAccepted();
+        $this->assertSame('<p>ok | Lake House | Lake House</p>', EmailMessage::latest('id')->first()->html);        // the plain field is the newest item's, as before
+    }
+
+    public function test_connected_data_merge_fields_fill_in_for_messages_written_by_a_person(): void
+    {
+        Bus::fake([SendEmailMessage::class]);
+        $cy = Contact::where('email', 'cy@x.io')->first();                          // has a Deals item: stage New, amount 5000, title ok
+
+        $this->postJson("/api/v1/contacts/{$cy->id}/email", ['subject' => 'Stage {{record.stage}}', 'html' => '<p>{{record.title}} / {{record.amount}} / {{record.missing}}</p>'])->assertAccepted();
+        $message = EmailMessage::latest('id')->first();
+        $this->assertSame('Stage New', $message->subject);
+        $this->assertSame('<p>ok / 5000 / </p>', $message->html);                    // an unknown field is empty, as for automations
+
+        // a contact with nothing connected gets empty values, not the text of the placeholder
+        $loner = Contact::create(['first_name' => 'Lo', 'email' => 'lo@x.io']);
+        $this->postJson("/api/v1/contacts/{$loner->id}/email", ['subject' => 'Hi', 'html' => '<p>[{{record.stage}}]</p>'])->assertAccepted();
+        $this->assertSame('<p>[]</p>', EmailMessage::latest('id')->first()->html);
+    }
 }

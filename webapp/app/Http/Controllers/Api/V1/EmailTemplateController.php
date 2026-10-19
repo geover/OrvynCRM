@@ -66,7 +66,7 @@ class EmailTemplateController extends Controller
             ['group' => 'App', 'fields' => [['label' => 'App name', 'token' => '{{app.name}}'], ['label' => 'App URL', 'token' => '{{app.url}}']]],
         ];
         foreach (DataObject::with('fields:id,data_object_id,key,label')->get() as $o) {
-            $groups[] = ['group' => $o->name, 'fields' => $o->fields->map(fn ($f) => ['label' => $f->label, 'token' => '{{record.'.$f->key.'}}'])->all()];
+            $groups[] = ['group' => $o->name, 'fields' => $o->fields->map(fn ($f) => ['label' => $f->label, 'token' => '{{record.'.$o->mergeSlug().'.'.$f->key.'}}'])->all()];       // named after the object, so two objects with a field of the same name stay apart
         }
 
         return response()->json(['data' => $groups]);

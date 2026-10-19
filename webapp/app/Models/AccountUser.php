@@ -17,7 +17,7 @@ class AccountUser extends Authenticatable
 
     protected $table = 'account_users';
 
-    protected $fillable = ['name', 'email', 'password', 'is_platform_admin', 'status', 'notify_requests', 'notify_messages', 'notify_automation_failures', 'notify_inactive_companies', 'notify_email'];
+    protected $fillable = ['name', 'email', 'password', 'is_platform_admin', 'status', 'notify_requests', 'notify_messages', 'notify_automation_failures', 'notify_inactive_companies', 'notify_email', 'phone', 'job_title', 'timezone', 'notes', 'avatar_path', 'avatar_updated_at'];
 
     protected $hidden = ['password', 'two_factor_secret', 'two_factor_recovery_codes'];
 
@@ -25,12 +25,18 @@ class AccountUser extends Authenticatable
 
     protected function casts(): array
     {
-        return ['password' => 'hashed', 'two_factor_secret' => 'encrypted', 'two_factor_confirmed_at' => 'datetime', 'email_verified_at' => 'datetime', 'is_platform_admin' => 'boolean', 'notify_requests' => 'boolean', 'notify_messages' => 'boolean', 'notify_automation_failures' => 'boolean', 'notify_inactive_companies' => 'boolean'];
+        return ['password' => 'hashed', 'two_factor_secret' => 'encrypted', 'two_factor_confirmed_at' => 'datetime', 'email_verified_at' => 'datetime', 'avatar_updated_at' => 'datetime', 'is_platform_admin' => 'boolean', 'notify_requests' => 'boolean', 'notify_messages' => 'boolean', 'notify_automation_failures' => 'boolean', 'notify_inactive_companies' => 'boolean'];
     }
 
     public function tenants(): BelongsToMany
     {
         return $this->belongsToMany(Tenant::class, 'memberships', 'account_user_id', 'tenant_id')->withTimestamps();
+    }
+
+    /** The address of the photo, or null. The version in it changes when the photo does, so the browser can keep it for a long time. */
+    public function avatarUrl(): ?string
+    {
+        return $this->avatar_path ? url("/platform/administrators/{$this->id}/avatar").'?v='.($this->avatar_updated_at?->timestamp ?? 1) : null;
     }
 
     public function isActive(): bool
