@@ -1,5 +1,9 @@
 ---
 import Base from '../layouts/Base.astro';
+import Stage from '../components/Stage.astro';
+import FlowMock from '../components/FlowMock.astro';
+import BlastMock from '../components/BlastMock.astro';
+import SignInMock from '../components/SignInMock.astro';
 import AppMock from '../components/AppMock.astro';
 import FeatureCard from '../components/FeatureCard.astro';
 import CtaBand from '../components/CtaBand.astro';
@@ -13,41 +17,34 @@ import TrialNote from '../components/TrialNote.astro';
 import DocsBand from '../components/DocsBand.astro';
 import { Image } from 'astro:assets';
 import teamPhoto from '../assets/team-celebrating.jpg';
-import { faq, features, reasons, site, steps } from '../data/site';
+import { faq, features, reasons, site, steps, changelog } from '../data/site';
 ---
 <Base>
-    <section class="relative overflow-hidden bg-gradient-to-b from-[#fbf7ee] via-[#f6efe1] to-[#fbf9f5]">
-        <div class="pointer-events-none absolute -right-24 -top-24 size-[30rem] rounded-full bg-gold-200/50 blur-3xl" aria-hidden="true"></div>
-        <div class="pointer-events-none absolute -left-32 top-1/2 size-[26rem] rounded-full bg-brand-200/40 blur-3xl" aria-hidden="true"></div>
-        <div class="container-page relative pb-16 pt-12 sm:pt-16 lg:pb-24">
-            <div class="grid items-center gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-14">
-                <div class="text-center lg:text-left">
-                    <p class="inline-flex items-center gap-2 rounded-full border border-gold-300 bg-gold-100/70 px-3 py-1 text-xs font-semibold text-gold-600">{site.tagline}</p>
-                    <h1 class="mt-6 text-4xl font-semibold leading-[1.08] sm:text-5xl lg:text-[3.4rem]">The CRM that adapts to <span class="text-gradient">how you work</span></h1>
-                    <p class="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-stone-600 lg:mx-0">Model your own records, automate the follow-ups, and reach people by e-mail and SMS, all in one place. Every company gets its own private space.</p>
-                    <div class="mt-8 flex flex-wrap justify-center gap-3 lg:justify-start">
-                        <a href={site.signupUrl} class="btn-primary !px-6 !py-3" data-testid="hero-signup">Start your free trial</a>
-                        <a href="/demo" class="btn-outline !px-6 !py-3">Request a demo</a>
-                    </div>
-                    <div class="mt-6"><TrialNote align="start" compact /></div>
-                    <p class="mt-3 text-sm text-stone-600"><a href="/features" class="font-medium text-brand-700 underline underline-offset-2 hover:text-brand-900">See what it does</a></p>
-                    <p class="mt-4 flex items-center justify-center gap-2 text-sm text-stone-500 lg:justify-start"><span class="text-gold-400" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</span>Made for teams who like their work to run itself</p>
-                </div>
+    <!-- hero: dark, a dotted grid, a big headline, and the product standing on a coloured stage that is cut off at the bottom -->
+    <section class="relative isolate overflow-hidden bg-gradient-to-b from-[#0f1626] via-[#1d2a40] to-[#243a58] text-white">
+        <div class="bg-dots pointer-events-none absolute inset-0 -z-10 opacity-50 [mask-image:radial-gradient(ellipse_at_50%_0%,black,transparent_70%)]" aria-hidden="true"></div>
+        <div class="animate-float-slow pointer-events-none absolute -left-24 top-10 -z-10 size-96 rounded-full bg-brand-500/30 blur-3xl" aria-hidden="true"></div>
+        <div class="animate-float pointer-events-none absolute -right-24 top-40 -z-10 size-96 rounded-full bg-gold-400/20 blur-3xl" aria-hidden="true"></div>
 
-                <div class="relative">
-                    <div class="absolute -bottom-4 -right-4 hidden h-full w-3/4 rounded-[2rem] bg-gold-200/70 sm:block" aria-hidden="true"></div>
-                    <div class="relative overflow-hidden rounded-[2rem] shadow-2xl shadow-brand-900/25 ring-1 ring-black/5">
-                        <Image src={teamPhoto} alt="A team celebrating a win together around a table with laptops" widths={[480, 640, 960, 1280, 1600]} sizes="(min-width: 1024px) 56vw, 92vw" loading="eager" fetchpriority="high" class="aspect-[4/3] h-full w-full object-cover object-[60%_30%]" />
-                        <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-brand-900/25 via-transparent to-transparent" aria-hidden="true"></div>
-                    </div>
-                    <div class="absolute -left-3 top-8 flex items-center gap-2 rounded-xl bg-white px-3.5 py-2.5 text-xs font-medium text-stone-600 shadow-xl ring-1 ring-black/5 sm:-left-6" aria-hidden="true"><span class="grid size-7 place-items-center rounded-full bg-emerald-100 text-emerald-700">&#10003;</span><span><span class="block font-semibold text-ink">Deal won</span>Northwind, just now</span></div>
-                    <div class="absolute -right-2 bottom-24 hidden items-center gap-2 rounded-xl bg-white px-3.5 py-2.5 text-xs font-medium text-stone-600 shadow-xl ring-1 ring-black/5 sm:-right-5 sm:flex" aria-hidden="true"><span class="grid size-7 place-items-center rounded-full bg-gold-100 text-gold-600">&#9733;</span><span><span class="block font-semibold text-ink">Customer happy</span>Follow-up sent on time</span></div>
-                    <div class="absolute -bottom-5 left-8 flex items-center gap-2 rounded-xl bg-white px-3.5 py-2.5 text-xs font-medium text-stone-600 shadow-xl ring-1 ring-black/5" aria-hidden="true"><span class="grid size-7 place-items-center rounded-full bg-brand-100 text-brand-700">&#9889;</span><span><span class="block font-semibold text-ink">3 automations ran</span>while you were away</span></div>
-                </div>
+        <div class="container-page pt-14 text-center sm:pt-20">
+            <p class="animate-rise mx-auto inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1 text-xs font-semibold text-gold-200 backdrop-blur">{site.tagline}</p>
+            <h1 class="display animate-rise mx-auto mt-6 max-w-4xl text-5xl leading-[1.02] !text-white sm:text-6xl lg:text-7xl" style="animation-delay:80ms">The CRM that adapts to <span class="bg-gradient-to-r from-gold-300 via-gold-200 to-sky-300 bg-clip-text text-transparent">how you work</span></h1>
+            <p class="animate-rise mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-brand-100 sm:text-xl" style="animation-delay:160ms">Model your own records, automate the follow-ups, and reach people by e-mail and SMS, all in one place. Every company gets its own private space.</p>
+            <div class="animate-rise mt-9 flex flex-wrap justify-center gap-3" style="animation-delay:240ms">
+                <a href={site.signupUrl} class="btn-accent !px-7 !py-3.5 text-base" data-testid="hero-signup">Start your free trial</a>
+                <a href="/demo" class="btn-ghost-dark !px-7 !py-3.5 text-base">Request a demo</a>
             </div>
+            <div class="animate-rise mx-auto mt-7 max-w-xl" style="animation-delay:320ms"><TrialNote tone="dark" compact /></div>
+        </div>
 
-            <div class="relative mx-auto mt-20 max-w-4xl">
-                <AppMock />
+        <div class="container-page relative mt-14">
+            <div class="relative overflow-hidden rounded-t-[2rem] bg-gradient-to-br from-[#3f78bd] via-[#2f5f9a] to-[#1d3a63] px-4 pt-10 shadow-[0_-24px_90px_-24px_rgba(95,134,176,0.65)] sm:px-12 sm:pt-14">
+                <div class="bg-dots pointer-events-none absolute inset-0 opacity-30 [mask-image:radial-gradient(ellipse_at_50%_0%,black,transparent_80%)]" aria-hidden="true"></div>
+                <div class="relative mx-auto max-h-[22rem] max-w-4xl overflow-hidden sm:max-h-[26rem]">
+                    <AppMock />
+                </div>
+                <div class="animate-float absolute left-3 top-24 hidden items-center gap-2 rounded-xl bg-white px-3.5 py-2.5 text-xs font-medium text-stone-600 shadow-2xl shadow-black/30 ring-1 ring-black/5 sm:left-10 sm:flex" aria-hidden="true"><span class="grid size-7 place-items-center rounded-full bg-emerald-100 text-emerald-700">&#10003;</span><span><b class="block text-stone-800">Deal won</b>Northwind, just now</span></div>
+                <div class="animate-float-slow absolute right-3 top-40 hidden items-center gap-2 rounded-xl bg-white px-3.5 py-2.5 text-xs font-medium text-stone-600 shadow-2xl shadow-black/30 ring-1 ring-black/5 sm:right-10 sm:flex" aria-hidden="true"><span class="grid size-7 place-items-center rounded-full bg-gold-100 text-gold-600">&#9889;</span><span><b class="block text-stone-800">3 automations ran</b>while you were away</span></div>
             </div>
         </div>
     </section>
@@ -61,6 +58,52 @@ import { faq, features, reasons, site, steps } from '../data/site';
         </div>
         <div class="mt-10"><ProductTour /></div>
     </section>
+
+    <!-- three stages: the product at work, each on its own colour -->
+    <Stage tone="blue" id="automations">
+        <div class="grid grid-cols-[minmax(0,1fr)] items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <div>
+                <p class="text-xs font-bold uppercase tracking-widest text-gold-300">Automations</p>
+                <h2 class="display mt-3 text-4xl !text-white sm:text-5xl">Follow-ups that run themselves</h2>
+                <p class="mt-5 max-w-lg text-lg leading-relaxed text-brand-100">Pick a trigger, add a wait, choose the actions. E-mails, texts, tags, tasks and webhooks go out on their own, and every run is written down.</p>
+                <ul class="mt-6 space-y-3 text-brand-100">
+                    {['Wait minutes, hours or days between steps', 'See the whole sequence as a timeline', 'Every run recorded, step by step'].map((t) => <li class="flex gap-3"><span class="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-white/15 text-gold-300"><Icon name="check" class="size-3" /></span>{t}</li>)}
+                </ul>
+                <a href="/docs/automations" class="btn-light mt-8">See how automations work</a>
+            </div>
+            <FlowMock />
+        </div>
+    </Stage>
+
+    <Stage tone="violet" id="messages">
+        <div class="grid grid-cols-[minmax(0,1fr)] items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <div class="order-last lg:order-first"><BlastMock /></div>
+            <div>
+                <p class="text-xs font-bold uppercase tracking-widest text-gold-300">E-mail and SMS</p>
+                <h2 class="display mt-3 text-4xl !text-white sm:text-5xl">Every send, in one view</h2>
+                <p class="mt-5 max-w-lg text-lg leading-relaxed text-violet-100">Email all or Text all to any search, then follow it: how many people it found, how many went out, which failed and why, and how many opened.</p>
+                <ul class="mt-6 space-y-3 text-violet-100">
+                    {['Templates and merge fields, like writing to one person', 'An unsubscribe link in every bulk e-mail', 'Failures with the reason, contact by contact'].map((t) => <li class="flex gap-3"><span class="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-white/15 text-gold-300"><Icon name="check" class="size-3" /></span>{t}</li>)}
+                </ul>
+                <a href="/docs/messaging" class="btn-light mt-8">See how messaging works</a>
+            </div>
+        </div>
+    </Stage>
+
+    <Stage tone="navy" id="sign-in">
+        <div class="grid grid-cols-[minmax(0,1fr)] items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <div>
+                <p class="text-xs font-bold uppercase tracking-widest text-gold-300">Security</p>
+                <h2 class="display mt-3 text-4xl !text-white sm:text-5xl">Sign in the way you prefer</h2>
+                <p class="mt-5 max-w-lg text-lg leading-relaxed text-brand-100">Protect every account beyond the password, and let people use what they already have. Administrators can require it of everybody.</p>
+                <ul class="mt-6 space-y-3 text-brand-100">
+                    {['Two-step verification with an authenticator app', 'Passkeys: a fingerprint, face or device PIN', 'Google, Microsoft, GitHub or your own single sign-on'].map((t) => <li class="flex gap-3"><span class="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-white/15 text-gold-300"><Icon name="check" class="size-3" /></span>{t}</li>)}
+                </ul>
+                <a href="/security" class="btn-light mt-8">How we protect your data</a>
+            </div>
+            <SignInMock />
+        </div>
+    </Stage>
 
     <section class="reveal container-page py-20">
         <div class="mx-auto max-w-2xl text-center">

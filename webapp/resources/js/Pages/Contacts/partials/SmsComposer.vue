@@ -1,13 +1,23 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
+import MergeFieldMenu from '@/Components/MergeFieldMenu.vue';
 import Modal from '@/Components/Modal.vue';
+import { insertAtCursor } from '@/lib/mergeFields';
 import { api } from '@/lib/api';
 import { run } from '@/lib/ui';
 
 const props = defineProps({ contact: Object });
 const emit = defineEmits(['close', 'sent']);
 const body = ref('');
+const bodyEl = ref(null);
 const sending = ref(false);
+async function addField(token) {
+    const r = insertAtCursor(bodyEl.value, body.value, token);
+    body.value = r.value;
+    await nextTick();
+    bodyEl.value?.focus();
+    bodyEl.value?.setSelectionRange(r.caret, r.caret);
+}
 // when the plan lets the company text from several numbers, the person picks one (the first is the default)
 const numbers = ref([]);
 const from = ref('');
@@ -29,9 +39,9 @@ async function send() {
             <div><label class="label">To</label><input :value="contact.phone" class="input" disabled /></div>
             <div v-if="numbers.length > 1"><label class="label" for="sms-from">Send from</label><select id="sms-from" v-model="from" class="input" data-testid="sms-from"><option v-for="n in numbers" :key="n" :value="n">{{ n }}</option></select></div>
             <div>
-                <label class="label">Message</label>
-                <textarea v-model="body" rows="5" maxlength="1600" class="input" placeholder="Type your message…" autofocus />
-                <p class="mt-1 text-right text-xs text-slate-400">{{ body.length }} characters · {{ segments }} segment{{ segments === 1 ? '' : 's' }}</p>
+                <div class="mb-1 flex items-center justify-between"><label class="label !mb-0" for="sms-body">Message</label><MergeFieldMenu @pick="addField" /></div>
+                <textarea id="sms-body" ref="bodyEl" v-model="body" rows="5" maxlength="1600" class="input" placeholder="Type your message…" autofocus data-testid="sms-body" />
+                <p class="mt-1 text-right text-xs text-slate-400">{{ body.length }} characters · {{ segments }} segment{{ segments === 1 ? '' : 's' }}. Merge fields are filled in when it is sent.</p>
             </div>
         </div>
         <template #footer>

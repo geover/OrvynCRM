@@ -5,8 +5,10 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import PlatformLayout from '@/Layouts/PlatformLayout.vue';
 import { applyBrandColor } from '@/lib/brand';
 import { initTheme, setThemeArea } from '@/lib/theme';
+import { installUnsavedGuard } from '@/lib/unsavedGuard';
 
 initTheme();
+installUnsavedGuard();                    // before the app starts, so the Back button reaches it first (see unsavedGuard)
 
 const pages = import.meta.glob('./Pages/**/*.vue');
 

@@ -4,6 +4,8 @@ import { RefreshCw } from 'lucide-vue-next';
 import PasswordField from '@/Components/PasswordField.vue';
 import SettingsShell from '@/Components/SettingsShell.vue';
 import { fmtRelative, toast } from '@/lib/ui';
+import { usePageGuard } from '@/lib/unsavedGuard';
+usePageGuard();                          // an unsaved change is asked about before the page is left
 
 // What the public website says that is decided here. The website reads it when it is built; empty fields keep the website's own default.
 const props = defineProps({ website: Object, feed: String, effective: Object });

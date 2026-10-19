@@ -4,6 +4,8 @@ import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import PasswordField from '@/Components/PasswordField.vue';
 import SettingsShell from '@/Components/SettingsShell.vue';
 import { confirmDialog, toast } from '@/lib/ui';
+import { usePageGuard } from '@/lib/unsavedGuard';
+usePageGuard();                          // an unsaved change is asked about before the page is left
 
 const props = defineProps({ mail: Object, env: Object, my_email: String, sendgrid: Object });
 const page = usePage();

@@ -5,6 +5,8 @@ import PasswordField from '@/Components/PasswordField.vue';
 import SettingsShell from '@/Components/SettingsShell.vue';
 import { fmtMoney, periodLabel } from '@/lib/money';
 import { confirmDialog, toast } from '@/lib/ui';
+import { usePageGuard } from '@/lib/unsavedGuard';
+usePageGuard();                          // an unsaved change is asked about before the page is left
 
 // Stripe: companies subscribe to a tier and type their card on Stripe's own pages, so no card number ever reaches this application.
 const props = defineProps({ settings: Object, tiers: Array, money: Object, subscriptions: Object, outdated: { type: Array, default: null } });

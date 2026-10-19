@@ -1,0 +1,40 @@
+---
+import PageHero from '../components/PageHero.astro';
+import Base from '../layouts/Base.astro';
+import CtaBand from '../components/CtaBand.astro';
+import { changelog } from '../data/site';
+
+const tones: Record<string, string> = {
+    'E-mail': 'bg-sky-50 text-sky-700 ring-sky-200', Automations: 'bg-amber-50 text-amber-700 ring-amber-200', Security: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+    Contacts: 'bg-indigo-50 text-indigo-700 ring-indigo-200', 'Getting started': 'bg-stone-100 text-stone-700 ring-stone-200', Billing: 'bg-rose-50 text-rose-700 ring-rose-200',
+};
+const months = [...new Set(changelog.map((c) => c.month))];
+---
+<Base title="What's new" description="The latest features and improvements in OrvynCRM: e-mail, automations, security, contacts and billing.">
+    <PageHero eyebrow="What's new" title="Always getting" highlight="a little better" lead="The latest additions to OrvynCRM, newest first. Everything here is in the product today." crumb="What's new" />
+
+    <section class="container-page py-14">
+        <div class="mx-auto max-w-3xl">
+            {months.map((month) => (
+                <div class="mb-12 last:mb-0">
+                    <h2 class="mb-6 text-sm font-semibold uppercase tracking-wider text-stone-500">{month}</h2>
+                    <ol class="relative space-y-6 border-l border-stone-200 pl-7">
+                        {changelog.filter((c) => c.month === month).map((c) => (
+                            <li class="relative">
+                                <span class="absolute -left-[2.15rem] top-6 size-3 rounded-full bg-brand-500 ring-4 ring-stone-50" aria-hidden="true"></span>
+                                <article class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm transition hover:border-brand-200 hover:shadow-md">
+                                    <span class:list={['inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1', tones[c.tag] ?? 'bg-stone-100 text-stone-700 ring-stone-200']}>{c.tag}</span>
+                                    <h3 class="mt-3 text-lg font-semibold">{c.title}</h3>
+                                    <p class="mt-2 text-sm leading-relaxed text-stone-600">{c.text}</p>
+                                    {c.href && <a href={c.href} class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:underline">Read how it works <span aria-hidden="true">&rarr;</span></a>}
+                                </article>
+                            </li>
+                        ))}
+                    </ol>
+                </div>
+            ))}
+        </div>
+    </section>
+
+    <CtaBand title="Try the latest yourself" text="Start a free trial in minutes, or ask us for a walkthrough of what is new." />
+</Base>

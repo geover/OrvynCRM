@@ -5,6 +5,8 @@ import AdminPage from '@/Components/AdminPage.vue';
 import { api } from '@/lib/api';
 import { isLightColor } from '@/lib/brand';
 import { confirmDialog, run, toast } from '@/lib/ui';
+import { usePageGuard } from '@/lib/unsavedGuard';
+usePageGuard();                          // an unsaved change is asked about before the page is left
 
 const page = usePage();
 const color = ref('#4f46e5');

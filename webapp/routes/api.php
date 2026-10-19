@@ -72,6 +72,8 @@ Route::prefix('v1')->group(function () {
         // Queries (admin builds, everyone runs) + dashboard widgets
         Route::get('queries/meta', [V1\SavedQueryController::class, 'meta']);
         Route::post('queries/preview', [V1\SavedQueryController::class, 'preview']);
+        Route::post('queries/export', [V1\SavedQueryController::class, 'export']);
+        Route::post('queries/batch/{channel}', [V1\SavedQueryController::class, 'batch']);
         Route::get('queries/{savedQuery}/run', [V1\SavedQueryController::class, 'run']);
         Route::apiResource('queries', V1\SavedQueryController::class)->except('show')->parameters(['queries' => 'savedQuery']);
         Route::post('widgets/reorder', [V1\WidgetController::class, 'reorder']);
@@ -158,6 +160,8 @@ Route::prefix('v1')->group(function () {
         Route::get('messages/readiness', [V1\MessageController::class, 'readiness']);
         Route::get('messages/queue', [V1\MessageController::class, 'queue']);
         Route::get('messages/blast', [V1\MessageController::class, 'blast']);
+        Route::get('blasts', [V1\BlastController::class, 'index']);
+        Route::get('blasts/{blast}', [V1\BlastController::class, 'show'])->whereNumber('blast');
         Route::get('messages/email/{email}', [V1\MessageController::class, 'showEmail']);
         Route::post('messages/email/{email}/resend', [V1\MessageController::class, 'resend']);
         Route::delete('suppressions/{email}', [V1\MessageController::class, 'unsuppress']);

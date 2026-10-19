@@ -32,7 +32,10 @@ class MessageComposer
             'from_name' => $spec['from_name'] ?? Setting::get('mail.from_name', app(MailSettings::class)->from()['name']),
             'to' => [['email' => $contact->email, 'name' => $contact->full_name]],
             'scheduled_at' => isset($spec['delay_minutes']) ? now()->addMinutes((int) $spec['delay_minutes']) : null,
+            'attachments' => $spec['attachments'] ?? null,
             'status' => 'queued',
+            // automations and bulk e-mail carry the unsubscribe footer; one-to-one e-mail typed by a person does not
+            'marketing' => (bool) ($spec['marketing'] ?? $record !== null),
         ]);
     }
 

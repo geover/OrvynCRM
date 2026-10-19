@@ -4,6 +4,8 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-vue-next';
 import { api } from '@/lib/api';
 import { confirmDialog } from '@/lib/ui';
+import { usePageGuard } from '@/lib/unsavedGuard';
+usePageGuard();                          // an unsaved change is asked about before the page is left
 
 const props = defineProps({ objectId: { type: Number, default: null } });
 const isNew = props.objectId === null;

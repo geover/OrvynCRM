@@ -2,6 +2,8 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import SettingsShell from '@/Components/SettingsShell.vue';
 import { toast } from '@/lib/ui';
+import { usePageGuard } from '@/lib/unsavedGuard';
+usePageGuard();                          // an unsaved change is asked about before the page is left
 
 // How long without any activity makes a company "inactive", and who is told. The review and the decision (keep, suspend, close)
 // happen on the Companies page, in its Inactive view.

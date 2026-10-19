@@ -53,7 +53,7 @@ export const securityPoints = [
     { icon: 'users', title: 'Permissions that match your team', text: 'Permission templates decide who can see and do what. Administrators control who is in the workspace.' },
     { icon: 'calendar', title: 'A record of what happened', text: 'Records keep their history, and every automation run and message delivery is written down, so you can see what happened and when.' },
     { icon: 'shield', title: 'Protected in the browser and at sign-in', text: 'Every page carries a content security policy and the usual browser protections. Sign-in is rate limited, can be protected by reCAPTCHA, and a password reset signs out every API token.' },
-    { icon: 'mail', title: 'Safe sending', text: 'Bounces, spam reports and unsubscribes are recorded and respected, and sending is rate limited to protect your reputation.' },
+    { icon: 'mail', title: 'Safe sending', text: 'Every bulk e-mail carries an unsubscribe link, and bounces, spam reports and unsubscribes are recorded and respected. Sending is rate limited to protect your reputation.' },
     { icon: 'link', title: 'Your data goes where you say', text: 'Nothing leaves the workspace except through the integrations and webhooks you switch on. Export your data at any time.' },
 ];
 
@@ -93,21 +93,34 @@ export const comparison = {
     ] as [string, [string, string, string]][],
 };
 
+export type Change = { month: string; tag: string; title: string; text: string; href?: string };
+
+/** What was added, newest first. Add an entry whenever a user-visible feature ships (shown on /changelog and in the home hero). */
+export const changelog: Change[] = [
+    { month: 'October 2026', tag: 'E-mail', title: 'Unsubscribe links and the progress of every send', text: 'Every automation and bulk e-mail now ends with an unsubscribe link, and mail programs show their own unsubscribe button. Each Email all and Text all is tracked as one send: how many people it found, how many went out, which failed and why, and how many opened.', href: '/docs/messaging' },
+    { month: 'October 2026', tag: 'E-mail', title: 'Email all and Text all, everywhere', text: 'The same form as e-mailing one contact (templates, merge fields, formatting, attachments) on dashboard widgets and in Advanced search, with a Download CSV button, and merge fields in texts too.', href: '/docs/contacts' },
+    { month: 'October 2026', tag: 'Automations', title: 'Timed follow-ups you can read', text: 'Wait minutes, hours or days before an e-mail or text goes out, and see the whole sequence as a timeline: immediately, after 2 days, after a week.', href: '/docs/automations' },
+    { month: 'October 2026', tag: 'Security', title: 'Two-step verification, passkeys and single sign-on', text: 'Protect accounts with an authenticator app, sign in with a fingerprint, face or device PIN, or continue with Google, Microsoft, GitHub or your own provider. Platforms can require two-step verification for administrators or everybody.', href: '/docs/team-and-admin' },
+    { month: 'October 2026', tag: 'Contacts', title: 'A contact list that keeps up', text: 'Sort by any column, move through numbered pages, and e-mail, text or edit a contact without leaving the list. Unsaved changes are now asked about before you leave a form.', href: '/docs/contacts' },
+    { month: 'October 2026', tag: 'Getting started', title: 'Easier to start, easier to find things', text: 'The free trial needs no credit card. New workspaces get a getting-started checklist, and Admin settings have a menu of every setting with live details on each card.', href: '/docs/getting-started' },
+    { month: 'October 2026', tag: 'Billing', title: 'Clearer plans and payments', text: 'Plan changes explain what will happen first, administrators are told when a payment fails, and companies that are invoiced have their invoices tracked and followed up.', href: '/docs/plans-and-billing' },
+];
+
 export type Feature = { icon: string; title: string; text: string; points: string[] };
 
 export const features: Feature[] = [
     { icon: 'users', title: 'Contacts that tell the whole story',
         text: 'One record per person with everything around it: notes, tasks, messages, relationships and files.',
-        points: ['Overview, notes and tasks, communications, relationships and attachments', 'Advanced search and a query builder you can save', 'Merge duplicates, import and export CSV'] },
+        points: ['Overview, notes and tasks, communications, relationships and attachments', 'Sort any column, page through results, and e-mail, text or edit right from the list', 'Advanced search and a query builder you can save', 'Merge duplicates, import and export CSV'] },
     { icon: 'boxes', title: 'Your own data, your own model',
         text: 'Define the record types your business really has (deals, properties, tours, subscriptions) and the fields they need.',
         points: ['Custom data objects and fields', 'Shown as tabs on a contact, with history and attachments', 'Move records across workflow boards'] },
     { icon: 'zap', title: 'Automations that work while you sleep',
         text: 'Pick a condition, choose the actions, and let it run. Every run is recorded, so you can see what happened and why.',
-        points: ['E-mail, SMS, tags, tasks, field updates and webhooks', 'Runs on a schedule or when a record changes', 'Run history with the result of each action'] },
+        points: ['E-mail, SMS, tags, tasks, field updates and webhooks', 'Timed follow-ups: wait minutes, hours or days, shown as a timeline', 'Runs on a schedule or when a record changes', 'Run history with the result of each action'] },
     { icon: 'mail', title: 'E-mail and SMS, built in',
         text: 'Write once and reach people where they read. Templates, tracking and delivery reports are included.',
-        points: ['Composer with reusable templates', 'Opens, clicks, bounces and unsubscribes tracked', 'Text messages through Twilio, on your account or ours'] },
+        points: ['Composer with reusable templates and merge fields', 'Email all and Text all to any search, with the progress of every send', 'An unsubscribe link in every bulk e-mail', 'Opens, clicks and bounces tracked; texts through Twilio'] },
     { icon: 'form', title: 'Forms that feed your CRM',
         text: 'Build a form, put it on your website, and every answer lands as a contact with the right data.',
         points: ['Hosted or embedded forms', 'Fields mapped to your own data model', 'Webhooks for everything else'] },

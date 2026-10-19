@@ -5,6 +5,8 @@ import CallerIdVerifier from '@/Components/CallerIdVerifier.vue';
 import SettingsShell from '@/Components/SettingsShell.vue';
 import { getJson } from '@/lib/live';
 import { confirmDialog, toast } from '@/lib/ui';
+import { usePageGuard } from '@/lib/unsavedGuard';
+usePageGuard();                          // an unsaved change is asked about before the page is left
 
 const props = defineProps({ calls: Object, numbers: Array, numbers_error: String, account_ready: Boolean });
 const page = usePage();

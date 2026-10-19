@@ -1,8 +1,11 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { Activity, ArrowDownRight, ArrowUpRight, Download, FileUp, ListPlus, Mail, MessageSquare, Pencil, Plus, RefreshCw, Trash2, UserPlus } from 'lucide-vue-next';
 import Modal from '@/Components/Modal.vue';
+import EmailComposer from './Contacts/partials/EmailComposer.vue';
+import MergeFieldMenu from '@/Components/MergeFieldMenu.vue';
+import { insertAtCursor } from '@/lib/mergeFields';
 import GettingStarted from '@/Components/GettingStarted.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import { api } from '@/lib/api';
@@ -57,12 +60,20 @@ async function removeWidget(w) {
     if (!(await confirmDialog({ title: `Remove “${w.name}”?`, message: 'The saved query itself is not deleted.', danger: true, confirmLabel: 'Remove' }))) return;
     await run(() => api.delete(`/widgets/${w.id}`), 'Removed'); loadWidgets();
 }
+const smsEl = ref(null);
+async function addSmsField(token) {
+    const r = insertAtCursor(smsEl.value, draft.value.body ?? '', token);
+    draft.value.body = r.value;
+    await nextTick();
+    smsEl.value?.focus();
+    smsEl.value?.setSelectionRange(r.caret, r.caret);
+}
 function openBatch(type, w) { draft.value = { subject: '', html: '', body: '' }; modal.value = { type, widget: w }; }
-async function sendBatch() {
+async function sendBatch(composed = null) {
     const w = modal.value.widget; const email = modal.value.type === 'email';
-    const body = email ? { subject: draft.value.subject, html: `<p>${draft.value.html.replace(/\n/g, '<br>')}</p>` } : { body: draft.value.body };
+    const body = email ? composed : { body: draft.value.body };
     if (!(await confirmDialog({ title: `${email ? 'Email' : 'Text'} ${data.value[w.id]?.total ?? 'all'} contacts?`, message: 'Opted-out and suppressed contacts are skipped automatically.', confirmLabel: 'Queue messages' }))) return;
-    if (await run(() => api.post(`/widgets/${w.id}/batch/${modal.value.type}`, body), 'Messages are being queued.')) modal.value = null;
+    if (await run(() => api.post(`/widgets/${w.id}/batch/${modal.value.type}`, body), 'Messages are being queued. Follow the progress under Blast progress.')) modal.value = null;
 }
 const target = (w, r) => (r.contact_id ? `/contacts/${r.contact_id}` : r.contacts?.[0] ? `/contacts/${r.contacts[0].id}` : r.data_object_id ? `/objects/${r.data_object_id}` : null);
 const cell = (v) => (Array.isArray(v) ? v.join(', ') : v);
@@ -170,12 +181,13 @@ const cell = (v) => (Array.isArray(v) ? v.join(', ') : v);
         <template #footer><button class="btn-ghost" @click="modal = null">Cancel</button><button class="btn-primary" form="wf">Save</button></template>
     </Modal>
 
-    <Modal v-if="modal?.type === 'email' || modal?.type === 'sms'" :title="`${modal.type === 'email' ? 'Email' : 'Text'} everyone in “${modal.widget.name}”`" @close="modal = null">
-        <form id="bf" class="space-y-3" @submit.prevent="sendBatch">
-            <div v-if="modal.type === 'email'"><label class="label">Subject</label><input v-model="draft.subject" class="input" required /></div>
-            <div><label class="label">Message</label>
-                <textarea v-if="modal.type === 'email'" v-model="draft.html" rows="7" class="input" required /><textarea v-else v-model="draft.body" rows="5" class="input" required maxlength="1600" />
-                <p class="mt-1 text-xs text-slate-400">Merge fields like <code v-text="'{{contact.first_name}}'" /> work here.</p></div>
+    <!-- e-mail to everybody a widget finds: the same form as e-mailing one contact (templates, merge fields, formatting, attachments) -->
+    <EmailComposer v-if="modal?.type === 'email'" :bulk="{ name: modal.widget.name, count: data[modal.widget.id]?.total }" @close="modal = null" @submit="sendBatch" />
+    <Modal v-if="modal?.type === 'sms'" :title="`Text everyone in “${modal.widget.name}”`" @close="modal = null">
+        <form id="bf" class="space-y-3" @submit.prevent="sendBatch()">
+            <div><div class="mb-1 flex items-center justify-between"><label class="label !mb-0" for="batch-sms">Message</label><MergeFieldMenu @pick="addSmsField" /></div>
+                <textarea id="batch-sms" ref="smsEl" v-model="draft.body" rows="5" class="input" required maxlength="1600" />
+                <p class="mt-1 text-xs text-slate-400">Merge fields are filled in per contact when it is sent.</p></div>
         </form>
         <template #footer><button class="btn-ghost" @click="modal = null">Cancel</button><button class="btn-primary" form="bf">Send…</button></template>
     </Modal>

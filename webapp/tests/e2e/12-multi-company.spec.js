@@ -231,6 +231,7 @@ test.describe('platform area', () => {
         await modal(page).getByRole('button', { name: 'Create company' }).click();
         await expect(modal(page)).toContainText('not available');
         await page.keyboard.press('Escape');
+        await confirm(page, 'Discard changes');                                                  // there is typing in it: closing asks first
 
         // the new owner signs in and finds an empty company of their own
         const ctx = await browser.newContext();

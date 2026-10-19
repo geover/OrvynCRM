@@ -4,6 +4,8 @@ import { router } from '@inertiajs/vue3';
 import AdminPage from '@/Components/AdminPage.vue';
 import { api } from '@/lib/api';
 import { run } from '@/lib/ui';
+import { usePageGuard } from '@/lib/unsavedGuard';
+usePageGuard();                          // an unsaved change is asked about before the page is left
 
 const props = defineProps({ templateId: { type: Number, default: null } });
 

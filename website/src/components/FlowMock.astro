@@ -1,0 +1,23 @@
+---
+// A picture of an automation: a trigger, a wait, then the actions. The connectors run, the active step pulses.
+const steps = [
+    { icon: '&#9889;', label: 'When', title: 'A form is submitted', tone: 'bg-gold-100 text-gold-600' },
+    { icon: '&#9719;', label: 'Wait', title: '1 day', tone: 'bg-sky-50 text-sky-700' },
+    { icon: '&#9993;', label: 'Send e-mail', title: 'Welcome and next steps', tone: 'bg-indigo-50 text-indigo-700', live: true },
+    { icon: '&#127991;', label: 'Add tag', title: 'New customer', tone: 'bg-emerald-50 text-emerald-700' },
+];
+---
+<div class="mx-auto flex w-full max-w-sm flex-col items-center" role="img" aria-label="An automation: when a form is submitted, wait one day, send an e-mail, then add a tag">
+    {steps.map((s, i) => (
+        <>
+            {i > 0 && <div class="flow-line h-8 w-0.5" aria-hidden="true"></div>}
+            <div class:list={['animate-rise flex w-full items-center gap-3 rounded-2xl bg-white p-3.5 text-left shadow-xl shadow-black/20 ring-1 ring-black/5', i % 2 ? 'sm:translate-x-6' : 'sm:-translate-x-6']} style={`animation-delay:${i * 140}ms`}>
+                <span class:list={['grid size-10 shrink-0 place-items-center rounded-xl text-lg', s.tone]} set:html={s.icon}></span>
+                <div class="min-w-0 flex-1"><div class="text-[11px] font-semibold uppercase tracking-wide text-stone-500">{s.label}</div><div class="truncate text-sm font-semibold text-ink">{s.title}</div></div>
+                {s.live
+                    ? <span class="animate-pulse-ring flex items-center gap-1.5 rounded-full bg-gold-100 px-2.5 py-1 text-[11px] font-semibold text-gold-600"><span class="size-1.5 rounded-full bg-gold-500"></span>Running</span>
+                    : <span class="grid size-6 place-items-center rounded-full bg-emerald-100 text-xs text-emerald-700" aria-hidden="true">&#10003;</span>}
+            </div>
+        </>
+    ))}
+</div>

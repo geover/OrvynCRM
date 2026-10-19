@@ -29,9 +29,11 @@ async function request(method, path, { params, body, form } = {}) {
     });
 
     if (res.status === 401) sessionEnded();
-    if (res.status === 204) return null;
+    if (res.status === 204) { if (method !== 'GET') window.dispatchEvent(new Event('orvyn:saved')); return null; }
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw Object.assign(new Error(data.message ?? 'Request failed'), { status: res.status, errors: data.errors ?? {} });
+    // a successful write: what is on screen is saved, so the next change counts from here (see unsavedGuard)
+    if (method !== 'GET') window.dispatchEvent(new Event('orvyn:saved'));
     return data;
 }
 

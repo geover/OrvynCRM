@@ -3,6 +3,8 @@ import { Head, useForm, usePage } from '@inertiajs/vue3';
 import PasswordField from '@/Components/PasswordField.vue';
 import SettingsShell from '@/Components/SettingsShell.vue';
 import { toast } from '@/lib/ui';
+import { usePageGuard } from '@/lib/unsavedGuard';
+usePageGuard();                          // an unsaved change is asked about before the page is left
 
 // Google reCAPTCHA v3: invisible, scores each sign-in and sign-up attempt, and turns away the ones that look like a script.
 const props = defineProps({ recaptcha: Object, active: Boolean });

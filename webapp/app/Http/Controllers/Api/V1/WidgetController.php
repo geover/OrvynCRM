@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Jobs\QueueBatchMessages;
 use App\Models\Widget;
+use App\Services\Queries\QueryActions;
 use App\Services\Queries\QueryRunner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -69,37 +69,19 @@ class WidgetController extends Controller
         return response()->json($runner->run($q->scope, $q->definition, min($request->integer('limit', 10), 100), max($request->integer('offset', 0), 0)) + ['query' => $q->only(['id', 'name', 'scope'])]);
     }
 
-    public function export(Request $request, Widget $widget, QueryRunner $runner): StreamedResponse
+    public function export(Request $request, Widget $widget, QueryActions $actions): StreamedResponse
     {
         $q = $widget->savedQuery ?? abort(404);
-        abort_unless($request->user()->hasPermission('contacts.view'), 403);
 
-        return response()->streamDownload(function () use ($q, $runner) {
-            $out = fopen('php://output', 'w');
-            $first = $runner->run($q->scope, $q->definition, 1, 0);
-            fputcsv($out, array_column($first['columns'], 'label'));
-            // page through the result so memory stays flat on huge queries
-            for ($offset = 0; $offset < $first['total']; $offset += 500) {
-                foreach ($runner->run($q->scope, $q->definition, 500, $offset)['rows'] as $row) {
-                    fputcsv($out, array_map(fn ($v) => $this->csvSafe(is_array($v) ? implode('; ', $v) : $v), array_values($row['values'])));
-                }
-            }
-            fclose($out);
-        }, str($widget->name)->slug().'-'.now()->format('Ymd').'.csv', ['Content-Type' => 'text/csv']);
+        return $actions->csv($request, $q->scope, (array) $q->definition, $widget->name);
     }
 
     /** Email or text every contact in the widget's result (queued in chunks; respects opt-outs & suppression). */
-    public function batch(Request $request, Widget $widget, string $channel): JsonResponse
+    public function batch(Request $request, Widget $widget, string $channel, QueryActions $actions): JsonResponse
     {
-        abort_unless(in_array($channel, ['email', 'sms'], true), 404);
         $q = $widget->savedQuery ?? abort(404);
-        $spec = $request->validate($channel === 'email'
-            ? ['subject' => ['required', 'string', 'max:255'], 'html' => ['required', 'string', 'max:500000']]
-            : ['body' => ['required', 'string', 'max:1600']]);
 
-        QueueBatchMessages::dispatch($q->id, $channel, $spec, $request->user()->id);
-
-        return response()->json(['queued' => true], 202);
+        return $actions->batch($request, $channel, $q->scope, (array) $q->definition, $q->id, $widget->name);
     }
 
     private function authorizeWrite(Request $request, Widget $widget): void
@@ -113,11 +95,5 @@ class WidgetController extends Controller
             'name' => ['required', 'string', 'max:150'], 'type' => ['sometimes', 'string', 'max:30'],
             'saved_query_id' => ['required', 'exists:saved_queries,id'], 'settings' => ['nullable', 'array'], 'shared' => ['boolean'],
         ]);
-    }
-
-    /** Neutralise spreadsheet formula injection in exported cells. */
-    private function csvSafe(mixed $v): mixed
-    {
-        return is_string($v) && $v !== '' && in_array($v[0], ['=', '+', '-', '@', "\t", "\r"], true) ? "'".$v : $v;
     }
 }

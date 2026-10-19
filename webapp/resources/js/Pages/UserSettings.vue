@@ -7,6 +7,8 @@ import PageHeader from '@/Components/PageHeader.vue';
 import { api } from '@/lib/api';
 import { timezones } from '@/lib/tz';
 import { run } from '@/lib/ui';
+import { usePageGuard } from '@/lib/unsavedGuard';
+usePageGuard();                          // an unsaved change is asked about before the page is left
 
 const page = usePage();
 const me = ref(null);

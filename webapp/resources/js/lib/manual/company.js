@@ -54,6 +54,7 @@ export default {
                                 rows: [
                                     ["Sidebar", "Dashboard, Contacts, Data Objects, Workflow Boards, My Tasks, Schedules, and (for administrators) Admin Settings. Use the arrow at its top to collapse it to icons."],
                                     ["Search box", "Searches contacts and records as you type. Press **Ctrl+K** (**Cmd+K** on a Mac) to open the command palette from anywhere."],
+                                    ["Unsaved changes", "If you have typed something in a form and not saved it, OrvynCRM asks before you lose it: when you leave the page, close the browser tab, or close a pop-up with the X, Esc or a click outside it. Choose **Cancel** to keep editing or **Discard changes** to go on. It does not ask when you only searched or filtered, when you put a value back as it was, or after you have saved."],
                                     ["Add contact", "The purple person-with-a-plus button in the top bar opens the new-contact form wherever you are. On the Contacts page it is left out, because that page has its own **New contact** button right under the title."],
                                     ["What's new", "The megaphone: updates and news from the platform. A dot shows when there is something unread."],
                                     ["Bell", "Your notifications: tasks, import and export results, notices about your company."],
@@ -81,7 +82,7 @@ export default {
                         { list: ["**Quick actions**: Create contact, Create task, Import data, and **Add widget**.", "**Headline tiles**: contacts, new contacts in the last 30 days (compared with the 30 days before), e-mails sent, open rate, your open tasks and how many are overdue.", "**Upcoming tasks**: what is due soon, with the contact it belongs to. Click one to open the contact.", "**Recent activity**: the latest changes across the workspace.", "**Data objects**: a card for each object with its record count."] },
                         { h: "Widgets" },
                         { p: "A widget shows the result of a saved query, for example *deals closing this month*. Press **Add widget**, choose a saved query and a title. On a widget you can **Reload** it, **Download CSV**, **Edit** or **Remove** it. Removing a widget never deletes the query behind it." },
-                        { p: "Widgets that list contacts also offer **Email all** and **Text all**. Contacts who opted out, or whose address is suppressed, are skipped automatically and the messages are queued for sending in the background." },
+                        { p: "Widgets that list contacts also offer **Email all** and **Text all** (its message box has the same **Merge fields** list as the e-mail form, so every text can start with the contact's own first name). **Email all** opens the same form as e-mailing one contact: choose a **Template group** and **Use template**, write the subject and message with formatting and **Merge fields**, and attach files. Contacts who opted out, or whose address is suppressed, are skipped automatically and the messages are queued for sending in the background." },
                         { tip: "Cards can be moved and hidden to suit you. Your arrangement is remembered in this browser." },
                         { link: { label: "How to build the queries behind widgets", href: "#query-builder" } },
                     ],
@@ -187,7 +188,7 @@ export default {
                     title: "Advanced search and saved queries",
                     lead: "When the search box is not precise enough.",
                     blocks: [
-                        { steps: ["Open **Advanced search** from the contact list or the top bar.", "Choose what you are searching, then **Build a search** with one or more conditions.", "Press **Run query** to see the matches.", "Give it a name and **Save as new query** to reuse it, or open one from **Saved queries**."] },
+                        { steps: ["Open **Advanced search** from the contact list or the top bar.", "Choose what you are searching, then **Build a search** with one or more conditions.", "Press **Run query** to see the matches.", "Above the matches are the same actions as on a dashboard widget: **Download CSV** (everybody found, not only the rows shown), **Email all** (the same form as e-mailing one contact, with templates, merge fields and attachments) and **Text all**. They work on a search you have not saved as well. If you search a data object, the messages go to the contacts linked to the items found. Opted-out and suppressed contacts are skipped.", "Give it a name and **Save as new query** to reuse it, or open one from **Saved queries**."] },
                         { p: "Saved queries can power dashboard widgets and are the way to target groups of people. Administrators manage them under Admin settings, Query builder." },
                     ],
                 },
@@ -416,7 +417,7 @@ export default {
                             table: {
                                 head: ["Action", "What it does"],
                                 rows: [
-                                    ["Send email", "E-mails each linked contact."],
+                                    ["Send email", "E-mails each linked contact. Set **Wait before sending** in minutes, hours or days to build a drip of timed follow-ups; a timeline above the actions shows the sequence in time."],
                                     ["Send SMS", "Texts each linked contact."],
                                     ["Add tag / Remove tag", "Tags or untags each linked contact."],
                                     ["Create task", "Creates a task for each linked contact."],
@@ -426,6 +427,8 @@ export default {
                             },
                         },
                         { p: "The automations list shows each one's schedule and status. You can pause and resume it, **Evaluate** it now, and open its run history. Messages from automations skip contacts who opted out." },
+                        { h: "The unsubscribe link" },
+                        { p: "E-mails from automations and bulk sends end with a short footer and an **Unsubscribe** link, and carry the unsubscribe button that mail programs such as Gmail show. The link opens a simple page, with no sign-in, where the person confirms; they are opted out at once, it is noted on their contact record, and anything still waiting to be sent to them is dropped. They can change their mind on the same page. Put `{{unsubscribe_url}}` in a template to place the link yourself (the footer is then not added). E-mails you type to one person are sent without it." },
                         { note: "The platform sets how many automations each data object may have. At the limit, ask for more from the same page. Automations also pause if the platform switches the company's background services off." },
                         { warn: "Deleting an automation deletes its run history. Actions it already took are not undone." },
                     ],
@@ -465,6 +468,9 @@ export default {
                     adminOnly: true,
                     lead: "Is mail going out? See the whole queue of e-mails and texts.",
                     blocks: [
+                        { h: "Each Email all and Text all" },
+                        { p: "At the top, every **Email all** and **Text all** is listed as one line, newest first: what it said, where it went, who sent it, a progress bar and how many people it found, how many were **sent**, are **waiting** and **failed**, and (for e-mail) the share that **opened** it. Click a line for the whole picture: people found, messages made (the rest had no address or number, or had opted out), sent, waiting, failed with the reason for each, how many unsubscribed after it was queued, and opens and clicks. The window keeps counting while the messages go out. A blast is *Preparing* while the list is built, *Sending* while messages wait, and *Done* when none are left. Everybody else sees only their own blasts." },
+                        { h: "The queue" },
                         { p: "Shows the last 7 days of sending: e-mails and SMS **waiting** and **failed**, per user, refreshing every 15 seconds. Choose **All users** or one person. A growing *waiting* number that does not fall usually means sending is paused or blocked: see the troubleshooting section." },
                     ],
                 },

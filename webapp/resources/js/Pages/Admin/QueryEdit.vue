@@ -5,6 +5,8 @@ import AdminPage from '@/Components/AdminPage.vue';
 import QueryEditor from '@/Components/QueryEditor.vue';
 import { api } from '@/lib/api';
 import { run } from '@/lib/ui';
+import { usePageGuard } from '@/lib/unsavedGuard';
+usePageGuard();                          // an unsaved change is asked about before the page is left
 
 const props = defineProps({ queryId: { type: Number, default: null } });
 const name = ref('');

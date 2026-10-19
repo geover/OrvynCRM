@@ -4,6 +4,8 @@ namespace App\Jobs;
 
 use App\Models\Activity;
 use App\Models\EmailMessage;
+use App\Models\Setting;
+use App\Services\Messaging\Unsubscribes;
 use App\Services\Tenancy\CompanyServices;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -48,11 +50,24 @@ class SendEmailMessage implements ShouldQueue
         }
 
         $message = EmailMessage::findOrFail($this->messageId);
+
+        // somebody who unsubscribed after this was queued (a delayed follow-up, a long blast) must not get it
+        if ($message->marketing && $message->contact?->email_opt_out) {
+            $message->update(['status' => 'failed', 'error' => 'The contact has unsubscribed.']);
+
+            return;
+        }
+        $unsubscribes = app(Unsubscribes::class);
+        $html = $unsubscribes->withLink($message, (string) (Setting::get('app.name') ?: tenant('name') ?: config('app.name')));
         $pixel = '<img src="'.url('/t/o/'.$message->tracker_id).'" width="1" height="1" alt="" style="display:none">';
 
         try {
-            Mail::html($message->html.$pixel, function ($mail) use ($message) {
+            Mail::html($html.$pixel, function ($mail) use ($message, $unsubscribes) {
                 $mail->from($message->from_email, $message->from_name)->subject($message->subject);
+                // the unsubscribe button of Gmail, Apple Mail and others (RFC 8058): a one-click POST to the same address as the link
+                $headers = $mail->getSymfonyMessage()->getHeaders();
+                $headers->addTextHeader('List-Unsubscribe', '<'.$unsubscribes->url($message).'>');
+                $headers->addTextHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
                 // SendGrid reports back with these: which message, and which company it belongs to (see InboundWebhookController)
                 if (str_contains((string) config('mail.mailers.smtp.host'), 'sendgrid')) {
                     $mail->getSymfonyMessage()->getHeaders()->addTextHeader('X-SMTPAPI', json_encode(['unique_args' => ['tracker_id' => $message->tracker_id, 'tenant_id' => (string) tenant('id')]]));

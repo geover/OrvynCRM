@@ -256,6 +256,9 @@ test.describe('communication', () => {
         await m.locator('textarea').fill('x'.repeat(170));
         await expect(m.getByText('170 characters · 2 segments')).toBeVisible();
         await m.locator('textarea').fill('Hello there');
+        await m.getByTestId('merge-fields').click();                                   // the same merge-field menu as the e-mail form
+        await page.getByTestId('merge-fields-list').getByRole('menuitem').first().click();       // drawn on the page, not inside the pop-up, so it is never cut off
+        await expect(m.locator('textarea')).toHaveValue(/Hello there\{\{.+\}\}/);
         await m.getByRole('button', { name: 'Send SMS' }).click();
         await expect(toast(page, 'error').first()).toContainText(/not configured|not set up|Twilio|enabled/i);   // no provider is set up in a fresh install
     });

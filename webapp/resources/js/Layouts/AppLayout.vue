@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { installUnsavedGuard } from '@/lib/unsavedGuard';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { ArrowLeftRight, BookOpen, Bell, Building2, ChevronDown, LifeBuoy, Megaphone, Shield, SlidersHorizontal, LogOut, Menu, PanelLeftClose, PanelLeftOpen, KeyRound, Search, Settings, UserCog, UserPlus } from 'lucide-vue-next';
 import Hosts from '@/Components/Hosts.vue';
@@ -49,6 +50,7 @@ const trialNotice = computed(() => {
 const paymentFailed = computed(() => !!page.props.paymentFailed && !page.props.platform && user.value.is_admin);
 // the contact list has its own New contact button right under the title, so the header's quick-add would be a second one
 const onContactList = computed(() => page.url.split('?')[0] === '/contacts');
+installUnsavedGuard();
 const collapsed = useStored('sidebar:collapsed', false);
 const palette = ref(false);
 const onGlobalKey = (e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); palette.value = !palette.value; } };

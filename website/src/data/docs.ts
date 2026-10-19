@@ -225,7 +225,8 @@ export const docs: DocPage[] = [
                             'Pick the result columns, **Preview**, and save.',
                         ],
                     },
-                    { p: 'A query can power a **dashboard widget**, for example *deals closing this month*. Widgets that list contacts also offer **Email all** and **Text all**: people who opted out or are suppressed are skipped automatically, and the messages are queued in the background.' },
+                    { p: '**Advanced search** (in the contact list and the top bar) runs a saved query or one you build on the spot. Above the matches are the same actions a widget has: **Download CSV** (everybody found, not just the rows shown), **Email all** (the same form as e-mailing one contact, with templates, merge fields and attachments) and **Text all**. They work on a search you have not saved. For a data object search, messages go to the contacts linked to the items found, and opted-out contacts are always skipped.' },
+                    { p: 'A query can power a **dashboard widget**, for example *deals closing this month*. Widgets that list contacts also offer **Email all** and **Text all** (the text box has the same **Merge fields** list as the e-mail form). Email all is the same form as e-mailing one contact, with templates, merge fields, formatting and attachments. People who opted out or are suppressed are skipped automatically, and the messages are queued in the background.' },
                 ],
             },
             {
@@ -413,7 +414,7 @@ export const docs: DocPage[] = [
                     {
                         list: [
                             '**Only contacts with this relationship.** Leave empty for everyone linked, or choose a relationship such as *Owner*.',
-                            '**Delay.** Wait a number of minutes before the e-mail or text goes out.',
+                            '**Delay.** Wait before the e-mail or text goes out, in minutes, hours or days. When any action waits, a timeline above the actions shows the whole sequence in time (for example: immediately, after 2 days, after 1 week), so a drip of follow-ups reads at a glance.',
                             '**Order.** Move actions up and down; they run top to bottom. A failed action does not stop the ones after it.',
                         ],
                     },
@@ -522,9 +523,10 @@ export const docs: DocPage[] = [
                     {
                         list: [
                             'Opens and clicks are counted on each e-mail and summarised on the contact and the dashboard.',
+                            '**Unsubscribe link.** Every e-mail from an automation or a bulk send ends with a short footer and an **Unsubscribe** link (and mail programs such as Gmail show their own unsubscribe button). It opens a simple page, with no sign-in, where the person confirms; they are opted out at once, it shows on their record, and anything still waiting to be sent to them is dropped. They can change their mind on the same page. To place the link yourself, put `{{unsubscribe_url}}` in your template and the footer is not added. E-mails you type to one person are sent without it.',
                             'Bounces, spam reports and unsubscribes are recorded and the address is **suppressed**, so you stop writing to it. If an address was suppressed by mistake, you can remove it from the list on the Communication tab.',
                             'Sending is rate limited to protect your sending reputation.',
-                            '**Blast progress** shows, for your company and for each user, how many e-mails and texts are waiting, sent or failed in the last days.',
+                            '**Blast progress** lists every **Email all** and **Text all** as one line with a progress bar, how many people it found, and how many were sent, are waiting or failed (and how many opened). Click one for the details: why messages failed, who unsubscribed since, opens and clicks. Below it, the queue shows, for your company and for each user, how many e-mails and texts are waiting, sent or failed in the last days.',
                         ],
                     },
                 ],
@@ -779,7 +781,7 @@ export const docs: DocPage[] = [
                 blocks: [
                     {
                         list: [
-                            '**Base address:** `https://YOUR-APP-ADDRESS/api/v1`. Replace `YOUR-APP-ADDRESS` with the address you sign in at, for example `app.yourcompany.com`.',
+                            '**Base address:** `https://YOUR-APP-ADDRESS/api/v1`. Replace `YOUR-APP-ADDRESS` with the address you sign in at, for example `app.orvyncrm.com`.',
                             '**Format:** JSON in, JSON out. Send `Accept: application/json` and, with a body, `Content-Type: application/json`.',
                             '**Permissions:** a token can do exactly what its person can. A user without permission to edit contacts gets a 403.',
                             '**Rate limit:** 300 requests a minute per person by default. Heavier use is answered with 429; wait and retry.',

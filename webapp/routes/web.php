@@ -44,6 +44,7 @@ use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\ThreadAttachmentController;
 use App\Http\Controllers\TrackingController;
 use App\Http\Controllers\TwoFactorChallengeController;
+use App\Http\Controllers\UnsubscribeController;
 use App\Http\Controllers\UpdatesController;
 use App\Http\Controllers\WebAuthController;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -57,6 +58,11 @@ Route::get('/f/{uuid}.js', [PublicFormController::class, 'embed'])->where('uuid'
 Route::get('/f/{uuid}', [PublicFormController::class, 'page'])->where('uuid', '[0-9a-fA-F\-]{36}')->middleware(['tenant.public:form', 'throttle:120,1']);
 Route::get('/p/{token}', [PriceListController::class, 'publicView'])->where('token', '[A-Za-z0-9]{32}')->middleware(['tenant.public:price_list', 'throttle:120,1']);
 Route::get('/t/o/{tracker}', [TrackingController::class, 'open'])->middleware(['tenant.public:tracker', 'throttle:600,1']);
+// The unsubscribe link in e-mails. The POSTs are also what a mail program sends for one-click unsubscribe, so they cannot carry a CSRF token:
+// the message's own unguessable tracking id is the secret.
+Route::get('/u/{tracker}', [UnsubscribeController::class, 'show'])->middleware(['tenant.public:tracker', 'throttle:60,1']);
+Route::post('/u/{tracker}', [UnsubscribeController::class, 'confirm'])->withoutMiddleware([PreventRequestForgery::class])->middleware(['tenant.public:tracker', 'throttle:60,1']);
+Route::post('/u/{tracker}/resubscribe', [UnsubscribeController::class, 'resubscribe'])->withoutMiddleware([PreventRequestForgery::class])->middleware(['tenant.public:tracker', 'throttle:60,1']);
 
 // Two-step verification and the other ways to sign in, for whoever is signed in (company or platform area)
 Route::prefix('account/security')->group(function () {

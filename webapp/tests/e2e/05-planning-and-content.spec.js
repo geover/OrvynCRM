@@ -295,6 +295,7 @@ test.describe('tours', () => {
         await m.getByRole('button', { name: 'Save tour' }).click();
         await expect(toast(page, 'error').first()).toBeVisible();
         await page.keyboard.press('Escape');
+        await confirm(page, 'Discard changes');                                              // an edited form asks before it closes
 
         // notify: {{visit_date}} + merge fields are replaced in the delivered subject/body
         await row(page, state.tourName).getByRole('button', { name: 'Notify' }).click();

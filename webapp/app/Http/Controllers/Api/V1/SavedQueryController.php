@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\DataObject;
 use App\Models\SavedQuery;
 use App\Services\Queries\ContactQuery;
+use App\Services\Queries\QueryActions;
 use App\Services\Queries\QueryRunner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use InvalidArgumentException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /** Query Builder (admin) + Advanced Search (everyone can run saved queries and ad-hoc filters). */
 class SavedQueryController extends Controller
@@ -58,6 +60,22 @@ class SavedQueryController extends Controller
     }
 
     /** Ad-hoc run (preview in the builder / advanced search) without saving. */
+    /** Download what a query (saved, or described in the request) finds. */
+    public function export(Request $request, QueryActions $actions): StreamedResponse
+    {
+        $q = $actions->resolve($request);
+
+        return $actions->csv($request, $q['scope'], $q['definition'], $q['name']);
+    }
+
+    /** E-mail or text everyone a query (saved, or described in the request) finds. */
+    public function batch(Request $request, string $channel, QueryActions $actions): JsonResponse
+    {
+        $q = $actions->resolve($request);
+
+        return $actions->batch($request, $channel, $q['scope'], $q['definition'], $q['saved'], $q['saved'] ? $q['name'] : 'a search');
+    }
+
     public function preview(Request $request, QueryRunner $runner): JsonResponse
     {
         $d = $request->validate(['scope' => ['required', Rule::in(['contact', 'data_object'])], 'definition' => ['present', 'array']]);

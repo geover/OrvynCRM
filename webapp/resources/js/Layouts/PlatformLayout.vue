@@ -9,6 +9,9 @@ import { getJson, liveCounts, usePolling } from '@/lib/live';
 import DarkStylePicker from '@/Components/DarkStylePicker.vue';
 import { platformDarkStyle, platformTheme } from '@/lib/theme';
 import { setDisplayTimezone } from '@/lib/ui';
+import { installUnsavedGuard } from '@/lib/unsavedGuard';
+
+installUnsavedGuard();
 
 // The platform area: all companies. No company is open here, so there is no company sidebar or search. It has its own
 // look (the platform's colour and its own light/dark choice), whatever a company has set for itself.

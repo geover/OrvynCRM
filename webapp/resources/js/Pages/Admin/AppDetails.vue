@@ -6,6 +6,8 @@ import { api } from '@/lib/api';
 import { router } from '@inertiajs/vue3';
 import { timezones } from '@/lib/tz';
 import { confirmDialog, fmtDate, run, toast } from '@/lib/ui';
+import { usePageGuard } from '@/lib/unsavedGuard';
+usePageGuard();                          // an unsaved change is asked about before the page is left
 
 const s = ref(null);
 const timezone = ref('');

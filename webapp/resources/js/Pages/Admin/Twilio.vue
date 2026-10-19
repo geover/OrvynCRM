@@ -4,6 +4,8 @@ import AdminPage from '@/Components/AdminPage.vue';
 import PasswordField from '@/Components/PasswordField.vue';
 import { api } from '@/lib/api';
 import { confirmDialog, run } from '@/lib/ui';
+import { usePageGuard } from '@/lib/unsavedGuard';
+usePageGuard();                          // an unsaved change is asked about before the page is left
 
 // The company's own Twilio account. Optional: without it the company sends through the platform's account when the platform
 // offers one. The token is stored encrypted and is never shown again.

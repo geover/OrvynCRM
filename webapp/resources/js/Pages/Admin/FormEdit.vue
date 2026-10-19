@@ -5,6 +5,8 @@ import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Plus, Trash2 } from 'luc
 import AdminPage from '@/Components/AdminPage.vue';
 import { api } from '@/lib/api';
 import { run } from '@/lib/ui';
+import { usePageGuard } from '@/lib/unsavedGuard';
+usePageGuard();                          // an unsaved change is asked about before the page is left
 
 const props = defineProps({ formId: { type: Number, default: null } });
 

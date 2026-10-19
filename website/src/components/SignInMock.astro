@@ -1,0 +1,24 @@
+---
+// A picture of the sign-in page with its options: a passkey, a provider, and the code from an authenticator app.
+---
+<div class="relative mx-auto w-full max-w-sm" role="img" aria-label="A sign-in page offering a passkey, Continue with Google or Microsoft, and a six digit code">
+    <div class="rounded-2xl bg-white p-6 text-left shadow-2xl shadow-black/40 ring-1 ring-black/5">
+        <div class="text-lg font-semibold text-ink">Welcome back</div>
+        <div class="mt-3 rounded-lg border border-stone-200 px-3 py-2 text-sm text-stone-500">ana@yourcompany.com</div>
+        <div class="mt-3 rounded-lg bg-brand-600 py-2 text-center text-sm font-semibold text-white">Continue</div>
+        <div class="my-4 flex items-center gap-3 text-[11px] text-stone-400"><span class="h-px flex-1 bg-stone-200"></span>or<span class="h-px flex-1 bg-stone-200"></span></div>
+        <div class="space-y-2 text-sm font-medium text-stone-700">
+            <div class="flex items-center justify-center gap-2 rounded-lg border border-stone-200 py-2"><span aria-hidden="true">&#128273;</span> Sign in with a passkey</div>
+            <div class="flex items-center justify-center gap-2 rounded-lg border border-stone-200 py-2"><span class="font-bold text-[#4285F4]" aria-hidden="true">G</span> Continue with Google</div>
+            <div class="flex items-center justify-center gap-2 rounded-lg border border-stone-200 py-2"><span aria-hidden="true">&#9638;</span> Continue with Microsoft</div>
+        </div>
+    </div>
+    <div class="animate-float absolute -right-6 -top-9 rounded-xl bg-white p-3 text-left shadow-xl shadow-black/30 ring-1 ring-black/5 sm:-right-14">
+        <div class="text-[11px] font-semibold uppercase tracking-wide text-stone-500">Two-step code</div>
+        <div class="mt-1.5 flex gap-1" aria-hidden="true">
+            {['4', '8', '1', '9', '0'].map((d) => <span class="grid h-8 w-6 place-items-center rounded-md bg-stone-100 text-sm font-bold text-ink">{d}</span>)}
+            <span class="grid h-8 w-6 place-items-center rounded-md border-2 border-brand-500 text-sm"><span class="animate-blink h-4 w-px bg-brand-600"></span></span>
+        </div>
+    </div>
+    <div class="animate-float-slow absolute -bottom-5 -left-4 flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-medium text-stone-700 shadow-xl shadow-black/30 ring-1 ring-black/5 sm:-left-10"><span class="grid size-6 place-items-center rounded-full bg-emerald-100 text-emerald-700">&#10003;</span>Signed in with a passkey</div>
+</div>

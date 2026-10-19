@@ -4,6 +4,8 @@ import AdminPage from '@/Components/AdminPage.vue';
 import PasswordField from '@/Components/PasswordField.vue';
 import { api } from '@/lib/api';
 import { confirmDialog, fmtRelative, run } from '@/lib/ui';
+import { usePageGuard } from '@/lib/unsavedGuard';
+usePageGuard();                          // an unsaved change is asked about before the page is left
 
 // The company's Keap details. Saving the key is what lets the platform switch Keap sync on for this company; until then the
 // platform's switch stays disabled. The key is stored encrypted and is never shown again.

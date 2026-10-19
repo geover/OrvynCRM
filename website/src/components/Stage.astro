@@ -1,0 +1,16 @@
+---
+interface Props { tone?: 'blue' | 'violet' | 'navy'; id?: string }
+const { tone = 'blue', id } = Astro.props;
+const tones = {
+    blue: 'from-[#3f78bd] via-[#2f5f9a] to-[#1d3a63]',
+    violet: 'from-[#6a4aa8] via-[#4a3a8a] to-[#241f55]',
+    navy: 'from-[#243a58] via-[#1d2a40] to-[#0f1626]',
+};
+---
+<section class="reveal container-page py-6 sm:py-8" id={id}>
+    <div class:list={['relative isolate overflow-hidden rounded-[2rem] bg-gradient-to-br px-6 py-12 text-white shadow-2xl shadow-brand-900/20 sm:px-12 sm:py-16', tones[tone]]}>
+        <div class="bg-dots pointer-events-none absolute inset-0 -z-10 opacity-40 [mask-image:radial-gradient(ellipse_at_30%_20%,black,transparent_75%)]" aria-hidden="true"></div>
+        <div class="pointer-events-none absolute -right-20 -top-24 -z-10 size-96 rounded-full bg-white/10 blur-3xl" aria-hidden="true"></div>
+        <slot />
+    </div>
+</section>

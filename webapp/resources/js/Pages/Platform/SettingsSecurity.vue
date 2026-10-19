@@ -4,6 +4,8 @@ import { Copy, Fingerprint } from 'lucide-vue-next';
 import PasswordField from '@/Components/PasswordField.vue';
 import SettingsShell from '@/Components/SettingsShell.vue';
 import { toast } from '@/lib/ui';
+import { usePageGuard } from '@/lib/unsavedGuard';
+usePageGuard();                          // an unsaved change is asked about before the page is left
 
 // How people sign in. Two-step verification and passkeys are set up by each person on their own sign-in security page; this decides who must
 // and whether passkeys are offered. Each identity provider needs the keys the provider gives out, entered once here.

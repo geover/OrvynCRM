@@ -9,6 +9,8 @@ import SeatMeter from '@/Components/SeatMeter.vue';
 import { api } from '@/lib/api';
 import { fmtMoney, periodLabel } from '@/lib/money';
 import { confirmDialog, fmtDate, run, toast } from '@/lib/ui';
+import { usePageGuard } from '@/lib/unsavedGuard';
+usePageGuard();                          // an unsaved change is asked about before the page is left
 
 // Plan, free trial and billing details of the company. Everybody sees where the plan and trial stand; administrators change the
 // plan and give the billing details. After the trial this is the only page that stays open until the details are given.

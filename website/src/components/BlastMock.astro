@@ -1,0 +1,27 @@
+---
+// A picture of "Blast progress": each Email all as one line with a progress bar, and a detail card floating over it.
+const rows = [
+    { title: 'Spring open house', meta: 'E-mail · Leads this month · Ana', pct: 72, status: 'Sending', tone: 'bg-sky-50 text-sky-700', sent: '1,284', fail: '3' },
+    { title: 'We moved: new address', meta: 'SMS · Active customers · Alex', pct: 100, status: 'Done', tone: 'bg-emerald-50 text-emerald-700', sent: '640', fail: '0' },
+    { title: 'Your invoice is ready', meta: 'E-mail · Invoiced companies · Ana', pct: 100, status: 'Done', tone: 'bg-emerald-50 text-emerald-700', sent: '212', fail: '1' },
+];
+---
+<div class="relative mx-auto w-full max-w-lg" role="img" aria-label="Blast progress: each Email all or Text all with a progress bar, how many were sent, failed and opened">
+    <div class="overflow-hidden rounded-2xl bg-white text-left shadow-2xl shadow-black/30 ring-1 ring-black/5">
+        <div class="flex items-center justify-between border-b border-stone-100 px-4 py-3"><span class="text-sm font-semibold text-ink">Blasts</span><span class="text-[11px] text-stone-500">newest first</span></div>
+        <ul class="divide-y divide-stone-100">
+            {rows.map((r, i) => (
+                <li class="px-4 py-3">
+                    <div class="flex items-center justify-between gap-3"><div class="min-w-0"><div class="truncate text-sm font-medium text-ink">{r.title}</div><div class="truncate text-[11px] text-stone-500">{r.meta}</div></div><span class:list={['shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold', r.tone]}>{r.status}</span></div>
+                    <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-stone-100"><div class="animate-grow h-full origin-left rounded-full bg-brand-600" style={`width:${r.pct}%;animation-delay:${i * 200}ms`}></div></div>
+                    <div class="mt-1.5 flex gap-4 text-[11px] text-stone-500"><span>Sent <b class="font-semibold text-stone-700">{r.sent}</b></span><span>Failed <b class="font-semibold text-stone-700">{r.fail}</b></span></div>
+                </li>
+            ))}
+        </ul>
+    </div>
+    <div class="animate-float absolute -bottom-6 -right-2 w-52 rounded-xl bg-white p-3 text-left shadow-xl shadow-black/25 ring-1 ring-black/5 sm:-right-8">
+        <div class="text-[11px] font-semibold uppercase tracking-wide text-stone-500">Opened</div>
+        <div class="mt-0.5 flex items-end gap-2"><span class="text-2xl font-bold text-ink">38%</span><span class="pb-1 text-[11px] font-medium text-emerald-700">&uarr; vs last send</span></div>
+        <div class="mt-1.5 text-[11px] text-stone-500">2 unsubscribed since queued, not sent</div>
+    </div>
+</div>

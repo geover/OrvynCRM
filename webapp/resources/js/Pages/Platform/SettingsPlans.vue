@@ -5,6 +5,8 @@ import { RotateCcw, TriangleAlert } from 'lucide-vue-next';
 import Modal from '@/Components/Modal.vue';
 import SettingsShell from '@/Components/SettingsShell.vue';
 import { toast } from '@/lib/ui';
+import { usePageGuard } from '@/lib/unsavedGuard';
+usePageGuard();                          // an unsaved change is asked about before the page is left
 
 // The free trial new sign-ups get, and the licence tiers: what each includes (name, active users, texts a month, texting numbers) and what it
 // costs. Changing what a tier includes reaches every company on it at once, so the page shows who would be above a limit before you save.

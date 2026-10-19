@@ -109,7 +109,10 @@ test.describe('saved queries & dashboard widgets', () => {
         await card2.getByTitle('Email all').click();
         m = modal(page);
         await field(m, 'Subject').fill('Hello {{contact.first_name}}');
-        await field(m, 'Message').fill('Dear {{contact.first_name}},\nThis is a batch.');
+        await expect(m.getByText('Use template')).toBeVisible();                       // the same form as e-mailing one contact
+        await expect(m.getByRole('button', { name: 'Merge fields' })).toBeVisible();
+        await m.locator('[contenteditable]').click();
+        await page.keyboard.type('Dear {{contact.first_name}}, This is a batch.');
         await m.getByRole('button', { name: 'Send…' }).click();
         await confirm(page, 'Queue messages');
         await expectSuccess(page, 'queued');

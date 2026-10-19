@@ -5,8 +5,9 @@ import Modal from '@/Components/Modal.vue';
 import { api } from '@/lib/api';
 import { run, toast } from '@/lib/ui';
 
-const props = defineProps({ contact: Object, replyTo: Object });
-const emit = defineEmits(['close', 'sent']);
+// One contact (`contact`), or everybody a dashboard widget finds (`bulk`: {name, count}): the form is the same, only where it goes differs.
+const props = defineProps({ contact: Object, replyTo: Object, bulk: Object });
+const emit = defineEmits(['close', 'sent', 'submit']);
 
 const templates = ref([]);
 const groups = ref([]);
@@ -58,6 +59,7 @@ async function attach(e) {
 async function send(test = false) {
     html.value = bodyEl.value.innerHTML;
     if (!subject.value.trim() || !bodyEl.value.innerText.trim()) return toast('Add a subject and a message first.', 'error');
+    if (props.bulk) { emit('submit', { subject: subject.value, html: html.value, attachments: attachments.value.map(({ path, name }) => ({ path, name })) }); return; }
     sending.value = true;
     const res = await run(() => api.post(`/contacts/${props.contact.id}/email`, {
         subject: subject.value, html: html.value, test, attachments: attachments.value.map(({ path, name }) => ({ path, name })),
@@ -68,10 +70,10 @@ async function send(test = false) {
 </script>
 
 <template>
-    <Modal :title="`Email ${contact.full_name}`" width="max-w-3xl" @close="emit('close')">
+    <Modal :title="bulk ? `Email everyone in “${bulk.name}”` : `Email ${contact.full_name}`" width="max-w-3xl" @close="emit('close')">
         <div class="space-y-3">
             <div class="grid gap-3 sm:grid-cols-3">
-                <div><label class="label">To</label><input :value="contact.email" class="input" disabled /></div>
+                <div><label class="label">To</label><input :value="bulk ? `${bulk.count ?? 'Everyone'} contacts in this widget` : contact.email" class="input" disabled /></div>
                 <div><label class="label">Template group</label><select v-model="group" class="input"><option value="">All</option><option v-for="g in groups" :key="g">{{ g }}</option></select></div>
                 <div><label class="label">Use template</label>
                     <select v-model="templateId" class="input" @change="useTemplate"><option value="">— choose —</option><option v-for="t in visibleTemplates" :key="t.id" :value="t.id">{{ t.name }}</option></select></div>
@@ -96,7 +98,7 @@ async function send(test = false) {
                     </div>
                 </div>
                 <div ref="bodyEl" contenteditable class="input min-h-48 max-h-96 overflow-y-auto" @input="html = bodyEl.innerHTML" />
-                <p class="mt-1 text-xs text-slate-400">Your signature is added automatically. Merge fields like <code v-text="'{{contact.first_name}}'" /> are filled in per contact.</p>
+                <p class="mt-1 text-xs text-slate-400"><template v-if="!bulk">Your signature is added automatically. </template>Merge fields like <code v-text="'{{contact.first_name}}'" /> are filled in per contact.<template v-if="bulk"> Contacts who opted out or are suppressed are skipped, and every e-mail ends with an unsubscribe link.</template></p>
             </div>
 
             <div class="flex flex-wrap items-center gap-2">
@@ -106,8 +108,8 @@ async function send(test = false) {
         </div>
         <template #footer>
             <button class="btn-ghost" @click="emit('close')">Cancel</button>
-            <button class="btn-outline" :disabled="sending" @click="send(true)">Send me a test</button>
-            <button class="btn-primary" :disabled="sending || !contact.email" @click="send(false)">{{ sending ? 'Sending…' : 'Send email' }}</button>
+            <button v-if="!bulk" class="btn-outline" :disabled="sending" @click="send(true)">Send me a test</button>
+            <button class="btn-primary" :disabled="sending || (!bulk && !contact.email)" data-testid="composer-send" @click="send(false)">{{ sending ? 'Sending…' : bulk ? 'Send…' : 'Send email' }}</button>
         </template>
     </Modal>
 </template>

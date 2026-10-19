@@ -1,13 +1,15 @@
 ---
-// "Works with": names as plain text, not partner logos.
-const names = ['Keap', 'Twilio', 'SendGrid', 'SMTP', 'Webhooks', 'CSV'];
+// "Works with": names as plain text, not partner logos. They scroll slowly; hovering pauses them.
+const names = ['Keap', 'Twilio', 'SendGrid', 'SMTP', 'Webhooks', 'CSV', 'Google', 'Microsoft', 'GitHub', 'Stripe'];
 ---
-<section class="border-y border-stone-200/70 bg-white/60" aria-label="Works with">
-    <div class="container-page flex flex-col items-center justify-between gap-4 py-6 sm:flex-row">
-        <p class="text-xs font-semibold uppercase tracking-wider text-stone-500">Works with the tools you use</p>
-        <ul class="flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-base font-semibold text-stone-500">
-            {names.map((n) => <li class="transition hover:text-stone-700">{n}</li>)}
-        </ul>
-        <a href="/integrations" class="text-sm font-semibold text-brand-700 hover:text-brand-900">All integrations &rarr;</a>
+<section class="border-y border-stone-200/70 bg-white/70" aria-label="Works with">
+    <div class="container-page flex items-center justify-between gap-6 py-5">
+        <p class="hidden shrink-0 text-xs font-semibold uppercase tracking-wider text-stone-500 sm:block">Works with the tools you use</p>
+        <div class="group relative min-w-0 flex-1 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]">
+            <ul class="animate-marquee flex w-max items-center gap-12 text-lg font-bold tracking-tight text-stone-400 group-hover:[animation-play-state:paused]">
+                {[...names, ...names].map((n, i) => <li class="shrink-0 transition hover:text-brand-700" aria-hidden={i >= names.length ? 'true' : undefined}>{n}</li>)}
+            </ul>
+        </div>
+        <a href="/integrations" class="shrink-0 text-sm font-semibold text-brand-700 hover:text-brand-900">All integrations &rarr;</a>
     </div>
 </section>
