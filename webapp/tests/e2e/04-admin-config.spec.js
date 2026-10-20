@@ -8,48 +8,80 @@ test.beforeEach(async ({ page }) => { await login(page); });
 const section = (page, title) => page.locator('section.card', { hasText: title }).first();
 
 test.describe('custom tabs & contact relationship types', () => {
-    test('custom tabs: add an https embed + an HTML tab, reorder, save; http is refused; tabs show on a contact; delete', async ({ page }) => {
+    test('custom tabs: a contact tab and a sidebar tab, http refused, who sees it, reorder, delete', async ({ page }) => {
         await page.goto('/admin/custom-tabs');
-        await page.getByRole('button', { name: 'Add tab' }).click();
-        await page.getByPlaceholder('Tab title').first().fill('Docs');
-        await page.locator('main input.font-mono').first().fill('http://insecure.example.com');
-        await page.getByRole('button', { name: 'Save changes' }).click();
-        await expect(toast(page, 'error').first()).toContainText('https');                      // refused with a clear message
+        await expect(page.getByTestId('tab-kinds')).toContainText('Contact tabs');                   // the two kinds are explained on the page
+        await expect(page.getByTestId('tab-kinds')).toContainText('Sidebar tabs');
+
+        // a contact tab that embeds a page: http is refused with a clear message
+        await page.getByTestId('add-contact').click();
+        let m = modal(page);
+        await m.getByTestId('tab-title').fill('Docs');
+        await m.getByTestId('tab-content').fill('http://insecure.example.com');
+        await m.getByTestId('save-tab').click();
+        await expect(m.getByTestId('tab-error')).toContainText('https');
         expect((await api(page, 'GET', '/custom-tabs')).json.data).toHaveLength(0);
-
-        await page.locator('main input.font-mono').first().fill('https://example.com/embed?c={{contact.id}}');
-        await page.getByRole('button', { name: 'Add tab' }).click();
-        await page.getByPlaceholder('Tab title').nth(1).fill('Terms');
-        await page.locator('main select').nth(1).selectOption('html');
-        await page.locator('main textarea').fill('<h2>House rules</h2>');
-        await page.getByRole('button', { name: 'Save changes' }).click();
+        await m.getByTestId('tab-content').fill('https://example.com/embed?c={{contact.id}}');
+        await m.getByTestId('save-tab').click();
         await expectSuccess(page, 'Custom tabs saved');
+
+        // a second contact tab with its own content
+        await page.getByTestId('add-contact').click();
+        m = modal(page);
+        await m.getByTestId('tab-title').fill('Terms');
+        await m.getByTestId('type-html').click();
+        await m.getByTestId('rich-source').click();                                                  // the editor's HTML view
+        await m.getByTestId('rich-source-text').fill('<h2>House rules</h2>');
+        await m.getByTestId('save-tab').click();
+        await expect(modal(page)).toHaveCount(0);
+
+        // a sidebar tab, only for managers
+        await page.getByTestId('add-sidebar').click();
+        m = modal(page);
+        await m.getByTestId('tab-title').fill('Handbook');
+        await m.getByTestId('type-html').click();
+        await m.getByTestId('rich-source').click();
+        await m.getByTestId('rich-source-text').fill('<h2>Team handbook</h2>');
+        await m.getByTestId('who-chosen').check({ force: true });
+        await m.getByTestId('save-tab').click();
+        await expect(m.getByTestId('tab-error')).toContainText('who can see it');                 // "only chosen people" with nobody chosen is refused
+        await m.getByTestId('role-manager').check();
+        await m.getByTestId('save-tab').click();
+        await expect(modal(page)).toHaveCount(0);
+
         let tabs = (await api(page, 'GET', '/custom-tabs')).json.data;
-        expect(tabs.map((t) => [t.title, t.type])).toEqual([['Docs', 'iframe'], ['Terms', 'html']]);
+        expect(tabs.map((t) => [t.title, t.type, t.placement])).toEqual([['Docs', 'iframe', 'contact'], ['Terms', 'html', 'contact'], ['Handbook', 'html', 'sidebar']]);
+        expect(tabs[2].audience).toEqual({ roles: ['manager'], templates: [], users: [] });
+        expect(tabs[0].audience).toBeNull();
 
-        // reorder: move "Terms" up, save, reload
-        await page.locator('main .card').nth(1).getByRole('button').nth(0).click();
-        await page.getByRole('button', { name: 'Save changes' }).click();
-        await expectSuccess(page, 'Custom tabs saved');
-        await page.reload();
+        // reorder the contact tabs: move "Terms" up
+        await page.getByTestId('list-contact').getByTestId('tab-row').nth(1).getByRole('button', { name: 'Move up' }).click();
+        await expectSuccess(page, 'Order saved');
         tabs = (await api(page, 'GET', '/custom-tabs')).json.data;
-        expect(tabs.map((t) => t.title)).toEqual(['Terms', 'Docs']);
+        expect(tabs.map((t) => t.title)).toEqual(['Terms', 'Docs', 'Handbook']);
 
-        // they appear on a contact; the HTML tab renders in a sandboxed frame
+        // the contact tab shows on a contact, in a sandboxed frame
         const c = (await api(page, 'GET', '/contacts?per_page=1')).json.data[0];
         await page.goto(`/contacts/${c.id}`);
         await page.locator('nav.card').getByRole('button', { name: 'Terms' }).click();
         await expect(page.frameLocator('iframe[title="Terms"]').locator('h2')).toHaveText('House rules');
-        await expect(page.locator('iframe[title="Terms"]')).toHaveAttribute('sandbox', '');
+        await expect(page.locator('iframe[title="Terms"]')).toHaveAttribute('sandbox', 'allow-popups allow-popups-to-escape-sandbox');       // no scripts
+        await expect(page.locator('nav.card').getByRole('button', { name: 'Handbook' })).toHaveCount(0);   // a sidebar tab is not on the contact
 
-        // delete both
+        // the sidebar tab is in the main menu under "Your pages" (administrators see every tab) and opens as a page
+        await page.goto('/');
+        await expect(page.getByTestId('nav-pages-heading')).toHaveText('Your pages');
+        await page.getByTestId('nav-custom-tab').filter({ hasText: 'Handbook' }).click();
+        await expect(page).toHaveURL(/\/tabs\/\d+$/);
+        await expect(page.frameLocator('iframe[title="Handbook"]').locator('h2')).toHaveText('Team handbook');
+
+        // delete all three
         await page.goto('/admin/custom-tabs');
-        for (let n = 0; n < 2; n++) {
-            await page.locator('main .card').first().locator('button.text-red-600').click();
+        for (let n = 0; n < 3; n++) {
+            await page.getByTestId('tab-row').first().getByTestId('delete-tab').click();
             await confirm(page, 'Delete');
+            await expectSuccess(page, 'Custom tabs saved');
         }
-        await page.getByRole('button', { name: 'Save changes' }).click();
-        await expectSuccess(page, 'Custom tabs saved');
         expect((await api(page, 'GET', '/custom-tabs')).json.data).toHaveLength(0);
     });
 

@@ -1,7 +1,8 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { Camera, ChevronDown, ChevronRight, Fingerprint, KeyRound, Pencil, Plus, Search, ShieldCheck, ShieldOff, Trash2, UserMinus } from 'lucide-vue-next';
+import { Camera, ChevronDown, ChevronRight, Fingerprint, KeyRound, Pencil, Plus, Search, ShieldCheck, ShieldOff, Smile, Trash2, UserMinus } from 'lucide-vue-next';
+import AvatarPicker from '@/Components/AvatarPicker.vue';
 import Modal from '@/Components/Modal.vue';
 import PasswordField from '@/Components/PasswordField.vue';
 import ProfileFields from '@/Components/people/ProfileFields.vue';
@@ -68,17 +69,21 @@ function edit(a) {
 const current = computed(() => (editing.value ? props.administrators.find((x) => x.id === editing.value.id) ?? editing.value : null));     // the one being edited, as the page now has it (the photo changes without closing)
 
 // the photo: chosen here, cut to a square and made small on the server, shown at once
-async function uploadPhoto(e) {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
+async function sendPhoto(file) {
     const fd = new FormData(); fd.append('file', file);
     const xs = decodeURIComponent((document.cookie.match(/XSRF-TOKEN=([^;]+)/) || [])[1] || '');
     const r = await fetch(`/platform/administrators/${editing.value.id}/avatar`, { method: 'POST', body: fd, credentials: 'same-origin', headers: { Accept: 'application/json', 'X-XSRF-TOKEN': xs } });
-    if (!r.ok) return toast((await r.json().catch(() => ({}))).errors?.file?.[0] ?? 'The photo could not be saved', 'error');
+    if (!r.ok) { toast((await r.json().catch(() => ({}))).errors?.file?.[0] ?? 'The photo could not be saved', 'error'); return false; }
     toast('Photo saved');
     router.reload({ only: ['administrators', 'identity'] });
+    return true;
 }
+async function uploadPhoto(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (file) await sendPhoto(file);
+}
+const picking = ref(false);                                     // the ready-made avatars
 const removePhoto = () => router.delete(`/platform/administrators/${editing.value.id}/avatar`, { preserveScroll: true, only: ['administrators', 'identity'], onSuccess: () => toast('Photo removed') });
 function saveEdit() {
     editForm.patch(`/platform/administrators/${editing.value.id}`, { preserveScroll: true, onSuccess: () => { editing.value = null; toast('Saved'); } });
@@ -131,7 +136,7 @@ const sendReset = (a) => router.post(`/platform/administrators/${a.id}/reset-pas
                         <td class="px-2 py-3"><button type="button" class="btn-ghost !px-1" :aria-expanded="open.has(a.id)" :aria-label="`Details of ${a.name}`" data-testid="admin-expand" @click="toggle(a.id)"><component :is="open.has(a.id) ? ChevronDown : ChevronRight" class="size-4" /></button></td>
                         <td class="px-3 py-3">
                             <div class="flex items-center gap-3">
-                                <span class="relative grid size-9 shrink-0 place-items-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700" aria-hidden="true"><img v-if="a.avatar_url" :src="a.avatar_url" alt="" class="size-9 rounded-full object-cover" loading="lazy" /><template v-else>{{ initials(a.name) }}</template><span class="absolute -bottom-0.5 -right-0.5 size-3 rounded-full ring-2 ring-white" :class="ACTIVITY[a.activity][2]" /></span>
+                                <span class="relative grid size-9 shrink-0 place-items-center rounded-full bg-brand-100 has-[img]:bg-transparent text-xs font-semibold text-brand-700" aria-hidden="true"><img v-if="a.avatar_url" :src="a.avatar_url" alt="" class="size-9 rounded-full object-cover" loading="lazy" /><template v-else>{{ initials(a.name) }}</template><span class="absolute -bottom-0.5 -right-0.5 size-3 rounded-full ring-2 ring-white" :class="ACTIVITY[a.activity][2]" /></span>
                                 <div class="min-w-0"><div class="font-medium">{{ a.name }} <span v-if="a.is_me" class="badge ml-1">you</span> <span v-if="a.two_factor" class="badge ml-1 !bg-emerald-50 !text-emerald-700" data-testid="admin-two-factor">2-step</span></div>
                                     <div class="truncate text-xs text-slate-500">{{ a.email }}</div><div v-if="a.job_title" class="truncate text-xs text-slate-400">{{ a.job_title }}</div></div>
                             </div>
@@ -207,10 +212,11 @@ const sendReset = (a) => router.post(`/platform/administrators/${a.id}/reset-pas
     <Modal v-if="editing" title="Edit platform administrator" @close="editing = null">
         <form id="admin-edit" class="space-y-3" @submit.prevent="saveEdit">
             <div class="flex items-center gap-4">
-                <span class="grid size-20 shrink-0 place-items-center overflow-hidden rounded-full bg-brand-100 text-xl font-semibold text-brand-700" data-testid="admin-photo"><img v-if="current?.avatar_url" :src="current.avatar_url" alt="" class="size-20 object-cover" /><template v-else>{{ initials(editForm.name || editing.name) }}</template></span>
+                <span class="grid size-20 shrink-0 place-items-center overflow-hidden rounded-full bg-brand-100 has-[img]:bg-transparent text-xl font-semibold text-brand-700" data-testid="admin-photo"><img v-if="current?.avatar_url" :src="current.avatar_url" alt="" class="size-20 object-cover" /><template v-else>{{ initials(editForm.name || editing.name) }}</template></span>
                 <div class="space-y-1.5">
                     <div class="flex flex-wrap gap-2">
                         <label class="btn-outline cursor-pointer !py-1.5"><Camera class="size-4" /> {{ current?.avatar_url ? 'Change photo' : 'Upload a photo' }}<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden" data-testid="admin-photo-file" @change="uploadPhoto" /></label>
+                        <button type="button" class="btn-outline !py-1.5" data-testid="admin-avatar-gallery" @click="picking = true"><Smile class="size-4" /> Choose an avatar</button>
                         <button v-if="current?.avatar_url" type="button" class="btn-ghost !py-1.5 text-slate-500 hover:text-red-600" data-testid="admin-photo-remove" @click="removePhoto"><Trash2 class="size-4" /> Remove</button>
                     </div>
                     <p class="text-xs text-slate-400">PNG, JPG, WebP or GIF up to 5 MB. It is cut to a square and made small.</p>
@@ -227,6 +233,7 @@ const sendReset = (a) => router.post(`/platform/administrators/${a.id}/reset-pas
         </form>
         <template #footer><button class="btn-ghost" @click="editing = null">Cancel</button><button class="btn-primary" form="admin-edit" :disabled="editForm.processing">Save</button></template>
     </Modal>
+    <AvatarPicker v-if="picking && editing" :save="sendPhoto" @close="picking = false" />
 
     <Modal v-if="demoting" :title="`Demote ${demoting.name}`" @close="demoting = null">
         <div class="space-y-3 text-sm">

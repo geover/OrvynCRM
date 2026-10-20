@@ -26,7 +26,7 @@ const ready = ref(false);
 onMounted(async () => {
     [objects.value, widgets.value, boards.value, groups.value, users.value, customTabs.value] = await Promise.all([
         api.get('/data-objects').then((r) => r.data), api.get('/widgets').then((r) => r.data), api.get('/boards').then((r) => r.data),
-        api.get('/email-templates', { light: 1 }).then((r) => r.groups), api.get('/users').then((r) => r.data), api.get('/custom-tabs').then((r) => r.data),
+        api.get('/email-templates', { light: 1 }).then((r) => r.groups), api.get('/users').then((r) => r.data), api.get('/custom-tabs').then((r) => r.data.filter((t) => t.placement !== 'sidebar')),
     ]);
     if (props.templateId) {
         const t = (await api.get('/permission-templates')).data.find((x) => x.id === props.templateId);

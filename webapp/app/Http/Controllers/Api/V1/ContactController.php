@@ -13,6 +13,7 @@ use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Spatie\QueryBuilder\AllowedFilter;
@@ -26,7 +27,7 @@ class ContactController extends Controller
         abort_unless($request->user()->hasPermission('contacts.view'), 403);
 
         $perPage = min((int) $request->integer('per_page', 25), 100);
-        $query = QueryBuilder::for(Contact::query()->with('owner:id,name', 'tags:id,name'))
+        $query = QueryBuilder::for(Contact::query()->with('owner:id,name', 'tags:id,name')->withCount(['notes', 'tasks as open_tasks_count' => fn ($t) => $t->whereNull('completed_at')]))
             ->allowedFilters(
                 AllowedFilter::callback('q', fn ($q, $v) => $q->search($v)),
                 AllowedFilter::callback('tag', fn ($q, $v) => $q->withTag($v)),
@@ -45,6 +46,24 @@ class ContactController extends Controller
         $contacts = $request->has('page') ? $query->paginate($perPage)->withQueryString() : $query->cursorPaginate($perPage)->withQueryString();
 
         return ContactResource::collection($contacts);
+    }
+
+    /** The numbers above the contact list: how many people, how many are new, whose they are, who has work waiting, and the tags most used. Shared numbers are cached briefly. */
+    public function overview(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user->hasPermission('contacts.view'), 403);
+
+        $shared = Cache::remember('contacts:overview:v1', 120, fn () => [
+            'total' => Contact::count(),
+            'new_30d' => Contact::where('created_at', '>=', now()->subDays(30))->count(),
+            'previous_30d' => Contact::whereBetween('created_at', [now()->subDays(60), now()->subDays(30)])->count(),
+            'with_open_tasks' => Contact::whereHas('tasks', fn ($t) => $t->whereNull('completed_at'))->count(),
+            'opted_out' => Contact::where('email_opt_out', true)->count(),
+            'top_tags' => Tag::withCount('contacts')->orderByDesc('contacts_count')->limit(8)->get()->filter(fn ($t) => $t->contacts_count > 0)->map(fn ($t) => ['name' => $t->name, 'count' => $t->contacts_count])->values()->all(),
+        ]);
+
+        return response()->json(['data' => $shared + ['mine' => Contact::where('owner_id', $user->id)->count()]]);
     }
 
     public function show(Request $request, Contact $contact): ContactResource

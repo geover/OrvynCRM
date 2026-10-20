@@ -1,10 +1,12 @@
 ---
-interface Props { tone?: 'blue' | 'violet' | 'navy'; id?: string }
+interface Props { tone?: 'blue' | 'violet' | 'navy' | 'gold' | 'teal'; id?: string }
 const { tone = 'blue', id } = Astro.props;
 const tones = {
     blue: 'from-[#3f78bd] via-[#2f5f9a] to-[#1d3a63]',
     violet: 'from-[#6a4aa8] via-[#4a3a8a] to-[#241f55]',
     navy: 'from-[#243a58] via-[#1d2a40] to-[#0f1626]',
+    gold: 'from-[#8a6a2f] via-[#5f4821] to-[#2e2410]',
+    teal: 'from-[#1f7a78] via-[#175b5f] to-[#0e3237]',
 };
 ---
 <section class="reveal container-page py-6 sm:py-8" id={id}>

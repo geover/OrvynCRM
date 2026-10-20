@@ -137,6 +137,47 @@ class PeopleProfilesTest extends TenantTestCase
         $this->patch("/platform/companies/{$this->alpha->id}/users/{$owner->id}", ['status' => 'suspended'])->assertSessionHasErrors('role');
     }
 
+    public function test_a_platform_administrator_inside_a_company_keeps_their_photo_in_the_header(): void
+    {
+        $admin = AccountUser::create(['name' => 'Platform Admin', 'email' => 'platform@x.test', 'password' => 'Platform-Passw0rd-1', 'is_platform_admin' => true]);
+        $this->post('/login', ['email' => 'platform@x.test', 'password' => 'Platform-Passw0rd-1']);
+        $this->post("/platform/administrators/{$admin->id}/avatar", ['file' => UploadedFile::fake()->image('me.png', 300, 300)])->assertRedirect();
+
+        $this->post("/platform/companies/{$this->alpha->id}/open")->assertRedirect();
+        $url = null;
+        $this->get('/')->assertOk()->assertInertia(function ($p) use (&$url) {
+            $url = $p->toArray()['props']['auth']['user']['avatar_url'];
+        });
+        $this->assertStringContainsString('/files/users/', $url);                       // the company's own file route: the platform's address would leave the company
+
+        $this->get(strtok($url, '?'))->assertOk()->assertHeader('Content-Type', 'image/jpeg');
+    }
+
+    public function test_a_picture_with_a_transparent_background_stays_transparent_and_an_opaque_one_is_a_jpeg(): void
+    {
+        $id = $this->asAdmin()->postJson('/api/v1/users', ['name' => 'Newbie', 'email' => 'newbie@alpha.test', 'password' => 'Newbie-Passw0rd-1', 'role' => 'user'])->json('data.id');
+
+        $img = imagecreatetruecolor(64, 64);                                          // an avatar: a coloured disc on nothing
+        imagealphablending($img, false);
+        imagesavealpha($img, true);
+        imagefill($img, 0, 0, imagecolorallocatealpha($img, 0, 0, 0, 127));
+        imagefilledellipse($img, 32, 32, 40, 40, imagecolorallocate($img, 200, 50, 50));
+        ob_start();
+        imagepng($img);
+        $png = (string) ob_get_clean();
+
+        $this->asAdmin()->post("/api/v1/users/$id/avatar", ['file' => UploadedFile::fake()->createWithContent('avatar.png', $png)], ['Accept' => 'application/json'])->assertOk();
+        $this->alpha->run(fn () => $this->assertStringEndsWith('.png', User::find($id)->avatar_path));
+        $this->asAdmin()->get("/files/users/$id/avatar")->assertOk()->assertHeader('Content-Type', 'image/png');
+
+        $this->asAdmin()->post("/api/v1/users/$id/avatar", ['file' => UploadedFile::fake()->image('me.png', 300, 300)], ['Accept' => 'application/json'])->assertOk();      // a photo: opaque
+        $this->alpha->run(function () use ($id) {
+            $this->assertStringEndsWith('.jpg', User::find($id)->avatar_path);
+            $this->assertFalse(Storage::disk('local')->exists("avatars/users/$id.png"));                  // the old picture is not left behind
+        });
+        $this->asAdmin()->get("/files/users/$id/avatar")->assertOk()->assertHeader('Content-Type', 'image/jpeg');
+    }
+
     public function test_the_add_platform_administrator_form_takes_the_basic_details(): void
     {
         AccountUser::create(['name' => 'Platform Admin', 'email' => 'platform@x.test', 'password' => 'Platform-Passw0rd-1', 'is_platform_admin' => true]);

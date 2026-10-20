@@ -139,7 +139,9 @@ export const docs: DocPage[] = [
                         list: [
                             'Search by name, e-mail, company or phone as you type.',
                             'Filter by **tag** or **owner**. Click any column heading to sort by it, ascending and then descending, with an arrow showing the order.',
-                            '**Columns** chooses what the table shows; **Views** switches between your saved views.',
+                            'Numbers on top show how many contacts you have, how many are new, how many are yours, how many have work waiting and how many opted out; the most used tags filter the list in one click.',
+                            'Switch between the **table** and a grid of **cards**: each card shows the picture, name, job and company, type, e-mail, phone, tags, open tasks, notes and owner, with Email, Text, Call and Edit on it.',
+                            '**Columns** chooses what the table shows; **Views** switches between your saved views, and a view remembers the filters, the order, the columns you show and table or cards.',
                             'Numbered pages with a rows-per-page choice (25, 50 or 100) sit at the foot of the table, which fills the height of the window.',
                             'Each row has quick actions: **Email** and **Text** open the message windows right on the list (sent from the CRM and recorded on the contact), **Call** opens your phone, and **Edit** opens the contact form.',
                             '**Advanced search** builds precise searches from conditions and saves them as queries (see Saved queries below).',
@@ -312,13 +314,59 @@ export const docs: DocPage[] = [
                 blocks: [
                     {
                         list: [
-                            '**Workflow boards** show a data object as columns, one per value of a status field. Drag a card to another column and the change is saved at once.',
+                            'The **Workflow boards** page lists every board as a card with its item count, a colour bar of how the items spread over its statuses, the count and share of each status, and when something last changed. **Workflow boards** show a data object as columns, one per value of a status field. Drag a card to another column and the change is saved at once. A summary bar shows how the items spread across the columns (and adds up the first number on the cards), the search box and filters (any field condition, when a card last changed, with or without contacts) narrow every column across the whole board, not just the cards on screen, and clicking a card opens a wide window with its details, linked contacts, attachments and recent activity, where you can also move it to another stage, edit it or delete it. If the item has an email address or a phone number, there is an Email or Text button for it, and each linked contact has Email and Text buttons too.',
                             '**Scheduler** chooses which data-object dates appear on the Schedules calendar.',
-                            '**Custom tabs** add your own tab to every contact page, with content of your own or an embedded https page (shown in a sandboxed frame, scripts disabled).',
+                            '**Custom tabs** add your own tabs to every contact, or pages to the main menu. They have their own section below.',
                             '**Contact relationships** define the kinds of link between two contacts: direct ones such as Spouse, and indirect ones that arise through shared data.',
                             '**Price lists** can be built, locked and published as a read-only share link. **Tours** schedule visits and e-mail everyone involved.',
                         ],
                     },
+                ],
+            },
+            {
+                id: 'custom-tabs',
+                title: 'Custom tabs',
+                lead: 'Add your own tabs: one on every contact page, or a page in the main menu for your team.',
+                blocks: [
+                    { h: 'What they are for' },
+                    { p: 'Your team often needs something OrvynCRM does not hold itself: the invoices in your accounting system, a report, a script for phone calls, the staff handbook. A custom tab puts it where people already work, so they do not have to open another site and look it up. A tab either **embeds a web page** or shows **content you write yourself**.' },
+                    { h: 'Two kinds: which one do you need?' },
+                    {
+                        table: {
+                            head: ['', 'Contact tab', 'Sidebar tab'],
+                            rows: [
+                                ['Where it appears', 'Inside every contact page, next to Notes & tasks and Communication (under **More** if there is no room).', 'In the main menu on the left, under **Your pages**. It opens as a page of its own.'],
+                                ['It is about', 'The contact being looked at.', 'Your team or your business, not one contact.'],
+                                ['Can it use the contact?', 'Yes: `{{contact.id}}` and `{{contact.email}}` can be added to the address, so the other site shows that contact.', 'No contact, but the person looking: `{{user.id}}`, `{{user.email}}` and `{{user.name}}`.'],
+                                ['Good for', 'Orders, invoices, support tickets or a call script for that contact.', 'A handbook, a report or dashboard, a booking page, training.'],
+                            ],
+                        },
+                    },
+                    { h: 'Examples' },
+                    { p: '**Contact tabs**' },
+                    {
+                        list: [
+                            '**Invoices.** A web page: `https://billing.example.com/customers?email={{contact.email}}`. Whoever opens a contact sees that contact\'s invoices from your accounting system, with no searching.',
+                            '**Support tickets.** A web page: `https://help.example.com/tickets?customer={{contact.id}}`. The service team sees the open tickets while they talk to the contact.',
+                            '**Call script.** Your own content: the opening line, the questions to ask, what to promise and what not to. Everybody on the phone says the same things.',
+                        ],
+                    },
+                    { p: '**Sidebar tabs**' },
+                    {
+                        list: [
+                            '**Team handbook.** Your own content with headings, lists and links to your policies. Shown to everyone, so a new colleague finds the rules in one place.',
+                            '**Sales dashboard.** A web page with your reporting tool\'s dashboard. Shown only to **Managers**, so the numbers stay with the people who need them.',
+                            '**My numbers.** A web page such as `https://reports.example.com/rep?owner={{user.email}}`. Each person sees their own figures, because the address carries who is looking.',
+                            '**Supplier portal or training videos.** Shown only to the people or permission group that use it, so everyone else\'s menu stays short.',
+                        ],
+                    },
+                    { h: 'Adding a tab' },
+                    { steps: ['Open **Admin settings → Custom tabs** and press **Add tab**, or the **Add a contact tab** / **Add a sidebar tab** button on one of the two cards.', 'Choose **where it appears**.', 'Give it a **title**, an optional **description** (a line in your own words saying what it is for, shown under the page title or above the tab) and a **picture**.', 'Choose what it shows: **a web page** (an https address) or **my own content**, written in an editor like the one for e-mails: headings, bold, lists, links, pictures and colours. The **</>** button shows the HTML for full control.', 'Choose **who can see it**: everyone, or only the roles, permission groups and people you pick. Administrators always see every tab.', 'Check **How it will look**, then **Save tab**.'] },
+                    { p: 'Each kind has its own list. Use the arrows to change the order, the pencil to change a tab and the bin to delete it. Changes are saved at once.' },
+                    { h: 'Passing details to a web page' },
+                    { p: 'Add these to the address: `{{user.id}}`, `{{user.email}}`, `{{user.name}}` for the person looking, and on a contact tab `{{contact.id}}` and `{{contact.email}}` for the contact. They are filled in when the tab opens.' },
+                    { tip: 'Not sure whether a site can be embedded? Save the tab and open it. If it stays blank, that site does not allow being shown inside another page. Use **Open in a new window** on a sidebar page, or write your own content instead.' },
+                    { warn: 'Choosing who sees a tab only controls who sees it in OrvynCRM. Anyone who has the address of the embedded page can still open it directly, so protect the page itself with that site\'s own sign-in. Details you pass in the address, such as an e-mail, are sent to that site: embed only sites you trust. Your own content is shown in a protected frame and scripts do not run.' },
                 ],
             },
         ],

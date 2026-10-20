@@ -57,6 +57,18 @@
 @keyframes grow { from { transform: scaleX(0); } }
 @keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(217, 185, 106, 0.55); } 100% { box-shadow: 0 0 0 12px rgba(217, 185, 106, 0); } }
 @keyframes blink { 50% { opacity: 0; } }
+/* a card being carried to the next column of a board: lifted and tilted on the way, then it settles in (and the loop starts over) */
+@keyframes carry {
+    0%, 16% { transform: none; box-shadow: none; opacity: 1; }
+    28% { transform: translateY(-8px) rotate(4deg) scale(1.04); box-shadow: 0 16px 30px rgba(15, 23, 42, 0.3); }
+    56% { transform: translate(calc(100% + 1.5rem), -8px) rotate(4deg) scale(1.04); box-shadow: 0 16px 30px rgba(15, 23, 42, 0.3); }
+    68% { transform: translate(calc(100% + 1.5rem), 2px) rotate(-1deg) scale(0.995); box-shadow: 0 4px 10px rgba(15, 23, 42, 0.15); }
+    76%, 90% { transform: translate(calc(100% + 1.5rem), 0); box-shadow: none; opacity: 1; }
+    95% { transform: translate(calc(100% + 1.5rem), 0); opacity: 0; }
+    96% { transform: none; opacity: 0; }
+    100% { transform: none; opacity: 1; }
+}
+@keyframes shimmer { to { background-position: -200% 0; } }
 @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 
 @utility animate-float { animation: float 6s ease-in-out infinite; }
@@ -64,6 +76,8 @@
 @utility animate-marquee { animation: marquee 32s linear infinite; }
 @utility animate-grow { transform-origin: left; animation: grow 1.4s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 @utility animate-pulse-ring { animation: pulse-ring 1.8s ease-out infinite; }
+@utility animate-carry { animation: carry 8s ease-in-out infinite; }
+@utility animate-shimmer { background-size: 200% 100%; animation: shimmer 3.5s linear infinite; }
 @utility animate-blink { animation: blink 1.1s steps(1) infinite; }
 @utility animate-rise { animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 /* a dashed line that runs: the connector between two steps of a flow */

@@ -11,6 +11,7 @@ import ContactForm from '@/Pages/Contacts/partials/ContactForm.vue';
 import AdvancedSearch from '@/Components/AdvancedSearch.vue';
 import CommandPalette from '@/Components/CommandPalette.vue';
 import { MAIN_NAV } from '@/lib/nav';
+import { tabIcon } from '@/lib/tabIcons';
 import { useStored } from '@/lib/stored';
 import DarkStylePicker from '@/Components/DarkStylePicker.vue';
 import { darkStyle, theme } from '@/lib/theme';
@@ -36,6 +37,8 @@ const logoSrc = computed(() => (sidebarLight.value && brand.value.logo_is_defaul
 
 const nav = computed(() => [
     ...MAIN_NAV.map((n) => ({ ...n, match: n.href === '/' ? (u) => u === '/' || u.startsWith('/?') : (u) => u.startsWith(n.href) })),
+    // the pages an administrator added to this menu, under a small heading of their own so it is clear they are not part of the standard menu
+    ...(page.props.sidebarTabs ?? []).map((t, i) => ({ href: `/tabs/${t.id}`, label: t.title, icon: tabIcon(t.icon), heading: i === 0 ? 'Your pages' : null, match: (u) => u === `/tabs/${t.id}` })),
     ...(user.value.is_admin ? [{ href: '/admin', label: 'Admin Settings', icon: Settings, badge: (liveCounts.platformThreads ?? page.props.platformThreadsUnread) || 0, match: (u) => u.startsWith('/admin') || u.startsWith('/automations') }] : []),
     { href: '/manual', label: 'Manual', icon: BookOpen, match: (u) => u.startsWith('/manual') },
 ]);
@@ -122,16 +125,19 @@ const logout = () => router.post('/logout');
         <aside :class="[open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0', collapsed ? 'lg:w-[4.5rem]' : 'lg:w-64', sidebarLight && 'sidebar-light']" :style="sidebarColor ? { backgroundColor: sidebarColor } : undefined" data-sidebar
             class="fixed inset-y-0 left-0 z-30 flex w-64 flex-col bg-brand-900 text-white/80 transition-[width,transform] lg:sticky lg:top-0 lg:h-screen">
             <div :class="collapsed ? 'lg:px-3 lg:text-center' : ''" class="px-6 py-6">
-                <img v-if="brand.logo_url" :src="logoSrc" :alt="brand.name" :class="collapsed ? 'lg:size-8 lg:object-cover lg:object-left' : 'object-contain'" class="max-h-10 max-w-full" />
+                <img v-if="brand.logo_url" :src="logoSrc" :alt="brand.name" :class="collapsed ? 'lg:size-8 lg:object-cover lg:object-left' : 'object-contain'" class="max-w-full" :style="collapsed ? undefined : { maxHeight: `${brand.logo_height ?? 40}px` }" />
                 <div v-else class="text-xl font-semibold tracking-tight text-white"><template v-if="collapsed"><span class="hidden lg:inline">O</span><span class="lg:hidden">Orvyn<span class="opacity-60">CRM</span></span></template><template v-else>Orvyn<span class="opacity-60">CRM</span></template></div>
                 <div v-if="brand.tagline" :class="collapsed && 'lg:hidden'" class="mt-1 text-xs text-white/50">{{ brand.tagline }}</div>
             </div>
             <nav class="flex-1 space-y-1 overflow-y-auto px-3">
-                <Link v-for="n in nav" :key="n.href" :href="n.href" :title="collapsed ? n.label : undefined" @click="open = false"
-                    :class="[n.match(page.url) ? 'bg-white/15 text-white' : 'hover:bg-white/10', collapsed && 'lg:justify-center lg:px-0']" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium">
-                    <component :is="n.icon" class="size-4 shrink-0" /> <span :class="collapsed && 'lg:sr-only'">{{ n.label }}</span>
-                    <span v-if="n.badge" class="ml-auto grid min-w-5 place-items-center rounded-full bg-amber-500 px-1.5 text-[11px] font-semibold text-white" :class="collapsed && 'lg:hidden'" data-testid="admin-unread-badge" :aria-label="`${n.badge} new replies from the platform`">{{ n.badge }}</span>
-                </Link>
+                <template v-for="n in nav" :key="n.href">
+                    <div v-if="n.heading" :class="collapsed ? 'lg:mx-2 lg:border-t lg:border-white/10 lg:pt-1' : ''" class="px-3 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wider text-white/40" data-testid="nav-pages-heading"><span :class="collapsed && 'lg:sr-only'">{{ n.heading }}</span></div>
+                    <Link :href="n.href" :title="collapsed ? n.label : undefined" @click="open = false"
+                        :class="[n.match(page.url) ? 'bg-white/15 text-white' : 'hover:bg-white/10', collapsed && 'lg:justify-center lg:px-0']" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium" :data-testid="n.heading !== undefined ? 'nav-custom-tab' : undefined">
+                        <component :is="n.icon" class="size-4 shrink-0" /> <span :class="collapsed && 'lg:sr-only'" class="truncate">{{ n.label }}</span>
+                        <span v-if="n.badge" class="ml-auto grid min-w-5 place-items-center rounded-full bg-amber-500 px-1.5 text-[11px] font-semibold text-white" :class="collapsed && 'lg:hidden'" data-testid="admin-unread-badge" :aria-label="`${n.badge} new replies from the platform`">{{ n.badge }}</span>
+                    </Link>
+                </template>
             </nav>
             <div class="flex items-center justify-between gap-2 border-t border-white/10 p-4 text-xs text-white/50">
                 <span :class="collapsed && 'lg:hidden'" class="truncate">{{ brand.name }}</span>
@@ -181,7 +187,7 @@ const logout = () => router.post('/logout');
 
                 <div class="relative" data-popup="user">
                     <button class="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-slate-100" @click="showUser = !showUser; showNotes = false">
-                        <span class="grid size-8 place-items-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700">{{ user.name[0] }}</span>
+                        <span class="grid size-8 place-items-center overflow-hidden rounded-full bg-brand-100 has-[img]:bg-transparent text-sm font-semibold text-brand-700" data-testid="my-avatar"><img v-if="user.avatar_url" :src="user.avatar_url" alt="" class="size-8 object-cover" /><template v-else>{{ user.name[0] }}</template></span>
                         <ChevronDown class="hidden size-4 text-slate-400 sm:block" />
                     </button>
                     <div v-if="showUser" class="card absolute right-0 top-11 z-30 w-60 overflow-hidden py-1 text-sm shadow-lg" @click="showUser = false">

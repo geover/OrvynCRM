@@ -5,7 +5,7 @@ const state = {};
 test.describe.configure({ mode: 'serial' });
 test.beforeEach(async ({ page }) => { await login(page); });
 
-const row = (page, text) => page.locator('main .divide-y > div', { hasText: text }).first();
+const row = (page, text) => page.getByTestId('board-row').filter({ hasText: text }).first();
 const today = () => new Date().toISOString().slice(0, 10);
 
 test.describe('workflow boards', () => {
@@ -44,6 +44,24 @@ test.describe('workflow boards', () => {
         await expect(won.locator('article', { hasText: cardText })).toBeVisible();
         const rec = (await api(page, 'GET', `/data-objects/1/records?q=${encodeURIComponent(cardText)}`)).json.data[0];
         expect(rec.data.stage).toBe('Won');                                                     // persisted on the server
+
+        // the search covers the whole board (on the server): only the matching card is left, and clearing brings the rest back
+        const all = await page.locator('main article').count();
+        await page.getByTestId('board-search').fill(cardText);
+        await expect(page.locator('main article')).toHaveCount(1);
+        await expect(page.getByTestId('board-narrowed')).toBeVisible();
+        await page.getByTestId('board-clear').click();
+        await expect(page.locator('main article')).toHaveCount(all);
+
+        // a card opens in a wide pop-up with its details; its stage can be changed from there
+        await won.locator('article', { hasText: cardText }).first().click();
+        const detail = page.getByTestId('card-modal');
+        await expect(detail.getByTestId('card-title')).toHaveText(cardText);
+        await expect(detail.getByTestId('card-stage')).toHaveValue('Won');
+        await detail.getByTestId('card-stage').selectOption('New');
+        await expect(cols.filter({ has: page.locator('header span', { hasText: /^New$/ }) }).locator('article', { hasText: cardText })).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(detail).toHaveCount(0);
 
         // edit then delete from the admin list
         await page.goto('/admin/workflow-boards');

@@ -306,6 +306,7 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/schedules', fn () => Inertia::render('Schedules/Index'))->name('schedules.index');
     Route::get('/boards', fn () => Inertia::render('Boards/Index'))->name('boards.index');
     Route::get('/boards/{board}', fn (int $board) => Inertia::render('Boards/Show', ['boardId' => $board]))->whereNumber('board')->name('boards.show');
+    Route::get('/tabs/{tab}', fn (int $tab) => Inertia::render('CustomTabPage', ['tabId' => $tab]))->whereNumber('tab')->name('custom-tab');
     Route::get('/user-settings', fn () => Inertia::render('UserSettings'))->name('user-settings');
     Route::get('/security', [AccountSecurityController::class, 'company'])->name('security');
     Route::get('/manual', fn () => Inertia::render('Manual'))->name('manual');

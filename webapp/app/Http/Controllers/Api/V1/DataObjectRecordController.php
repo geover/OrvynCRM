@@ -73,7 +73,7 @@ class DataObjectRecordController extends Controller
         $this->authorizeObject($request, $dataObject, 'view');
         abort_unless($record->data_object_id === $dataObject->id, 404);
 
-        return new RecordResource($record->load('contacts:id,first_name,last_name'));
+        return new RecordResource($record->load('contacts:id,first_name,last_name,email,phone'));      // the e-mail and phone let the item's page offer to write to each contact
     }
 
     public function store(Request $request, DataObject $dataObject, RecordService $service): JsonResponse

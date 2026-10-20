@@ -6,11 +6,11 @@ import { changelog } from '../data/site';
 
 const tones: Record<string, string> = {
     'E-mail': 'bg-sky-50 text-sky-700 ring-sky-200', Automations: 'bg-amber-50 text-amber-700 ring-amber-200', Security: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-    Contacts: 'bg-indigo-50 text-indigo-700 ring-indigo-200', 'Getting started': 'bg-stone-100 text-stone-700 ring-stone-200', Billing: 'bg-rose-50 text-rose-700 ring-rose-200',
+    Contacts: 'bg-indigo-50 text-indigo-700 ring-indigo-200', Boards: 'bg-amber-50 text-amber-700 ring-amber-200', Customize: 'bg-sky-50 text-sky-700 ring-sky-200', People: 'bg-emerald-50 text-emerald-700 ring-emerald-200', 'Getting started': 'bg-stone-100 text-stone-700 ring-stone-200', Billing: 'bg-rose-50 text-rose-700 ring-rose-200',
 };
 const months = [...new Set(changelog.map((c) => c.month))];
 ---
-<Base title="What's new" description="The latest features and improvements in OrvynCRM: e-mail, automations, security, contacts and billing.">
+<Base title="What's new" description="The latest features and improvements in OrvynCRM: boards, custom tabs, people, e-mail, automations, security, contacts and billing.">
     <PageHero eyebrow="What's new" title="Always getting" highlight="a little better" lead="The latest additions to OrvynCRM, newest first. Everything here is in the product today." crumb="What's new" />
 
     <section class="container-page py-14">

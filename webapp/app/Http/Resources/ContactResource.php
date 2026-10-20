@@ -37,6 +37,8 @@ class ContactResource extends JsonResource
             'notes' => $this->notes,
             'owner' => $this->whenLoaded('owner', fn () => $this->owner ? ['id' => $this->owner->id, 'name' => $this->owner->name] : null),
             'tags' => $this->whenLoaded('tags', fn () => $this->tags->pluck('name')),
+            'open_tasks' => $this->when(array_key_exists('open_tasks_count', $this->getAttributes()), fn () => (int) $this->open_tasks_count),          // only in the list, which counts them for the page
+            'notes_count' => $this->when(array_key_exists('notes_count', $this->getAttributes()), fn () => (int) $this->notes_count),
             ...$this->avatar(),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),

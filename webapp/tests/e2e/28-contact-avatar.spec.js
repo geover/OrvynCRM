@@ -48,3 +48,32 @@ test('a company can switch Gravatar off', async ({ page }) => {
     }
     await expect.poll(gravatar).toBe(true);
 });
+
+test('your own photo shows top right once you have one, and can be removed', async ({ page }) => {
+    await page.goto('/user-settings');
+    await expect(page.getByTestId('my-avatar').locator('img')).toHaveCount(0);                      // initials until there is a photo
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+    await page.getByTestId('my-photo-file').setInputFiles({ name: 'me.png', mimeType: 'image/png', buffer: png });
+    await expect(page.getByTestId('my-avatar').locator('img')).toHaveAttribute('src', /\/files\/users\/\d+\/avatar\?v=/);
+    await page.getByTestId('my-photo-remove').click();
+    await expect(page.getByTestId('my-avatar').locator('img')).toHaveCount(0);
+});
+
+test('a ready-made avatar can be chosen instead of uploading a photo, and filtered by female and male', async ({ page }) => {
+    await page.goto('/user-settings');
+    await page.getByTestId('my-avatar-gallery').click();
+    const picker = page.getByTestId('avatar-picker');
+    await expect(picker.locator('[data-testid^="avatar-pick-"]')).toHaveCount(50);                  // 25 female, 25 male
+    await picker.getByTestId('avatar-filter-f').click();
+    await expect(picker.locator('[data-testid^="avatar-pick-"]')).toHaveCount(25);
+    await picker.getByTestId('avatar-filter-m').click();
+    await expect(picker.locator('[data-testid^="avatar-pick-"]')).toHaveCount(25);
+    await picker.getByTestId('avatar-look-formal').click();                                         // the professional ones: suits, blazers, blouses, cardigans, waistcoats and shirts with a tie
+    expect(await picker.locator('[data-testid^="avatar-pick-"]').count()).toBeGreaterThan(8);
+    await picker.getByTestId('avatar-look-all').click();
+    await picker.getByTestId('avatar-pick-m01').click();
+    await page.getByTestId('avatar-use').click();                                                    // sent like an uploaded photo
+    await expect(page.getByTestId('my-avatar').locator('img')).toHaveAttribute('src', /\/files\/users\/\d+\/avatar\?v=/);
+    await page.getByTestId('my-photo-remove').click();
+    await expect(page.getByTestId('my-avatar').locator('img')).toHaveCount(0);
+});

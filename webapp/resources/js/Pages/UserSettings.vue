@@ -1,13 +1,15 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { Head, usePage } from '@inertiajs/vue3';
-import { Link2 } from 'lucide-vue-next';
+import { Head, router, usePage } from '@inertiajs/vue3';
+import { Camera, Link2, Smile, Trash2 } from 'lucide-vue-next';
+import AvatarPicker from '@/Components/AvatarPicker.vue';
 import PasswordField from '@/Components/PasswordField.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import RichTextEditor from '@/Components/RichTextEditor.vue';
 import { api } from '@/lib/api';
 import { timezones } from '@/lib/tz';
-import { run } from '@/lib/ui';
+import { initials } from '@/lib/people';
+import { run, toast } from '@/lib/ui';
 import { usePageGuard } from '@/lib/unsavedGuard';
 usePageGuard();                          // an unsaved change is asked about before the page is left
 
@@ -19,6 +21,28 @@ const signature = ref('');
 const blast = ref(null);
 const pwError = ref('');
 const zones = computed(() => timezones(profile.value.timezone));
+// your own photo: chosen here, cut to a square on the server, and shown top right at once
+const photo = computed(() => page.props.auth.user.avatar_url);
+const xsrf = () => decodeURIComponent((document.cookie.match(/XSRF-TOKEN=([^;]+)/) || [])[1] || '');
+async function sendPhoto(method, body) {
+    const r = await fetch(`/api/v1/users/${page.props.auth.user.id}/avatar`, { method, body, credentials: 'same-origin', headers: { Accept: 'application/json', 'X-XSRF-TOKEN': xsrf(), 'X-Requested-With': 'XMLHttpRequest' } });
+    if (!r.ok) { toast((await r.json().catch(() => ({}))).errors?.file?.[0] ?? 'The photo could not be saved', 'error'); return false; }
+    toast(method === 'POST' ? 'Photo saved' : 'Photo removed');
+    router.reload({ only: ['auth'] });
+    return true;
+}
+const picking = ref(false);
+function saveAvatar(file) {                                  // a ready-made avatar goes the way an uploaded photo does
+    const fd = new FormData(); fd.append('file', file);
+    return sendPhoto('POST', fd);
+}
+function pickPhoto(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const fd = new FormData(); fd.append('file', file);
+    sendPhoto('POST', fd);
+}
 const guides = computed(() => Object.entries(page.props.auth.user.permissions?.guides ?? {}).filter(([, v]) => v));
 
 onMounted(async () => {
@@ -42,9 +66,18 @@ const label = (k) => k.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase())
 <template>
     <Head title="User settings" />
     <PageHeader title="User settings" subtitle="Your profile, signature and security." :crumbs="[{ label: 'User settings' }]" />
+    <AvatarPicker v-if="picking" :save="saveAvatar" @close="picking = false" />
     <div v-if="me" class="grid max-w-5xl gap-6 lg:grid-cols-2">
         <section class="card space-y-4 p-5">
             <h2 class="text-sm font-semibold">Profile</h2>
+            <div class="flex items-center gap-4">
+                <span class="grid size-16 shrink-0 place-items-center overflow-hidden rounded-full bg-brand-100 has-[img]:bg-transparent text-lg font-semibold text-brand-700" data-testid="my-photo"><img v-if="photo" :src="photo" alt="" class="size-16 object-cover" /><template v-else>{{ initials(profile.name) }}</template></span>
+                <div class="flex flex-wrap gap-2">
+                    <label class="btn-outline cursor-pointer !py-1.5"><Camera class="size-4" /> {{ photo ? 'Change photo' : 'Upload a photo' }}<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden" data-testid="my-photo-file" @change="pickPhoto" /></label>
+                    <button type="button" class="btn-outline !py-1.5" data-testid="my-avatar-gallery" @click="picking = true"><Smile class="size-4" /> Choose an avatar</button>
+                    <button v-if="photo" type="button" class="btn-ghost !py-1.5 text-slate-500 hover:text-red-600" data-testid="my-photo-remove" @click="sendPhoto('DELETE')"><Trash2 class="size-4" /> Remove</button>
+                </div>
+            </div>
             <div><label class="label">Name</label><input v-model="profile.name" class="input" /></div>
             <div><label class="label">Email</label><input :value="me.email" class="input" disabled /></div>
             <div><label class="label">Timezone</label><select v-model="profile.timezone" class="input"><option v-for="z in zones" :key="z">{{ z }}</option></select></div>

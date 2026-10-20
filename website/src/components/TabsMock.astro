@@ -1,0 +1,38 @@
+---
+// A picture of custom tabs: the main menu with a "Your pages" heading and the team handbook open, plus a contact with its own "Orders" tab.
+import Icon from './Icon.astro';
+---
+<div class="relative mx-auto w-full max-w-lg pb-20" role="img" aria-label="The main menu with a Your pages heading and a Team handbook page open, and a contact with its own Orders tab.">
+    <div class="overflow-hidden rounded-2xl bg-white shadow-2xl shadow-black/30 ring-1 ring-black/5">
+        <div class="grid grid-cols-[8.5rem_1fr] text-[11px]">
+            <div class="space-y-1 bg-brand-900 p-3 text-white/70">
+                <div class="mb-2 flex items-center gap-1.5 font-semibold text-white"><span class="size-4 rounded bg-gradient-to-br from-brand-400 to-gold-400"></span>Orvyn</div>
+                {['Dashboard', 'Contacts', 'Boards', 'My tasks'].map((n) => <div class="rounded-md px-2 py-1.5">{n}</div>)}
+                <div class="px-2 pb-0.5 pt-3 text-[9px] font-semibold uppercase tracking-wider text-white/40">Your pages</div>
+                <div class="flex items-center gap-1.5 rounded-md bg-white/15 px-2 py-1.5 font-medium text-white"><Icon name="layout" class="size-3" />Team handbook</div>
+                <div class="flex items-center gap-1.5 rounded-md px-2 py-1.5"><Icon name="kanban" class="size-3" />Sales report</div>
+            </div>
+            <div class="min-w-0 p-4">
+                <div class="text-sm font-semibold text-ink">Team handbook</div>
+                <div class="mt-0.5 text-stone-500">Our rules of the road, updated every quarter.</div>
+                <div class="mt-3 space-y-2 rounded-lg bg-stone-50 p-3">
+                    <div class="h-3 w-2/5 rounded bg-brand-600/80"></div>
+                    <div class="h-2 w-full rounded bg-stone-200"></div><div class="h-2 w-11/12 rounded bg-stone-200"></div>
+                    <ul class="space-y-1.5 pt-1 text-stone-600">{['Answer every message within a day', 'Log each call as a note', 'Ask before you delete'].map((t) => <li class="flex items-center gap-2"><span class="size-1.5 rounded-full bg-gold-400"></span>{t}</li>)}</ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- who sees it -->
+    <div class="animate-float absolute -right-1 top-24 hidden items-center gap-2 rounded-xl bg-white px-3 py-2 text-[11px] font-medium text-stone-600 shadow-2xl shadow-black/40 ring-1 ring-black/5 sm:flex sm:-right-6" aria-hidden="true">
+        <span class="grid size-6 place-items-center rounded-full bg-gold-100 text-gold-600"><Icon name="users" class="size-3.5" /></span><span><b class="block text-stone-800">Sales report</b>Managers only</span>
+    </div>
+
+    <!-- a tab on every contact -->
+    <div class="animate-float-slow absolute -bottom-1 right-2 hidden w-60 rounded-xl bg-white p-3 text-[11px] shadow-2xl shadow-black/40 ring-1 ring-black/5 sm:block sm:-right-4" aria-hidden="true">
+        <div class="font-semibold text-ink">Maria Santos</div>
+        <div class="mt-2 flex gap-2 border-b border-stone-200 text-stone-500"><span class="pb-1.5">Overview</span><span class="pb-1.5">Notes</span><span class="border-b-2 border-brand-600 pb-1.5 font-medium text-brand-700">Orders</span></div>
+        <div class="mt-2 space-y-1 text-stone-500"><div class="flex justify-between"><span>#1042</span><span class="text-emerald-700">Paid</span></div><div class="flex justify-between"><span>#1051</span><span class="text-gold-600">Due</span></div></div>
+    </div>
+</div>

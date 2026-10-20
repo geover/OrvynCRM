@@ -46,8 +46,10 @@ class PlatformAdministratorController extends Controller
         abort_unless($administrator->is_platform_admin, 404);
         $request->validate(['file' => ['required', 'file', 'max:5120', 'mimes:png,jpg,jpeg,webp,gif']]);
 
-        $path = "avatars/accounts/{$administrator->id}.jpg";
-        Storage::disk('local')->put($path, SquareImage::jpeg((string) file_get_contents($request->file('file')->getRealPath())));
+        $picture = SquareImage::small((string) file_get_contents($request->file('file')->getRealPath()));
+        $path = "avatars/accounts/{$administrator->id}.{$picture['extension']}";
+        $administrator->avatar_path && $administrator->avatar_path !== $path && Storage::disk('local')->delete($administrator->avatar_path);
+        Storage::disk('local')->put($path, $picture['bytes']);
         $administrator->update(['avatar_path' => $path, 'avatar_updated_at' => now()]);
 
         return back()->with('success', 'Photo saved.');
@@ -67,7 +69,7 @@ class PlatformAdministratorController extends Controller
     {
         abort_unless($administrator->is_platform_admin && $administrator->avatar_path && Storage::disk('local')->exists($administrator->avatar_path), 404);
 
-        return response(Storage::disk('local')->get($administrator->avatar_path), 200, ['Content-Type' => 'image/jpeg', 'Cache-Control' => 'private, max-age=604800, immutable', 'X-Content-Type-Options' => 'nosniff']);
+        return response(Storage::disk('local')->get($administrator->avatar_path), 200, ['Content-Type' => SquareImage::mimeOf($administrator->avatar_path), 'Cache-Control' => 'private, max-age=604800, immutable', 'X-Content-Type-Options' => 'nosniff']);
     }
 
     /** Add a platform administrator: a new person, or an existing account that is promoted. */

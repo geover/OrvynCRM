@@ -25,7 +25,7 @@ export const ADMIN_GROUPS = [
         { href: '/admin/contact-relationships', icon: PlugZap, title: 'Contact relationships', text: 'Manage direct and indirect contact-to-contact relationships.' },
         { href: '/admin/queries', icon: Search, title: 'Query builder', text: 'Build queries to show specific data in dashboard widgets.' },
         { href: '/admin/data-tools', icon: Database, title: 'Data import & export', text: 'Import new data or export existing data.' },
-        { href: '/admin/custom-tabs', icon: Rows3, title: 'Custom tabs', text: 'Tabs with customised content in the contact page sidebar.' },
+        { href: '/admin/custom-tabs', icon: Rows3, title: 'Custom tabs', text: 'Your own tabs: inside every contact, or in the main menu for chosen people.' },
     ] },
     { title: 'Automation & communication', items: [
         { href: '/admin/twilio', icon: MessageSquare, title: 'Twilio', text: 'Use your own Twilio account for text messages and phone numbers.' },

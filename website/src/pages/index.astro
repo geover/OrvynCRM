@@ -3,6 +3,9 @@ import Base from '../layouts/Base.astro';
 import Stage from '../components/Stage.astro';
 import FlowMock from '../components/FlowMock.astro';
 import BlastMock from '../components/BlastMock.astro';
+import BoardMock from '../components/BoardMock.astro';
+import TabsMock from '../components/TabsMock.astro';
+import WhatsNew from '../components/WhatsNew.astro';
 import SignInMock from '../components/SignInMock.astro';
 import AppMock from '../components/AppMock.astro';
 import FeatureCard from '../components/FeatureCard.astro';
@@ -51,6 +54,8 @@ import { faq, features, reasons, site, steps, changelog } from '../data/site';
 
     <IntegrationsStrip />
 
+    <WhatsNew />
+
     <section class="reveal container-page py-20" aria-labelledby="tour-title">
         <div class="mx-auto max-w-2xl text-center">
             <p class="eyebrow">A quick look</p>
@@ -75,6 +80,21 @@ import { faq, features, reasons, site, steps, changelog } from '../data/site';
         </div>
     </Stage>
 
+    <Stage tone="gold" id="boards">
+        <div class="grid grid-cols-[minmax(0,1fr)] items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <div>
+                <p class="text-xs font-bold uppercase tracking-widest text-gold-200">Workflow boards</p>
+                <h2 class="display mt-3 text-4xl !text-white sm:text-5xl">See it. Drag it. Done.</h2>
+                <p class="mt-5 max-w-lg text-lg leading-relaxed text-gold-100">Any record type becomes a board of columns. Move a card with your hand, open it to see everything about it, and write to the people on it without leaving the page.</p>
+                <ul class="mt-6 space-y-3 text-gold-100">
+                    {['Search and filters that reach every card, not just the visible ones', 'Open a card: details, contacts, files, activity and actions', 'Email or text the item or its contacts in one click'].map((t) => <li class="flex gap-3"><span class="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-white/15 text-gold-300"><Icon name="check" class="size-3" /></span>{t}</li>)}
+                </ul>
+                <a href="/docs/data-objects" class="btn-light mt-8">See how boards work</a>
+            </div>
+            <BoardMock />
+        </div>
+    </Stage>
+
     <Stage tone="violet" id="messages">
         <div class="grid grid-cols-[minmax(0,1fr)] items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             <div class="order-last lg:order-first"><BlastMock /></div>
@@ -86,6 +106,21 @@ import { faq, features, reasons, site, steps, changelog } from '../data/site';
                     {['Templates and merge fields, like writing to one person', 'An unsubscribe link in every bulk e-mail', 'Failures with the reason, contact by contact'].map((t) => <li class="flex gap-3"><span class="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-white/15 text-gold-300"><Icon name="check" class="size-3" /></span>{t}</li>)}
                 </ul>
                 <a href="/docs/messaging" class="btn-light mt-8">See how messaging works</a>
+            </div>
+        </div>
+    </Stage>
+
+    <Stage tone="teal" id="your-pages">
+        <div class="grid grid-cols-[minmax(0,1fr)] items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <div class="order-last lg:order-first"><TabsMock /></div>
+            <div>
+                <p class="text-xs font-bold uppercase tracking-widest text-gold-300">Custom tabs and pages</p>
+                <h2 class="display mt-3 text-4xl !text-white sm:text-5xl">Your tools, right where you work</h2>
+                <p class="mt-5 max-w-lg text-lg leading-relaxed text-teal-50">Add a tab to every contact, or a page to the main menu. Show a report, an invoice list or your team handbook, to everyone or only to the people you choose.</p>
+                <ul class="mt-6 space-y-3 text-teal-50">
+                    {['A web page that knows the contact, or who is looking', 'Or your own content, written in a rich text editor', 'Shown to everyone, or to chosen roles, groups and people'].map((t) => <li class="flex gap-3"><span class="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-white/15 text-gold-300"><Icon name="check" class="size-3" /></span>{t}</li>)}
+                </ul>
+                <a href="/docs/data-objects" class="btn-light mt-8">See how custom tabs work</a>
             </div>
         </div>
     </Stage>
@@ -108,8 +143,8 @@ import { faq, features, reasons, site, steps, changelog } from '../data/site';
     <section class="reveal container-page py-20">
         <div class="mx-auto max-w-2xl text-center">
             <p class="eyebrow">Everything in one place</p>
-            <h2 class="mt-2 text-3xl font-semibold sm:text-4xl">Less juggling, more selling</h2>
-            <p class="mt-4 text-stone-600">Contacts, your own record types, automations, messages and planning work together instead of living in five different tools.</p>
+            <h2 class="mt-2 text-3xl font-semibold sm:text-4xl">Less juggling, more <span class="text-gradient">selling</span></h2>
+            <p class="mt-4 text-stone-600">Contacts, your own record types, boards, automations, messages and your own tabs work together instead of living in five different tools.</p>
         </div>
         <div class="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {features.slice(0, 6).map((f) => <FeatureCard feature={f} />)}
@@ -133,7 +168,7 @@ import { faq, features, reasons, site, steps, changelog } from '../data/site';
                     </article>
                 ))}
             </div>
-            <p class="mt-8 text-center"><a href="/why-orvyncrm" class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700 hover:text-brand-900">All six reasons <Icon name="arrow" class="size-4" /></a></p>
+            <p class="mt-8 text-center"><a href="/why-orvyncrm" class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700 hover:text-brand-900">All the reasons <Icon name="arrow" class="size-4" /></a></p>
         </div>
     </section>
 

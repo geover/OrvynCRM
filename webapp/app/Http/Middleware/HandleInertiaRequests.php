@@ -7,12 +7,14 @@ use App\Models\AccountUser;
 use App\Models\Announcement;
 use App\Models\CompanyManualInvoice;
 use App\Models\CompanySubscription;
+use App\Models\CustomTab;
 use App\Models\MessageThread;
 use App\Models\SeatRequest;
 use App\Models\SubscriptionRequest;
 use App\Models\Tenant;
 use App\Services\Heartbeat;
 use App\Services\Tenancy\Plans;
+use App\Services\Tenancy\UserProfiles;
 use App\Support\Tenancy\Company;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -83,9 +85,12 @@ class HandleInertiaRequests extends Middleware
             // platform area, always show the platform's look, even while a company is open in the session.
             'app' => $this->branding($request),
             'auth' => ['user' => $user ? [
-                'id' => $user->id, 'name' => $user->name, 'email' => $user->email,
+                'id' => $user->id, 'name' => $user->name, 'email' => $user->email, 'avatar_url' => $user->is_platform_support ? app(UserProfiles::class)->supportUrl($user, '/files/users') : app(UserProfiles::class)->url($user, '/files/users'),
                 'role' => $user->role, 'is_admin' => $user->isAdmin(), 'permissions' => $user->permissionTemplate?->permissions ?? [],
             ] : null],
+            // The pages an administrator added to the main left-hand menu, for the people they are meant for.
+            'sidebarTabs' => fn () => $user && Company::isOpen() && ! Company::isSignInPage($request) && ! Company::isPlatformArea($request) && tenancy()->initialized
+                ? CustomTab::where('placement', 'sidebar')->orderBy('position')->get()->filter(fn ($t) => $t->isFor($user))->map(fn ($t) => $t->only(['id', 'title', 'icon']))->values() : [],
             // Which company is open, and the other companies this person can switch to.
             'company' => $company ? ['id' => $company->getTenantKey(), 'name' => $company->name, 'slug' => $company->slug] : null,
             'companies' => fn () => $identityId && ($identity = AccountUser::find($identityId))

@@ -25,9 +25,9 @@ class ContactDataObjectController extends Controller
             ->filter(fn ($o) => $user->hasPermission("data_objects.{$o->id}.view") || $user->hasPermission('data_objects.view'))
             ->map(fn ($o) => $o->toArray() + ['count' => (int) ($counts[$o->id] ?? 0)])->values();
 
-        $tabs = CustomTab::orderBy('position')->get(['id', 'title', 'type', 'permissions'])
-            ->filter(fn ($t) => $user->isAdmin() || empty($t->permissions) || data_get($user->permissionTemplate?->permissions, "tabs.custom:{$t->id}") !== false)
-            ->map(fn ($t) => $t->only(['id', 'title', 'type']))->values();
+        $tabs = CustomTab::where('placement', 'contact')->orderBy('position')->get()
+            ->filter(fn ($t) => $t->isFor($user))
+            ->map(fn ($t) => $t->only(['id', 'title', 'type', 'icon']))->values();
 
         return response()->json(['objects' => $objects, 'custom_tabs' => $tabs]);
     }

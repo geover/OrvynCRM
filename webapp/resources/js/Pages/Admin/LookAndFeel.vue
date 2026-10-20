@@ -14,15 +14,21 @@ const customSidebar = ref(false);
 const sidebarColor = ref('#1e1b4b');
 const logo = ref(null);
 const logoIsDefault = ref(true);
+const logoHeight = ref(40);                // how tall the logo may be in the sidebar, in pixels
+const LOGO_HEIGHT = { min: 24, max: 96 };
 const favicon = ref(null);
 const faviconIsDefault = ref(true);
 const SIDEBAR_PRESETS = ['#1e1b4b', '#0f172a', '#134e4a', '#7f1d1d', '#1e3a8a', '#f8fafc', '#e0e7ff', '#fef3c7'];
 const PRESETS = ['#4f46e5', '#2563eb', '#0891b2', '#059669', '#d97706', '#dc2626', '#c026d3', '#475569'];
 
-onMounted(async () => { const s = (await api.get('/settings')).data; color.value = s.color; customSidebar.value = !!s.sidebar_color; sidebarColor.value = s.sidebar_color || '#1e1b4b'; logo.value = s.logo_url; logoIsDefault.value = s.logo_is_default; favicon.value = s.favicon_url; faviconIsDefault.value = s.favicon_is_default; });
+onMounted(async () => { const s = (await api.get('/settings')).data; color.value = s.color; customSidebar.value = !!s.sidebar_color; sidebarColor.value = s.sidebar_color || '#1e1b4b'; logo.value = s.logo_url; logoIsDefault.value = s.logo_is_default; logoHeight.value = s.logo_height ?? 40; favicon.value = s.favicon_url; faviconIsDefault.value = s.favicon_is_default; });
 
 async function saveColor() {
     if (await run(() => api.put('/settings', { color: color.value, sidebar_color: customSidebar.value ? sidebarColor.value : null }), 'Theme colour updated')) router.reload({ only: ['app'] });
+}
+async function saveLogoHeight() {
+    logoHeight.value = Math.max(LOGO_HEIGHT.min, Math.min(LOGO_HEIGHT.max, Math.round(Number(logoHeight.value) || 40)));
+    if (await run(() => api.put('/settings', { logo_height: logoHeight.value }), 'Logo size updated')) router.reload({ only: ['app'] });
 }
 async function upload(e) {
     const file = e.target.files[0]; if (!file) return;
@@ -77,7 +83,12 @@ async function removeLogo() {
             </section>
             <section class="card space-y-4 p-5">
                 <h2 class="text-sm font-semibold">Company logo</h2>
-                <div class="grid h-28 place-items-center rounded-lg bg-slate-800"><img v-if="logo" :src="logo" alt="Logo" class="max-h-20 max-w-[80%] object-contain" /><span v-else class="text-sm text-slate-400">Loading…</span></div>
+                <div class="grid min-h-28 place-items-center rounded-lg bg-slate-800 p-4"><img v-if="logo" :src="logo" alt="Logo" :style="{ maxHeight: `${logoHeight}px` }" class="max-w-full object-contain" data-testid="logo-preview" /><span v-else class="text-sm text-slate-400">Loading…</span></div>
+                <div class="space-y-2 rounded-lg border border-slate-200 p-3">
+                    <div class="flex items-center justify-between gap-3"><label class="text-sm font-medium" for="logo-height">Tallest the logo may be in the sidebar</label><span class="flex items-center gap-1 text-sm"><input id="logo-height-n" v-model.number="logoHeight" type="number" :min="LOGO_HEIGHT.min" :max="LOGO_HEIGHT.max" class="input !w-20 !py-1 text-right" aria-label="Logo height in pixels" data-testid="logo-height" /> px</span></div>
+                    <input id="logo-height" v-model.number="logoHeight" type="range" :min="LOGO_HEIGHT.min" :max="LOGO_HEIGHT.max" step="2" class="w-full accent-brand-600" />
+                    <div class="flex items-center justify-between gap-3"><p class="text-xs text-slate-400">A wide logo is limited by the width of the sidebar, so make it taller only if it looks small. The preview above follows the slider.</p><button type="button" class="btn-outline shrink-0 !py-1" data-testid="save-logo-height" @click="saveLogoHeight">Save size</button></div>
+                </div>
                 <p class="text-xs text-slate-400">{{ logoIsDefault ? 'Showing the platform logo. Upload your own to replace it for your company.' : 'Your company logo.' }} PNG, JPG or WebP, up to 2 MB. Shown at the top of the sidebar.</p>
                 <div class="flex gap-2"><label class="btn-outline cursor-pointer">Choose file<input type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="upload" /></label>
                     <button v-if="!logoIsDefault" class="btn-ghost text-red-600" @click="removeLogo">Use platform logo</button></div>

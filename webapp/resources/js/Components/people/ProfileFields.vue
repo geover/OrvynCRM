@@ -1,5 +1,7 @@
 <script setup>
-import { Camera, Trash2 } from 'lucide-vue-next';
+import { ref } from 'vue';
+import { Camera, Smile, Trash2 } from 'lucide-vue-next';
+import AvatarPicker from '@/Components/AvatarPicker.vue';
 import { timezones } from '@/lib/tz';
 import { initials } from '@/lib/people';
 import { toast } from '@/lib/ui';
@@ -32,16 +34,24 @@ async function upload(e) {
     const fd = new FormData(); fd.append('file', file);
     if (await send('POST', fd)) { toast('Photo saved'); emit('changed'); }
 }
+const picking = ref(false);
+async function saveAvatar(file) {                          // a ready-made avatar goes the way an uploaded photo does
+    const fd = new FormData(); fd.append('file', file);
+    if (!(await send('POST', fd))) return false;
+    toast('Photo saved'); emit('changed');
+    return true;
+}
 async function remove() { if (await send('DELETE')) { toast('Photo removed'); emit('changed'); } }
 </script>
 
 <template>
     <div class="space-y-3" data-testid="profile-fields">
         <div class="flex items-center gap-4">
-            <span class="grid size-20 shrink-0 place-items-center overflow-hidden rounded-full bg-brand-100 text-xl font-semibold text-brand-700" data-testid="profile-photo"><img v-if="photo" :src="photo" alt="" class="size-20 object-cover" /><template v-else>{{ initials(name) }}</template></span>
+            <span class="grid size-20 shrink-0 place-items-center overflow-hidden rounded-full bg-brand-100 has-[img]:bg-transparent text-xl font-semibold text-brand-700" data-testid="profile-photo"><img v-if="photo" :src="photo" alt="" class="size-20 object-cover" /><template v-else>{{ initials(name) }}</template></span>
             <div class="space-y-1.5">
                 <div v-if="avatarUrl" class="flex flex-wrap gap-2">
                     <label class="btn-outline cursor-pointer !py-1.5"><Camera class="size-4" /> {{ photo ? 'Change photo' : 'Upload a photo' }}<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden" data-testid="profile-photo-file" @change="upload" /></label>
+                    <button type="button" class="btn-outline !py-1.5" data-testid="profile-avatar" @click="picking = true"><Smile class="size-4" /> Choose an avatar</button>
                     <button v-if="photo" type="button" class="btn-ghost !py-1.5 text-slate-500 hover:text-red-600" data-testid="profile-photo-remove" @click="remove"><Trash2 class="size-4" /> Remove</button>
                 </div>
                 <p class="text-xs text-slate-400">{{ avatarUrl ? 'PNG, JPG, WebP or GIF up to 5 MB. It is cut to a square and made small.' : 'A photo can be added once the person is saved.' }}</p>
@@ -53,5 +63,6 @@ async function remove() { if (await send('DELETE')) { toast('Photo removed'); em
         </div>
         <div><label class="label">Time zone</label><select v-model="form.timezone" class="input"><option v-if="allowEmpty" value="">Not set</option><option v-for="z in timezones(form.timezone)" :key="z" :value="z">{{ z }}</option></select><p v-if="err('timezone')" class="mt-1 text-xs text-red-600">{{ err('timezone') }}</p></div>
         <div><label class="label">Note <span class="normal-case text-slate-400">({{ noteHint }})</span></label><textarea v-model="form.notes" rows="3" class="input" maxlength="2000" placeholder="Anything worth knowing about this person…" /><p v-if="err('notes')" class="mt-1 text-xs text-red-600">{{ err('notes') }}</p></div>
+        <AvatarPicker v-if="picking" :save="saveAvatar" @close="picking = false" />
     </div>
 </template>

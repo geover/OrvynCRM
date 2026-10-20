@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenancy;
 
+use App\Models\AccountUser;
 use App\Models\User;
 use App\Support\SquareImage;
 use Illuminate\Http\UploadedFile;
@@ -28,10 +29,36 @@ class UserProfiles
         return $user->avatar_path ? "{$base}/{$user->id}/avatar?v=".($user->avatar_updated_at?->timestamp ?? 1) : null;
     }
 
+    /**
+     * The photo of a platform administrator who has opened this company: their support profile has none of its own, so the one they set on the platform
+     * (the account's) is served through the company's file route, which keeps them signed in to the company (the platform's own address would leave it).
+     */
+    public function supportUrl(User $user, string $base): ?string
+    {
+        $identity = $user->central_user_id ? AccountUser::find($user->central_user_id) : null;
+
+        return $identity?->avatar_path ? "{$base}/{$user->id}/avatar?v=".($identity->avatar_updated_at?->timestamp ?? 1) : null;
+    }
+
+    public function supportResponse(User $user): Response
+    {
+        $identity = AccountUser::find($user->central_user_id);
+        abort_unless($identity?->avatar_path, 404);
+        $path = $identity->avatar_path;
+
+        return tenancy()->central(function () use ($path) {                       // the account's file is in the platform's storage, not the company's
+            abort_unless(Storage::disk('local')->exists($path), 404);
+
+            return response(Storage::disk('local')->get($path), 200, ['Content-Type' => SquareImage::mimeOf($path), 'Cache-Control' => 'private, max-age=604800, immutable', 'X-Content-Type-Options' => 'nosniff']);
+        });
+    }
+
     public function save(User $user, UploadedFile $file): void
     {
-        $path = "avatars/users/{$user->id}.jpg";
-        Storage::disk('local')->put($path, SquareImage::jpeg((string) file_get_contents($file->getRealPath())));
+        $picture = SquareImage::small((string) file_get_contents($file->getRealPath()));
+        $path = "avatars/users/{$user->id}.{$picture['extension']}";
+        $user->avatar_path && $user->avatar_path !== $path && Storage::disk('local')->delete($user->avatar_path);          // it was a JPEG and is a PNG now, or the other way round
+        Storage::disk('local')->put($path, $picture['bytes']);
         $user->forceFill(['avatar_path' => $path, 'avatar_updated_at' => now()])->save();
     }
 
@@ -45,6 +72,6 @@ class UserProfiles
     {
         abort_unless($user->avatar_path && Storage::disk('local')->exists($user->avatar_path), 404);
 
-        return response(Storage::disk('local')->get($user->avatar_path), 200, ['Content-Type' => 'image/jpeg', 'Cache-Control' => 'private, max-age=604800, immutable', 'X-Content-Type-Options' => 'nosniff']);
+        return response(Storage::disk('local')->get($user->avatar_path), 200, ['Content-Type' => SquareImage::mimeOf($user->avatar_path), 'Cache-Control' => 'private, max-age=604800, immutable', 'X-Content-Type-Options' => 'nosniff']);
     }
 }

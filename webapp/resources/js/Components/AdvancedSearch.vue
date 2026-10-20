@@ -112,7 +112,7 @@ const cell = (v) => (Array.isArray(v) ? v.join(', ') : v);
         </div>
 
         <!-- the same forms as for a dashboard widget: e-mail is the one-contact form (templates, merge fields, attachments) -->
-        <EmailComposer v-if="action === 'email'" :bulk="{ name: 'this search', count: result?.total }" @close="action = null" @submit="(body) => sendAll('email', body)" />
+        <EmailComposer v-if="action === 'email'" :bulk="{ name: 'this search', title: 'Email everybody found', where: 'found by this search', count: result?.total }" @close="action = null" @submit="(body) => sendAll('email', body)" />
         <Modal v-if="action === 'sms'" title="Text everybody found" @close="action = null">
             <form id="sms-all" class="space-y-3" @submit.prevent="sendAll('sms', { body: smsBody })">
                 <div><div class="mb-1 flex items-center justify-between"><label class="label !mb-0" for="sms-all-body">Message</label><MergeFieldMenu @pick="addSmsField" /></div>

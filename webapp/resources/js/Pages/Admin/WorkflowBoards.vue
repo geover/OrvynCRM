@@ -1,11 +1,12 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { Link } from '@inertiajs/vue3';
-import { ArrowDown, ArrowUp, GripVertical, Pencil, Plus, Trash2 } from 'lucide-vue-next';
+import { ArrowDown, ArrowUp, Columns3, ExternalLink, GripVertical, Layers, Pencil, Plus, Search, Trash2 } from 'lucide-vue-next';
 import AdminPage from '@/Components/AdminPage.vue';
 import Modal from '@/Components/Modal.vue';
 import { api } from '@/lib/api';
-import { confirmDialog, run } from '@/lib/ui';
+import { withColors } from '@/lib/boards';
+import { confirmDialog, fmtDate, fmtRelative, run } from '@/lib/ui';
 
 const boards = ref(null);
 const objects = ref([]);
@@ -15,10 +16,18 @@ const errors = ref({});
 
 const PALETTE = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#a855f7', '#14b8a6', '#64748b'];
 async function load() {
-    boards.value = (await api.get('/boards')).data;
+    boards.value = (await api.get('/boards', { stats: 1 })).data;
     objects.value = (await api.get('/data-objects')).data;
 }
 onMounted(load);
+
+const q = ref('');
+const show = ref('all');                                         // all | active | inactive
+const count = (status) => (boards.value ?? []).filter((b) => b.status === status).length;
+const items = computed(() => (boards.value ?? []).reduce((n, b) => n + (b.stats?.total ?? 0), 0));
+const listed = computed(() => (boards.value ?? []).filter((b) => (show.value === 'all' || b.status === show.value)
+    && (!q.value.trim() || `${b.name} ${b.description ?? ''} ${b.data_object?.name ?? ''}`.toLowerCase().includes(q.value.trim().toLowerCase()))));
+const colored = (b) => withColors(b.stats?.columns);
 
 const object = computed(() => objects.value.find((o) => o.id === Number(d.value.data_object_id)));
 const selects = computed(() => object.value?.fields.filter((f) => f.type === 'select') ?? []);
@@ -66,13 +75,60 @@ async function remove(b) {
 <template>
     <AdminPage title="Workflow boards" subtitle="Manage boards for a clear overview of state across data objects.">
         <template #actions><button class="btn-primary" @click="open()"><Plus class="size-4" /> Add board</button></template>
-        <div class="card divide-y divide-slate-100">
-            <div v-for="b in boards" :key="b.id" class="flex items-center justify-between gap-4 px-5 py-4 text-sm">
-                <div><Link :href="`/boards/${b.id}`" class="font-medium hover:text-brand-700">{{ b.name }}</Link>
-                    <div class="mt-0.5 text-xs text-slate-400">{{ b.data_object?.name }} · grouped by {{ b.key_field }} <span :class="b.status === 'active' ? '!bg-emerald-50 !text-emerald-700' : ''" class="badge ml-1">{{ b.status }}</span></div></div>
-                <div class="flex gap-1"><button class="btn-ghost !px-1.5" @click="open(b)"><Pencil class="size-4" /></button><button class="btn-ghost !px-1.5 text-slate-400 hover:text-red-600" @click="remove(b)"><Trash2 class="size-4" /></button></div>
+        <div v-if="boards" class="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" data-testid="boards-summary">
+            <div v-for="[label, value, hint] in [['Boards', boards.length, 'in total'], ['Active', count('active'), 'shown to your people'], ['Inactive', count('inactive'), 'hidden from them'], ['Items', items.toLocaleString(), 'across all boards']]" :key="label" class="card p-4">
+                <div class="text-xs font-medium uppercase tracking-wide text-slate-400">{{ label }}</div>
+                <div class="mt-1 text-2xl font-semibold tabular-nums">{{ value }}</div>
+                <div class="text-xs text-slate-400">{{ hint }}</div>
             </div>
-            <p v-if="boards && !boards.length" class="px-5 py-10 text-center text-sm text-slate-400">No boards yet. A board needs a data object with a dropdown field.</p>
+        </div>
+
+        <div v-if="boards?.length" class="mb-4 flex flex-wrap items-center gap-2">
+            <div class="relative"><Search class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" /><input v-model="q" class="input !w-64 !pl-9" placeholder="Find a board…" aria-label="Find a board" /></div>
+            <div class="inline-flex rounded-lg border border-slate-200 p-0.5 text-sm" role="group" aria-label="Show">
+                <button v-for="[v, l] in [['all', 'All'], ['active', 'Active'], ['inactive', 'Inactive']]" :key="v" type="button" class="rounded-md px-3 py-1 font-medium" :class="show === v ? 'bg-brand-50 text-brand-700' : 'text-slate-500 hover:text-slate-700'" @click="show = v">{{ l }}</button>
+            </div>
+        </div>
+
+        <div v-if="boards" class="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+            <article v-for="b in listed" :key="b.id" data-testid="board-row" class="card flex flex-col gap-4 p-5 text-sm transition hover:shadow-md" :class="b.status !== 'active' && 'opacity-75'">
+                <div class="flex items-start gap-3">
+                    <div class="grid size-11 shrink-0 place-items-center rounded-lg" :class="b.status === 'active' ? 'bg-brand-50 text-brand-600' : 'bg-slate-100 text-slate-400'"><Columns3 class="size-5" /></div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2"><Link :href="`/boards/${b.id}`" class="truncate font-semibold hover:text-brand-700">{{ b.name }}</Link><span :class="b.status === 'active' ? '!bg-emerald-50 !text-emerald-700' : ''" class="badge shrink-0">{{ b.status }}</span></div>
+                        <p class="mt-0.5 line-clamp-2 text-xs text-slate-500">{{ b.description || 'No description' }}</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+                    <span class="flex items-center gap-1"><Layers class="size-3.5 text-slate-400" /> {{ b.data_object?.name }}</span>
+                    <span>grouped by {{ b.key_field }}</span>
+                    <span>{{ b.display_fields?.length ?? 0 }} card field{{ (b.display_fields?.length ?? 0) === 1 ? '' : 's' }}</span>
+                </div>
+
+                <template v-if="b.stats">
+                    <div class="flex items-baseline justify-between"><span><span class="text-xl font-semibold tabular-nums">{{ b.stats.total.toLocaleString() }}</span> <span class="text-xs text-slate-400">item{{ b.stats.total === 1 ? '' : 's' }}</span></span><span class="text-xs text-slate-400">{{ colored(b).length }} columns</span></div>
+                    <div v-if="b.stats.total" class="flex h-2.5 overflow-hidden rounded-full bg-slate-100" role="img" :aria-label="`${b.name}: ${colored(b).map((c) => `${c.label} ${c.total}`).join(', ')}`">
+                        <div v-for="c in colored(b)" :key="c.key" :style="{ width: `${(c.total / b.stats.total) * 100}%`, background: c.color }" :title="`${c.label}: ${c.total}`" />
+                    </div>
+                    <div v-else class="h-2.5 rounded-full bg-slate-100" />
+                    <ul class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
+                        <li v-for="c in colored(b).slice(0, 8)" :key="c.key" class="flex items-center gap-1.5"><span class="size-2 rounded-full" :style="{ background: c.color }" />{{ c.label }} <span class="tabular-nums text-slate-400">{{ c.total }}</span></li>
+                        <li v-if="colored(b).length > 8" class="text-slate-400">+{{ colored(b).length - 8 }} more</li>
+                    </ul>
+                </template>
+
+                <div class="mt-auto flex items-center justify-between border-t border-slate-100 pt-3">
+                    <span class="text-xs text-slate-400" :title="b.stats?.updated_at ? fmtDate(b.stats.updated_at, true) : ''">{{ b.stats?.updated_at ? `Last change ${fmtRelative(b.stats.updated_at)}` : 'No changes yet' }}</span>
+                    <div class="flex items-center gap-1">
+                        <button class="btn-ghost !px-1.5" title="Edit the board" aria-label="Edit the board" @click="open(b)"><Pencil class="size-4" /></button>
+                        <Link :href="`/boards/${b.id}`" class="btn-ghost !px-1.5" title="Open the board" aria-label="Open the board"><ExternalLink class="size-4" /></Link>
+                        <button class="btn-ghost !px-1.5 text-slate-400 hover:text-red-600" title="Delete the board" aria-label="Delete the board" @click="remove(b)"><Trash2 class="size-4" /></button>
+                    </div>
+                </div>
+            </article>
+            <p v-if="boards.length && !listed.length" class="col-span-full card px-5 py-10 text-center text-sm text-slate-400">No board matches.</p>
+            <p v-if="!boards.length" class="col-span-full card px-5 py-10 text-center text-sm text-slate-400">No boards yet. A board needs a data object with a dropdown field.</p>
         </div>
 
         <Modal v-if="modal" :title="d.id ? 'Edit board' : 'Add board'" width="max-w-2xl" @close="modal = false">

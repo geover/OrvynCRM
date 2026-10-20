@@ -121,9 +121,13 @@ class UserController extends Controller
     }
 
     /** The photo itself: anybody signed in to the company may see it. */
-    public function avatar(User $user, UserProfiles $profiles): Response
+    public function avatar(Request $request, User $user, UserProfiles $profiles): Response
     {
-        abort_if($user->is_platform_support, 404);
+        if ($user->is_platform_support) {                                       // a platform administrator's photo: only to themselves, in the company they opened
+            abort_unless($request->user()?->is($user), 404);
+
+            return $profiles->supportResponse($user);
+        }
 
         return $profiles->response($user);
     }

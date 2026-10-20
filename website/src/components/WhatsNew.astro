@@ -1,0 +1,34 @@
+---
+// The three newest additions, as lively cards on the home page; the full list is on /changelog.
+import Icon from './Icon.astro';
+import { changelog } from '../data/site';
+
+const tones: Record<string, string> = {
+    Boards: 'from-gold-300 to-gold-500', Customize: 'from-sky-300 to-brand-500', People: 'from-emerald-300 to-emerald-600', Contacts: 'from-indigo-300 to-indigo-500',
+    'E-mail': 'from-sky-300 to-sky-600', Automations: 'from-amber-300 to-amber-500', Security: 'from-emerald-300 to-emerald-600',
+};
+const latest = changelog.slice(0, 3);
+---
+<section class="reveal container-page py-16" aria-labelledby="new-title">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <p class="eyebrow inline-flex items-center gap-1.5"><Icon name="sparkle" class="size-4" /> New this month</p>
+            <h2 id="new-title" class="mt-2 text-3xl font-semibold sm:text-4xl">Fresh from the workshop</h2>
+        </div>
+        <a href="/changelog" class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700 hover:text-brand-900">Everything that is new <Icon name="arrow" class="size-4" /></a>
+    </div>
+    <div class="mt-8 grid gap-5 md:grid-cols-3">
+        {latest.map((c, i) => (
+            <a href={c.href ?? '/changelog'} class="group relative overflow-hidden rounded-2xl border border-stone-200 bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1.5 hover:border-brand-200 hover:shadow-xl">
+                <span class:list={['absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r', tones[c.tag] ?? 'from-brand-200 to-brand-600']} aria-hidden="true"></span>
+                <div class="flex items-center justify-between">
+                    <span class="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-semibold text-stone-700">{c.tag}</span>
+                    {i === 0 && <span class="animate-pulse-ring inline-flex items-center gap-1 rounded-full bg-gold-100 px-2 py-0.5 text-[11px] font-semibold text-gold-600">New</span>}
+                </div>
+                <h3 class="mt-4 text-lg font-semibold leading-snug">{c.title}</h3>
+                <p class="mt-2 line-clamp-4 text-sm leading-relaxed text-stone-600">{c.text}</p>
+                <span class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-700">Read more <Icon name="arrow" class="size-4 transition group-hover:translate-x-1" /></span>
+            </a>
+        ))}
+    </div>
+</section>

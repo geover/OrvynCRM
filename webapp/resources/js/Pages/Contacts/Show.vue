@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { Activity, Boxes, Camera, ChevronRight, Download, Globe, LayoutGrid, Mail, MessageSquare, MoreHorizontal, Paperclip, Pencil, Phone, Share2, StickyNote, Trash2, Users, X } from 'lucide-vue-next';
+import { Activity, Boxes, Camera, ChevronRight, Download, LayoutGrid, Mail, MessageSquare, MoreHorizontal, Paperclip, Pencil, Phone, Share2, StickyNote, Trash2, Users, X } from 'lucide-vue-next';
 import ContactAvatar from '@/Components/ContactAvatar.vue';
 import Modal from '@/Components/Modal.vue';
 import ContactForm from './partials/ContactForm.vue';
@@ -15,6 +15,7 @@ import EmailComposer from './partials/EmailComposer.vue';
 import SmsComposer from './partials/SmsComposer.vue';
 import MergeModal from './partials/MergeModal.vue';
 import { api } from '@/lib/api';
+import { fillTokens, frameDocument, tabIcon } from '@/lib/tabIcons';
 import { confirmDialog, fmtDate, fmtRelative, run } from '@/lib/ui';
 
 // `embedded`: shown inside a wide pop-up on the contact list instead of as a page (no page title or breadcrumb, the address bar is left alone,
@@ -179,7 +180,7 @@ const navBtn = (active) => [active ? 'bg-brand-50 text-brand-700 font-medium' : 
                 <button v-if="allowed('relationships')" :class="navBtn(tab === 'relationships')" @click="select('relationships')"><Users class="size-4" /> Relationships</button>
                 <button v-if="allowed('attachments')" :class="navBtn(tab === 'attachments')" @click="select('attachments')"><Paperclip class="size-4" /> Attachments</button>
                 <button :class="navBtn(tab === 'activity')" @click="select('activity')"><Activity class="size-4" /> Activity</button>
-                <button v-for="c in side.custom_tabs" :key="c.id" :class="navBtn(tab === `custom:${c.id}`)" @click="select(`custom:${c.id}`)"><Globe class="size-4" /> {{ c.title }}</button>
+                <button v-for="c in side.custom_tabs" :key="c.id" :class="navBtn(tab === `custom:${c.id}`)" @click="select(`custom:${c.id}`)"><component :is="tabIcon(c.icon)" class="size-4" /> {{ c.title }}</button>
             </nav>
 
             <!-- tab body -->
@@ -203,8 +204,9 @@ const navBtn = (active) => [active ? 'bg-brand-50 text-brand-700 font-medium' : 
 
                 <div v-else-if="tab.startsWith('custom:')" class="card overflow-hidden">
                     <p v-if="!customTab" class="p-5 text-sm text-slate-400">Loading…</p>
-                    <iframe v-else-if="customTab.type === 'iframe'" :src="customTab.content.replace('{{contact.id}}', contact.id).replace('{{contact.email}}', encodeURIComponent(contact.email ?? ''))" sandbox="allow-scripts allow-forms allow-popups" class="h-[70vh] w-full" :title="customTab.title" />
-                    <iframe v-else :srcdoc="customTab.content" sandbox="" class="h-[70vh] w-full" :title="customTab.title" />
+                    <p v-else-if="customTab.description" class="border-b border-slate-100 px-5 py-2.5 text-sm text-slate-500" data-testid="tab-description">{{ customTab.description }}</p>
+                    <iframe v-else-if="customTab.type === 'iframe'" :src="fillTokens(customTab.content, { user: $page.props.auth.user, contact })" sandbox="allow-scripts allow-forms allow-popups" class="h-[70vh] w-full" :title="customTab.title" />
+                    <iframe v-else :srcdoc="frameDocument(customTab.content)" sandbox="allow-popups allow-popups-to-escape-sandbox" class="h-[70vh] w-full" :title="customTab.title" />
                 </div>
             </section>
         </div>

@@ -175,6 +175,43 @@ test.describe('data table: contacts list', () => {
         await expect(page.getByText('Set filters, then save them as a view.')).toBeVisible();
     });
 
+    test('a saved view also remembers which columns are shown, and the contacts can be shown as cards', async ({ page }) => {
+        await page.setViewportSize({ width: 1600, height: 900 });
+        await page.goto('/contacts');
+        const head = (name) => page.locator('thead th', { hasText: name });
+        await expect(head('Company')).toBeVisible();
+        await page.getByRole('button', { name: /Columns/ }).click();
+        await page.getByRole('checkbox', { name: 'Company' }).uncheck();
+        await page.keyboard.press('Escape');
+        await expect(head('Company')).toHaveCount(0);
+        await page.getByRole('button', { name: /^Views/ }).click();
+        await page.getByPlaceholder('Name this view…').fill('Without company');
+        await page.getByRole('button', { name: 'Save', exact: true }).click();
+
+        await page.getByRole('button', { name: /Columns/ }).click();                              // bring the column back by hand ...
+        await page.getByRole('button', { name: 'Reset to default' }).click();
+        await page.keyboard.press('Escape');
+        await expect(head('Company')).toBeVisible();
+        await page.getByRole('button', { name: /^Views/ }).click();                               // ... and the view takes it away again
+        await page.getByRole('button', { name: /^Without company/ }).click();
+        await expect(head('Company')).toHaveCount(0);
+
+        await page.getByTestId('view-cards').click();                                            // the same people as cards
+        await expect(page.getByTestId('contact-card').first()).toBeVisible();
+        await expect(page.locator('tbody tr')).toHaveCount(0);
+        await page.getByTestId('view-table').click();
+        await expect(page.locator('tbody tr').first()).toBeVisible();
+
+        await page.getByRole('button', { name: /^Views/ }).click();                               // Reset view: everything back to how the page first looks
+        await page.getByTestId('reset-view').click();
+        await expect(head('Company')).toBeVisible();
+        await expect(page.getByTestId('contact-card')).toHaveCount(0);
+        await expect(page.locator('tbody tr').first()).toBeVisible();
+
+        await page.getByRole('button', { name: /^Views/ }).click();
+        await page.getByTitle('Delete Without company').click();
+    });
+
     test('on a phone the table becomes cards: labelled values, selection checkbox, no header row', async ({ page }) => {
         await page.setViewportSize({ width: 390, height: 844 });
         await page.goto('/contacts');

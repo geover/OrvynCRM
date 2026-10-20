@@ -1,0 +1,47 @@
+---
+// A picture of a workflow board: three coloured columns, a card that is lifted, tilted and carried to the next one on a loop, and the wide window of a card with its actions.
+import Icon from './Icon.astro';
+
+const cols = [
+    { name: 'New', color: '#6366f1', n: 4, cards: [['Northwind renewal', '$12,400', 'MS'], ['Lumen onboarding', '$8,100', 'JO']] },
+    { name: 'In progress', color: '#10b981', n: 6, cards: [['Harbor Labs', '$21,000', 'AT'], ['Verde Studio', '$5,750', 'SR']] },
+    { name: 'Won', color: '#f59e0b', n: 3, cards: [['Brightside', '$9,300', 'LM']] },
+];
+const total = cols.reduce((n, c) => n + c.n, 0);
+---
+<div class="relative mx-auto w-full max-w-lg pb-10" role="img" aria-label="A workflow board with three columns: New, In progress and Won. A card is lifted, tilted and carried from New to In progress, and a window shows the card's details with Email, Text and Move actions.">
+    <div class="rounded-2xl bg-white p-3 shadow-2xl shadow-black/30 ring-1 ring-black/5">
+        <div class="flex items-center justify-between gap-2 px-1 pb-2 text-[11px]">
+            <span class="font-semibold text-ink">Sales pipeline</span>
+            <span class="rounded-md bg-stone-100 px-2 py-0.5 text-stone-500">Search every card…</span>
+        </div>
+        <div class="mb-3 flex h-2 overflow-hidden rounded-full bg-stone-100" aria-hidden="true">
+            {cols.map((c) => <div style={`width:${(c.n / total) * 100}%;background:${c.color}`}></div>)}
+        </div>
+        <div class="grid grid-cols-3 gap-3 text-[11px]">
+            {cols.map((c, ci) => (
+                <div class="rounded-xl bg-stone-100/80 pb-2" style={`border-top:4px solid ${c.color}`}>
+                    <div class="flex items-center justify-between px-2.5 py-2"><span class="font-semibold text-ink">{c.name}</span><span class="rounded-full bg-white px-1.5 text-stone-500">{c.n}</span></div>
+                    <div class="space-y-2 px-2">
+                        {c.cards.map(([title, amount, who], i) => (
+                            <div class:list={['rounded-lg border-l-4 bg-white p-2 shadow-sm', ci === 0 && i === 0 && 'animate-carry relative z-20']} style={`border-left-color:${c.color}`}>
+                                <div class="font-medium text-ink">{title}</div>
+                                <div class="mt-1 flex items-center justify-between text-stone-500"><span class="font-semibold tabular-nums text-stone-700">{amount}</span><span class="grid size-5 place-items-center rounded-full bg-brand-100 text-[9px] font-semibold text-brand-700">{who}</span></div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            ))}
+        </div>
+    </div>
+
+    <!-- the wide window of a card, with what can be done from it -->
+    <div class="animate-float-slow absolute -bottom-2 -right-2 hidden w-56 rounded-xl bg-white p-3 text-[11px] shadow-2xl shadow-black/40 ring-1 ring-black/5 sm:block sm:-right-6" aria-hidden="true">
+        <div class="flex items-center justify-between"><span class="text-sm font-semibold text-ink">Harbor Labs</span><span class="rounded-full bg-emerald-50 px-1.5 py-0.5 font-medium text-emerald-700">In progress</span></div>
+        <div class="mt-2 space-y-1 text-stone-500"><div class="flex justify-between"><span>Amount</span><span class="text-stone-800">$21,000</span></div><div class="flex justify-between"><span>Contact</span><span class="text-brand-700">Aiko Tanaka</span></div></div>
+        <div class="mt-3 flex gap-1.5">
+            <span class="flex flex-1 items-center justify-center gap-1 rounded-md bg-brand-600 py-1 font-medium text-white"><Icon name="mail" class="size-3" />Email</span>
+            <span class="flex flex-1 items-center justify-center gap-1 rounded-md bg-stone-100 py-1 font-medium text-stone-700"><Icon name="chat" class="size-3" />Text</span>
+        </div>
+    </div>
+</div>

@@ -93,7 +93,7 @@ export default {
                     lead: "The list of everyone you do business with, with search, filters, saved views and bulk actions.",
                     blocks: [
                         { h: "Find people" },
-                        { list: ["Type in the search box: it looks at name, e-mail, company and phone.", "Filter by **Tag** or **owner**. **Clear filters** brings everyone back.", "**Click a column heading to sort by it**: once for ascending (A to Z, oldest first), again for descending. An arrow shows the current order. Name, e-mail, phone, company, owner and the date added can be sorted; the sort box above the table offers newest, last name, company and recently updated.", "**Columns** lets you choose which columns the table shows. **Views** switches between your saved views.", "**Advanced search** builds precise searches and saves them as queries (see Advanced search and saved queries).", "**Pages**: the foot of the table shows which rows you are looking at (for example *1-25 of 1,234*), numbered pages with Previous and Next, and **Rows** to show 25, 50 or 100 at a time. A new search, filter or sort starts again on page 1; the table fills the height of the window."] },
+                        { list: ["Type in the search box: it looks at name, e-mail, company and phone.", "Filter by **Tag** or **owner**. **Clear filters** brings everyone back.", "**Click a column heading to sort by it**: once for ascending (A to Z, oldest first), again for descending. An arrow shows the current order. Name, e-mail, phone, company, owner and the date added can be sorted; the sort box above the table offers newest, last name, company and recently updated.", "**Numbers on top**: how many contacts you have, how many are new in the last 30 days (and how that compares with the 30 days before), how many are yours, how many have an open task and how many opted out of e-mail. **Show who** and **Show mine** filter the list; the most used tags below them filter it too.", "**Table or cards**: the two buttons at the end of the toolbar switch the list between the table and a grid of cards. A card shows the picture, name, job and company, type, e-mail and phone, tags, open tasks and notes, the owner and the date added, with Email, Text, Call and Edit on it. Selecting, bulk actions, search, filters and pages work the same in both.", "**Columns** lets you choose which columns the table shows (including Type, Tasks and Updated). **Views** switches between your saved views. A saved view remembers the search and filters, the order, **the columns you show** and whether you look at the table or the cards; name it and press **Save**. **Reset view** (at the top of the Views menu) puts the page back as it first looks: no search or filters, newest first, the default columns, as a table.", "**Advanced search** builds precise searches and saves them as queries (see Advanced search and saved queries).", "**Pages**: the foot of the table shows which rows you are looking at (for example *1-25 of 1,234*), numbered pages with Previous and Next, and **Rows** to show 25, 50 or 100 at a time. A new search, filter or sort starts again on page 1; the table fills the height of the window."] },
                         { h: "Open a contact without leaving the list" },
                         { p: "Wherever a contact's name is a link (the list, the dashboard, tasks, schedules, search results on a widget), clicking it opens the whole contact (overview, notes and tasks, data, communication and more) in a wide window above the page you are on. Close it and you are back where you were, with your search and page kept. **Open as a full page** in its corner opens it on its own page; Ctrl-click or Cmd-click on the name also opens the page in a new tab." },
                         { h: "Quick actions on each row" },
@@ -128,7 +128,7 @@ export default {
                                     ["Relationships", "Direct links to other contacts (for example Spouse or Manager). Find a contact to link, or **Disconnect**."],
                                     ["Attachments", "**Upload files** or **Attach link**. Files can be downloaded again by anyone with access."],
                                     ["Activity", "A timeline of everything that happened. **Load more** goes further back."],
-                                    ["Custom tabs", "Extra tabs your administrator added, for example an embedded page. They appear under **More** if there is no room."],
+                                    ["Custom tabs", "Extra tabs your administrator added, for example an embedded page. They appear under **More** if there is no room. Pages meant for your whole team are in the main menu on the left, under **Your pages**."],
                                 ],
                             },
                         },
@@ -222,7 +222,7 @@ export default {
                             table: {
                                 head: ["Section", "What you can do"],
                                 rows: [
-                                    ["Profile", "Change your name, e-mail and **timezone**. Dates throughout the app follow it."],
+                                    ["Profile", "Change your name, e-mail and **timezone**. Dates throughout the app follow it. Give yourself a face: **Upload a photo**, or press **Choose an avatar** and pick one of 50 ready-made characters (25 female, 25 male, casual and professional, each with its own look and mood; filter them by look). It shows top right and wherever your name appears. Administrators can do the same for anybody under **User management**, and the platform team for platform administrators and for the people of a company."],
                                     ["E-mail signature", "Text added to the end of every e-mail you send from a contact. Save it once."],
                                     ["Change password", "Enter your current password, then a new one: at least 10 characters with upper and lower case letters and a number. Changing it signs out your API tokens."],
                                     ["Sign-in security", "Open **Sign-in security** in the account menu: two-step verification, passkeys and connected accounts (see the next section)."],
@@ -409,9 +409,47 @@ export default {
                     id: "custom-tabs",
                     title: "Custom tabs",
                     adminOnly: true,
-                    lead: "Add your own tab to every contact page.",
+                    lead: "Add your own tabs: one on every contact page, or a page in the main menu for your team.",
                     blocks: [
-                        { p: "Press **Add tab**, give it a title and either the content to show or an address to embed. Embedded addresses must be **https** and the other site must allow being shown in a frame. The content is shown in a sandboxed frame: scripts are disabled. **Save changes** to publish." },
+                        { h: "What they are for" },
+                        { p: "Your team often needs something that OrvynCRM does not hold itself: the invoices in your accounting system, a report, a script for phone calls, the staff handbook. A custom tab puts it where people already work, so they do not have to open another site and look it up. A tab either **embeds a web page** or shows **content you write yourself**." },
+                        { h: "Two kinds: which one do you need?" },
+                        {
+                            table: {
+                                head: ["", "Contact tab", "Sidebar tab"],
+                                rows: [
+                                    ["Where it appears", "Inside every contact’s page, next to Notes & tasks and Communication (under **More** if there is no room).", "In the main menu on the left, under **Your pages**. It opens as a page of its own."],
+                                    ["It is about", "The contact being looked at.", "Your team or your business, not one contact."],
+                                    ["Can it use the contact?", "Yes: `{{contact.id}}` and `{{contact.email}}` can be added to the address, so the other site shows that contact.", "No contact, but the person looking: `{{user.id}}`, `{{user.email}}` and `{{user.name}}`."],
+                                    ["Good for", "Orders, invoices, support tickets or a call script for that contact.", "A handbook, a report or dashboard, a booking page, training."],
+                                ],
+                            },
+                        },
+                        { h: "Examples" },
+                        { p: "**Contact tabs**" },
+                        {
+                            list: [
+                                "**Invoices.** A web page: `https://billing.example.com/customers?email={{contact.email}}`. Whoever opens a contact sees that contact’s invoices from your accounting system, with no searching.",
+                                "**Support tickets.** A web page: `https://help.example.com/tickets?customer={{contact.id}}`. The service team sees the open tickets while they talk to the contact.",
+                                "**Call script.** Your own content: the opening line, the questions to ask, what to promise and what not to. Everybody on the phone says the same things.",
+                            ],
+                        },
+                        { p: "**Sidebar tabs**" },
+                        {
+                            list: [
+                                "**Team handbook.** Your own content with headings, lists and links to your policies. Shown to everyone, so a new colleague finds the rules in one place.",
+                                "**Sales dashboard.** A web page with your reporting tool’s dashboard. Shown only to **Managers**, so the numbers stay with the people who need them.",
+                                "**My numbers.** A web page such as `https://reports.example.com/rep?owner={{user.email}}`. Each person sees their own figures, because the address carries who is looking.",
+                                "**Supplier portal or training videos.** Shown only to the people or permission group that use it, so everyone else’s menu stays short.",
+                            ],
+                        },
+                        { h: "Adding a tab" },
+                        { steps: ["Open **Admin settings → Custom tabs** and press **Add tab**, or the **Add a contact tab** / **Add a sidebar tab** button on one of the two cards.", "Choose **where it appears**.", "Give it a **title**, an optional **description** (a line in your own words saying what it is for, shown under the page title or above the tab) and a **picture**.", "Choose what it shows: **a web page** (an https address) or **my own content**, written in an editor like the one for e-mails: headings, bold, lists, links, pictures and colours. The **</>** button shows the HTML for full control.", "Choose **who can see it**: everyone, or only the roles, permission groups and people you pick. Administrators always see every tab.", "Check **How it will look**, then **Save tab**."] },
+                        { p: "Each kind has its own list below the two cards. Use the arrows to change the order, the pencil to change a tab and the bin to delete it. Changes are saved at once." },
+                        { h: "Passing details to a web page" },
+                        { p: "Add these to the address, or press the chips under it: `{{user.id}}`, `{{user.email}}`, `{{user.name}}` for the person looking, and on a contact tab `{{contact.id}}` and `{{contact.email}}` for the contact. They are filled in when the tab opens." },
+                        { tip: "Not sure whether a site can be embedded? Save the tab and open it. If it stays blank, that site does not allow being shown inside another page. Use **Open in a new window** on a sidebar page, or write your own content instead." },
+                        { warn: "Choosing who sees a tab only controls who sees it in OrvynCRM. Anyone who has the address of the embedded page can still open it directly, so protect the page itself with that site’s own sign-in. Details you pass in the address, such as an e-mail, are sent to that site: embed only sites you trust. Your own content is shown in a protected frame and scripts do not run." },
                     ],
                 },
                 {

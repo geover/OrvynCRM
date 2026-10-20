@@ -12,6 +12,8 @@ import { useStored } from '@/lib/stored';
  * Sorting: a column with `sort: '<api key>'` has a clickable header (ascending, then descending, then ascending again); `sort` (v-model:sort) is the current
  * order as the API takes it, '-key' for descending.
  * Cell content: slot `cell-<key>` ({row}); default is row[key]. Row actions: slot `actions` ({row}). Bulk actions: slot `bulk`.
+ * `display="cards"` shows the rows as a grid of cards (slot `card`: {row, selected, toggle}) instead of the table; the toolbar, the bulk bar and the footer stay.
+ * The shown columns can be read and set from outside (a saved view remembers them): `getColumns()` gives the keys shown, `setColumns(keys)` shows those (the title column always), `resetColumns()` goes back to the default ones.
  */
 const props = defineProps({
     columns: { type: Array, required: true },
@@ -24,6 +26,7 @@ const props = defineProps({
     rowClickable: Boolean,
     noun: { type: String, default: 'item' },
     sort: { type: String, default: '' },
+    display: { type: String, default: 'table' },        // table | cards
     contained: Boolean,            // inside a pop-up: the header sticks to the top of the pop-up and the card does not stretch to the window's bottom
 });
 const emit = defineEmits(['update:selected', 'row-click', 'update:sort']);
@@ -35,6 +38,10 @@ const hidden = useStored(`cols:${props.storageKey}`, props.columns.filter((c) =>
 const visible = computed(() => props.columns.filter((c) => !hidden.value.includes(c.key)));
 const toggleCol = (k) => { hidden.value = hidden.value.includes(k) ? hidden.value.filter((x) => x !== k) : [...hidden.value, k]; };
 const resetCols = () => { hidden.value = props.columns.filter((c) => c.off).map((c) => c.key); };
+
+const shownKeys = () => props.columns.filter((c) => c.title || !hidden.value.includes(c.key)).map((c) => c.key);
+const setColumns = (keys) => { if (Array.isArray(keys)) hidden.value = props.columns.filter((c) => !c.title && !keys.includes(c.key)).map((c) => c.key); };
+defineExpose({ getColumns: shownKeys, setColumns, resetColumns: () => resetCols() });
 
 const allIds = computed(() => props.rows.map((r) => r.id));
 const allOn = computed(() => allIds.value.length > 0 && allIds.value.every((id) => props.selected.includes(id)));
@@ -49,10 +56,19 @@ const fit = () => {
     if (!card.value || props.contained) return;
     const wide = window.matchMedia('(min-width: 768px)').matches;
     const top = card.value.getBoundingClientRect().top + window.scrollY;
-    card.value.style.minHeight = wide ? `${Math.max(0, window.innerHeight - top - 32)}px` : '';
+    // exactly the room left in the window: the rows scroll inside the card and its footer (the pages) stays in view, so the page itself does not scroll
+    card.value.style.height = wide ? `${Math.max(360, window.innerHeight - top - 24)}px` : '';
 };
-onMounted(() => { fit(); window.addEventListener('resize', fit); });
-onBeforeUnmount(() => window.removeEventListener('resize', fit));
+let watcher;
+let frame = 0;
+const refit = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(fit); };
+onMounted(() => {
+    fit();
+    window.addEventListener('resize', fit);
+    watcher = new ResizeObserver(refit);                       // numbers above the table arriving later, a bar appearing: the room changes
+    watcher.observe(document.body);
+});
+onBeforeUnmount(() => { window.removeEventListener('resize', fit); watcher?.disconnect(); cancelAnimationFrame(frame); });
 watch(() => [props.selected.length, props.loading], () => nextTick(fit), { flush: 'post' });
 </script>
 
@@ -60,7 +76,7 @@ watch(() => [props.selected.length, props.loading], () => nextTick(fit), { flush
     <div>
         <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
             <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2"><slot name="toolbar" /></div>
-            <Dropdown width="w-56">
+            <Dropdown v-if="display === 'table'" width="w-56">
                 <template #trigger="{ toggle }"><button type="button" class="btn-outline" title="Choose columns" @click="toggle"><Columns3 class="size-4" /><span class="hidden sm:inline"> Columns</span></button></template>
                 <p class="px-2 pb-1 pt-0.5 text-xs font-semibold uppercase tracking-wide text-slate-400">Show columns</p>
                 <label v-for="c in columns.filter((x) => !x.title)" :key="c.key" class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-slate-50">
@@ -83,7 +99,13 @@ watch(() => [props.selected.length, props.loading], () => nextTick(fit), { flush
                     <span class="h-4 w-1/5 animate-pulse rounded bg-slate-100" /><span class="h-4 w-1/4 animate-pulse rounded bg-slate-100" /><span class="hidden h-4 w-1/6 animate-pulse rounded bg-slate-100 md:block" /><span class="hidden h-4 w-1/6 animate-pulse rounded bg-slate-100 lg:block" />
                 </div>
             </div>
-            <div v-else class="table-scroll flex-1 max-md:max-h-none max-md:overflow-visible" :class="contained && '!max-h-[52vh]'">
+            <div v-else-if="display === 'cards'" class="min-h-0 flex-1 overflow-y-auto p-4">
+                <div v-if="rows.length" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                    <template v-for="r in rows" :key="r.id"><slot name="card" :row="r" :selected="selected.includes(r.id)" :toggle="() => toggleOne(r.id)" /></template>
+                </div>
+                <div v-else-if="!loading" class="px-5 py-12 text-center text-slate-400"><slot name="empty">{{ emptyText }}</slot></div>
+            </div>
+            <div v-else class="table-scroll min-h-0 flex-1 max-md:max-h-none max-md:overflow-visible" :class="contained ? '!max-h-[52vh]' : 'md:!max-h-none'">
             <table class="w-full text-sm max-md:block">
                 <thead class="max-md:hidden">
                     <tr class="text-left text-xs uppercase tracking-wide text-slate-500">
@@ -110,7 +132,7 @@ watch(() => [props.selected.length, props.loading], () => nextTick(fit), { flush
                 </tbody>
             </table>
             </div>
-            <slot name="footer" />
+            <div v-if="$slots.footer" class="shrink-0" data-testid="table-footer"><slot name="footer" /></div>
         </div>
     </div>
 </template>

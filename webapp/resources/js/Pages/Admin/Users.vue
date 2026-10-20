@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { Link, usePage } from '@inertiajs/vue3';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import { KeyRound, Pencil, Plus, ShieldOff, Trash2 } from 'lucide-vue-next';
 import AdminPage from '@/Components/AdminPage.vue';
 import PeopleBoard from '@/Components/people/PeopleBoard.vue';
@@ -93,9 +93,9 @@ const editing = computed(() => (draft.value.id ? users.value.find((x) => x.id ==
 
         <PeopleBoard v-if="tab === 'users'" :people="users" show-template label="Users">
             <template v-if="seats" #people>
-                <div class="flex flex-wrap items-center gap-x-6 gap-y-3" aria-label="User limit" data-testid="seats-panel">
+                <div class="space-y-3" aria-label="User limit" data-testid="seats-panel">
                 <SeatMeter :used="seats.used" :max="seats.max" />
-                <div class="min-w-0 flex-1 text-sm text-slate-500">
+                <div class="min-w-0 text-sm text-slate-500">
                     <template v-if="seats.request?.status === 'pending'"><span class="font-medium text-slate-700">Request sent:</span> you asked for {{ seats.request.requested_limit }} users. The platform will get back to you.</template>
                     <template v-else-if="seats.full">You have reached your limit. Request more users to add people.</template>
                     <template v-else-if="seats.max && seats.left <= 1">{{ seats.left }} {{ seats.left === 1 ? 'seat' : 'seats' }} left.</template>
@@ -103,8 +103,7 @@ const editing = computed(() => (draft.value.id ? users.value.find((x) => x.id ==
                     <div v-if="seats.pricing?.price != null" class="mt-0.5 text-xs text-slate-400">Additional users: {{ fmtMoney(seats.pricing.price, seats.pricing.currency) }} per user per {{ periodLabel(seats.pricing.period) }}.</div>
                     <RequestOutcome v-if="seats.request && seats.request.status !== 'pending'" :request="seats.request" what="users" class="mt-0.5" @dismissed="seats.request = null" />
                 </div>
-                <button v-if="seats.request?.status !== 'pending'" class="btn-outline" data-testid="request-seats" @click="openRequest">Request more users</button>
-        
+                <button v-if="seats.request?.status !== 'pending'" class="btn-outline !py-1.5" data-testid="request-seats" @click="openRequest">Request more users</button>
                 </div>
             </template>
             <template #actions="{ person: u }">
@@ -141,7 +140,7 @@ const editing = computed(() => (draft.value.id ? users.value.find((x) => x.id ==
 
         <Modal v-if="modal" :title="draft.id ? 'Edit user' : 'Add user'" @close="modal = false">
             <form id="uf" class="space-y-3" @submit.prevent="save">
-                <UserFormFields :draft="draft" :errors="errors" :templates="templates" :photo="editing?.avatar_url" :avatar-url="draft.id ? `/api/v1/users/${draft.id}/avatar` : null" id-prefix="uf" @photo-changed="load" />
+                <UserFormFields :draft="draft" :errors="errors" :templates="templates" :photo="editing?.avatar_url" :avatar-url="draft.id ? `/api/v1/users/${draft.id}/avatar` : null" id-prefix="uf" @photo-changed="load(); router.reload({ only: ['auth'] })" />
             </form>
             <template #footer><button class="btn-ghost" @click="modal = false">Cancel</button><button class="btn-primary" form="uf">Save</button></template>
         </Modal>

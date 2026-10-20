@@ -5,18 +5,34 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Jobs\ReindexDataObject;
 use App\Models\DataObject;
+use App\Models\WorkflowBoard;
 use App\Services\Tenancy\Limits;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 /** Schema management for custom objects (Macanta "Connected Data" groups + field builder). */
 class DataObjectController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json(['data' => DataObject::withCount('records')->with('fields', 'relationships')->orderBy('name')->get()]);
+        $objects = DataObject::withCount('records')->with('fields', 'relationships')->orderBy('name')->get();
+
+        if ($request->boolean('stats')) {                                       // the Data Objects page: what is new on each object, and how many boards show it
+            $week = now()->subDays(7);
+            $activity = DB::table('data_object_records')->whereNull('deleted_at')->groupBy('data_object_id')
+                ->selectRaw('data_object_id, max(updated_at) as last_change, sum(case when created_at >= ? then 1 else 0 end) as added_7d', [$week])->get()->keyBy('data_object_id');
+            $boards = WorkflowBoard::where('status', 'active')->groupBy('data_object_id')->selectRaw('data_object_id, count(*) as n')->pluck('n', 'data_object_id');
+            $objects->each(fn ($o) => $o->setAttribute('stats', [
+                'added_7d' => (int) ($activity[$o->id]->added_7d ?? 0),
+                'last_change' => ($last = $activity[$o->id]->last_change ?? null) ? Carbon::parse($last)->toIso8601String() : null,
+                'boards' => (int) ($boards[$o->id] ?? 0),
+            ]));
+        }
+
+        return response()->json(['data' => $objects]);
     }
 
     public function show(DataObject $dataObject)

@@ -109,6 +109,7 @@ Route::prefix('v1')->group(function () {
 
         // Contacts
         Route::get('contacts/duplicates', [V1\ContactController::class, 'duplicates']);
+        Route::get('contacts/overview', [V1\ContactController::class, 'overview']);
         Route::get('contacts/{contact}/export', [V1\ContactController::class, 'export']);
         Route::post('contacts/bulk', [V1\ContactController::class, 'bulk']);
         Route::apiResource('contacts', V1\ContactController::class);

@@ -159,7 +159,7 @@ const btn = 'btn-ghost !px-1.5 !py-1.5';
             <button type="button" :class="[btn, source && '!bg-brand-50 !text-brand-700']" class="ml-auto" title="Edit the HTML" aria-label="Edit the HTML" :aria-pressed="source" data-testid="rich-source" @click="toggleSource"><Code2 class="size-4" /></button>
             <slot name="toolbar" />
         </div>
-        <textarea v-if="source" v-model="sourceText" class="block w-full rounded-b-lg border-0 p-3 font-mono text-xs outline-none" :class="[minHeight, maxHeight]" spellcheck="false" aria-label="HTML" data-testid="rich-source-text" />
+        <textarea v-if="source" v-model="sourceText" class="block w-full rounded-b-lg border-0 p-3 font-mono text-xs outline-none" :class="[minHeight, maxHeight]" spellcheck="false" aria-label="HTML" data-testid="rich-source-text" @input="emit('update:modelValue', clean(sourceText))" />
         <div v-show="!source" ref="el" contenteditable class="rich-body overflow-y-auto p-3 text-sm outline-none" :class="[minHeight, maxHeight]" :data-placeholder="placeholder" @input="emitHtml" @focus="onFocus" @paste="onPaste" @keyup="remember" @mouseup="remember" />
     </div>
 </template>
