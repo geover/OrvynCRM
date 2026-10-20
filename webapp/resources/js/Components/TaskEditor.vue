@@ -2,6 +2,8 @@
 import { onMounted, ref } from 'vue';
 import AttachmentPicker from '@/Components/AttachmentPicker.vue';
 import Modal from '@/Components/Modal.vue';
+import RichTextEditor from '@/Components/RichTextEditor.vue';
+import { forEditor } from '@/lib/richtext';
 import { api } from '@/lib/api';
 
 // Add or change a task. For a task that belongs to a contact it can also be about one of that contact's notes and carry files and links.
@@ -10,7 +12,7 @@ const emit = defineEmits(['close', 'saved']);
 
 const t = props.task;
 const draft = ref({
-    title: t?.title ?? '', description: t?.description ?? '', assigned_to: t?.assigned_to ?? '', priority: t?.priority ?? 'normal',
+    title: t?.title ?? '', description: forEditor(t?.description), assigned_to: t?.assigned_to ?? '', priority: t?.priority ?? 'normal',
     due_at: t?.due_at ? t.due_at.slice(0, 16) : '', note_id: t?.note_id ?? '',
 });
 const pending = ref({ files: [], links: [], removed: [] });
@@ -40,10 +42,10 @@ async function save() {
 </script>
 
 <template>
-    <Modal :title="task ? 'Edit task' : 'New task'" @close="emit('close')">
+    <Modal :title="task ? 'Edit task' : 'New task'" width="max-w-2xl" @close="emit('close')">
         <form id="task-editor" class="space-y-3" @submit.prevent="save">
             <div><label class="label">Title</label><input v-model="draft.title" class="input" required data-testid="task-title" /><p v-if="errors.title" class="mt-1 text-xs text-red-600">{{ errors.title[0] }}</p></div>
-            <div><label class="label">Description</label><textarea v-model="draft.description" rows="3" class="input" /></div>
+            <div><label class="label">Description</label><RichTextEditor v-model="draft.description" min-height="min-h-32" max-height="max-h-72" placeholder="What needs doing, links, steps, a checklist…" data-testid="task-description" /></div>
             <div class="grid gap-3 sm:grid-cols-2">
                 <div><label class="label">Assign to</label><select v-model="draft.assigned_to" class="input"><option value="">Me</option><option v-for="u in users" :key="u.id" :value="u.id">{{ u.name }}</option></select></div>
                 <div><label class="label">Due</label><input v-model="draft.due_at" type="datetime-local" class="input" /></div>

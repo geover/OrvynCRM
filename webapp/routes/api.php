@@ -132,6 +132,7 @@ Route::prefix('v1')->group(function () {
         Route::post('contacts/{contact}/sms', [V1\MessageController::class, 'sms']);
 
         // Tasks
+        Route::get('tasks/summary', [V1\TaskController::class, 'summary']);
         Route::apiResource('tasks', V1\TaskController::class)->except('show');
         Route::post('notes/{note}/attachments', [V1\NoteTaskAttachmentController::class, 'forNote']);
         Route::post('tasks/{task}/attachments', [V1\NoteTaskAttachmentController::class, 'forTask']);
@@ -145,6 +146,7 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('data-objects', V1\DataObjectController::class)->parameters(['data-objects' => 'dataObject']);
         Route::prefix('data-objects/{dataObject}/records')->group(function () {
             Route::get('/', [V1\DataObjectRecordController::class, 'index']);
+            Route::get('overview', [V1\DataObjectRecordController::class, 'overview']);
             Route::post('/', [V1\DataObjectRecordController::class, 'store']);
             Route::get('{record}', [V1\DataObjectRecordController::class, 'show']);
             Route::patch('{record}', [V1\DataObjectRecordController::class, 'update']);

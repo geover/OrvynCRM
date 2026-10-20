@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import { CheckCircle2, FileText, Link2, Pencil, StickyNote, Trash2 } from 'lucide-vue-next';
 import Modal from '@/Components/Modal.vue';
+import { toHtml } from '@/lib/richtext';
 import { fmtDate } from '@/lib/ui';
 
 // A task read in full: its text, who and when, the contact and note it belongs to, and its attachments.
@@ -34,7 +35,7 @@ const size = (b) => (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.ma
                 <div><dt class="text-xs uppercase tracking-wide text-slate-400">Created</dt><dd>{{ fmtDate(task.created_at, true) }}</dd></div>
             </dl>
 
-            <p v-if="task.description" class="whitespace-pre-wrap rounded-lg bg-slate-50 p-4 text-slate-700" data-testid="task-detail-body">{{ task.description }}</p>
+            <div v-if="task.description" class="rich-view rounded-lg bg-slate-50 p-4 text-slate-700" data-testid="task-detail-body" v-html="toHtml(task.description)" />
             <p v-else class="text-slate-400">No description.</p>
 
             <div v-if="task.note"><Link :href="`/contacts/${task.contact_id}?tab=notes`" class="badge inline-flex items-center gap-1.5 !bg-amber-50 !text-amber-700 hover:!bg-amber-100"><StickyNote class="size-3" /> About note: {{ task.note.title || 'Note' }}</Link></div>

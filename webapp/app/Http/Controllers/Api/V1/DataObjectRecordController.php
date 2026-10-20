@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\RecordResource;
 use App\Models\DataObject;
 use App\Models\DataObjectRecord;
+use App\Models\WorkflowBoard;
 use App\Services\DataObjects\RecordQuery;
 use App\Services\DataObjects\RecordService;
 use App\Support\IgnoredInput;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -39,6 +41,46 @@ class DataObjectRecordController extends Controller
 
         // `?page=N` gives numbered pages with totals (the items table); without it, cursor pagination (API clients, the contact's data tab)
         return RecordResource::collection($request->has('page') ? $query->paginate($perPage)->withQueryString() : $query->cursorPaginate($perPage));
+    }
+
+    /**
+     * The numbers above an object's items: how many, what is new, how many contacts they are linked to, when something last changed, how the items
+     * spread over the object's first dropdown field, and the boards that show them.
+     */
+    public function overview(Request $request, DataObject $dataObject): JsonResponse
+    {
+        $this->authorizeObject($request, $dataObject, 'view');
+        $dataObject->load('fields');
+        $records = fn () => DB::table('data_object_records')->where('data_object_id', $dataObject->id)->whereNull('deleted_at');
+
+        $contacts = DB::table('data_object_record_contact as rc')->join('data_object_records as r', 'r.id', '=', 'rc.record_id')
+            ->where('r.data_object_id', $dataObject->id)->whereNull('r.deleted_at')->distinct()->count('rc.contact_id');
+
+        // how the items spread over one dropdown field: the one asked for (?field=key), else the one shown in the list, else the first
+        $selects = $dataObject->fields->where('type', 'select')->filter(fn ($f) => ! empty($f->options['choices']))->values();
+        $field = $selects->firstWhere('key', $request->string('field')->toString()) ?? $selects->sortByDesc('show_in_list')->first();
+        $spread = null;
+        if ($field && ! empty($field->options['choices'])) {
+            $choices = array_slice($field->options['choices'], 0, 12);
+            $counts = $field->is_indexed
+                ? DB::table('data_object_field_index')->where('field_id', $field->id)->groupBy('value_string')->selectRaw('value_string as v, count(*) as n')->pluck('n', 'v')
+                : collect($choices)->mapWithKeys(fn ($c) => [$c => (new RecordQuery($dataObject))->build(['rules' => [['field' => $field->key, 'op' => '=', 'value' => $c]]])->count()]);
+            $values = collect($choices)->map(fn ($c) => ['value' => $c, 'count' => (int) ($counts[$c] ?? 0)])->values();
+            $spread = ['key' => $field->key, 'label' => $field->label, 'values' => $values->all(), 'empty' => max(0, $records()->count() - (int) collect($field->options['choices'])->sum(fn ($c) => (int) ($counts[$c] ?? 0)))];
+        }
+
+        $last = $records()->max('updated_at');
+
+        return response()->json(['data' => [
+            'total' => $records()->count(),
+            'added_7d' => $records()->where('created_at', '>=', now()->subDays(7))->count(),
+            'added_30d' => $records()->where('created_at', '>=', now()->subDays(30))->count(),
+            'contacts' => $contacts,
+            'last_change' => $last ? Carbon::parse($last)->toIso8601String() : null,
+            'spread' => $spread,
+            'selects' => $selects->map(fn ($f) => ['key' => $f->key, 'label' => $f->label])->all(),         // the dropdowns the bar can break the items down by
+            'boards' => WorkflowBoard::where('data_object_id', $dataObject->id)->where('status', 'active')->orderBy('name')->get(['id', 'name']),
+        ]]);
     }
 
     /**

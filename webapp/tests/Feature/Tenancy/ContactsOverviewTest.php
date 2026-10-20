@@ -58,4 +58,30 @@ class ContactsOverviewTest extends TenantTestCase
         $this->assertSame(1, $ana['open_tasks']);
         $this->assertSame(1, $ana['notes_count']);
     }
+
+    public function test_a_data_objects_overview_counts_items_and_spreads_them_over_its_first_dropdown(): void
+    {
+        $id = $this->asAdmin()->postJson('/api/v1/data-objects', ['name' => 'Deals', 'fields' => [
+            ['key' => 'title', 'label' => 'Title', 'type' => 'text', 'show_in_list' => true],
+            ['key' => 'stage', 'label' => 'Stage', 'type' => 'select', 'options' => ['choices' => ['New', 'Won', 'Lost']], 'is_indexed' => true, 'show_in_list' => true],
+            ['key' => 'priority', 'label' => 'Priority', 'type' => 'select', 'options' => ['choices' => ['High', 'Low']], 'is_indexed' => true],
+        ]])->assertCreated()->json('data.id');
+        foreach ([['A', 'New', 'High'], ['B', 'New', null], ['C', 'Won', null], ['D', null, null]] as [$title, $stage, $priority]) {
+            $this->asAdmin()->postJson("/api/v1/data-objects/$id/records", ['data' => array_filter(['title' => $title, 'stage' => $stage, 'priority' => $priority])])->assertCreated();
+        }
+
+        $o = $this->asAdmin()->getJson("/api/v1/data-objects/$id/records/overview")->assertOk()->json('data');
+        $this->assertSame(4, $o['total']);
+        $this->assertSame(4, $o['added_7d']);
+        $this->assertSame('stage', $o['spread']['key']);
+        $this->assertSame([['value' => 'New', 'count' => 2], ['value' => 'Won', 'count' => 1], ['value' => 'Lost', 'count' => 0]], $o['spread']['values']);
+        $this->assertSame(1, $o['spread']['empty']);                                   // the item with no stage
+        $this->assertSame(['stage', 'priority'], array_column($o['selects'], 'key'));
+
+        $by = $this->asAdmin()->getJson("/api/v1/data-objects/$id/records/overview?field=priority")->assertOk()->json('data.spread');       // the same items, broken down by another dropdown
+        $this->assertSame('priority', $by['key']);
+        $this->assertSame([['value' => 'High', 'count' => 1], ['value' => 'Low', 'count' => 0]], $by['values']);
+        $this->assertSame(3, $by['empty']);
+        $this->assertSame('stage', $this->asAdmin()->getJson("/api/v1/data-objects/$id/records/overview?field=title")->json('data.spread.key'));   // not a dropdown: the default is used
+    }
 }

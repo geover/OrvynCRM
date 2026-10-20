@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Activity;
 use App\Models\Note;
 use App\Models\Task;
+use App\Support\SafeHtml;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Spatie\QueryBuilder\AllowedFilter;
@@ -14,9 +16,10 @@ use Spatie\QueryBuilder\QueryBuilder;
 
 class TaskController extends Controller
 {
-    public function index(Request $request)
+    /** The tasks this person may see (all of them for an administrator; otherwise by their permission template). */
+    private function visible(Request $request): Builder
     {
-        $base = Task::query()->with('contact:id,first_name,last_name', 'assignee:id,name', 'note:id,title', 'attachments:id,note_id,task_id,title,mime,size,url,created_at');
+        $base = Task::query();
         $user = $request->user();
         if (! $user->isAdmin()) {
             $scope = data_get($user->permissionTemplate?->permissions, 'tasks.scope', 'own');
@@ -26,6 +29,36 @@ class TaskController extends Controller
                 $base->where(fn ($q) => $q->whereIn('assigned_to', (array) data_get($user->permissionTemplate->permissions, 'tasks.users', []))->orWhere('assigned_to', $user->id));
             }
         }
+
+        return $base;
+    }
+
+    /** The numbers above the My tasks page: what is open, due today, overdue and done, for the person's own tasks (`?mine=1`) or everything they may see. */
+    public function summary(Request $request): JsonResponse
+    {
+        $base = $this->visible($request);
+        $request->boolean('mine') && $base->where('assigned_to', $request->user()->id);
+        [$start, $end] = [today(), today()->addDay()];
+
+        $row = $base->selectRaw(
+            'coalesce(sum(case when completed_at is null then 1 else 0 end), 0) as open_count,
+             coalesce(sum(case when completed_at is null and due_at >= ? and due_at < ? then 1 else 0 end), 0) as today_count,
+             coalesce(sum(case when completed_at is null and due_at < ? then 1 else 0 end), 0) as overdue_count,
+             coalesce(sum(case when completed_at >= ? then 1 else 0 end), 0) as done_today,
+             coalesce(sum(case when completed_at >= ? then 1 else 0 end), 0) as done_7d,
+             coalesce(sum(case when completed_at is null and priority = ? then 1 else 0 end), 0) as high_open',
+            [$start, $end, now(), $start, now()->subDays(7), 'high'],
+        )->first();
+
+        return response()->json(['data' => [
+            'open' => (int) $row->open_count, 'today' => (int) $row->today_count, 'overdue' => (int) $row->overdue_count,
+            'done_today' => (int) $row->done_today, 'done_7d' => (int) $row->done_7d, 'high' => (int) $row->high_open,
+        ]]);
+    }
+
+    public function index(Request $request)
+    {
+        $base = $this->visible($request)->with('contact:id,first_name,last_name', 'assignee:id,name', 'note:id,title', 'attachments:id,note_id,task_id,title,mime,size,url,created_at');
 
         $query = QueryBuilder::for($base)
             ->allowedFilters(
@@ -75,6 +108,7 @@ class TaskController extends Controller
             'due_at' => ['nullable', 'date'], 'note_id' => ['nullable', 'exists:notes,id'],
         ]);
         $data = $this->withNote($data);
+        $data['description'] = SafeHtml::clean($data['description'] ?? null);              // formatted text is kept safe
 
         // array_merge (not +): an explicit null assigned_to from the form must fall back to the current user
         $task = Task::create(array_merge($data, ['created_by' => $request->user()->id, 'assigned_to' => $data['assigned_to'] ?? $request->user()->id]));
@@ -92,6 +126,9 @@ class TaskController extends Controller
         ]);
         if (array_key_exists('note_id', $data)) {
             $data = $this->withNote($data, $task);
+        }
+        if (array_key_exists('description', $data)) {
+            $data['description'] = SafeHtml::clean($data['description']);
         }
         $completing = false;
         if (array_key_exists('completed', $data)) {

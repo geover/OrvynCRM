@@ -128,20 +128,21 @@ test.describe('notes & tasks', () => {
         await page.getByRole('button', { name: 'Add note' }).click();
         const m = modal(page);
         await m.locator('input.input').first().fill('Call recap');
-        await m.locator('textarea').fill('Discussed renewal pricing.');
+        await m.locator('[contenteditable]').fill('Discussed renewal pricing.');
         const tag = m.getByPlaceholder('Add tag + Enter');
         await tag.fill('renewal'); await tag.press('Enter');
         await m.locator('button[form=ntform]').click();
         await expect(page.locator('section.min-w-0 .card', { hasText: 'Call recap' })).toContainText('renewal');
 
         const notes = (await api(page, 'GET', `/contacts/${state.contactId}/notes`)).json.data;
-        expect(notes[0]).toMatchObject({ title: 'Call recap', body: 'Discussed renewal pricing.', tags: ['renewal'] });
+        expect(notes[0]).toMatchObject({ title: 'Call recap', tags: ['renewal'] });
+        expect(notes[0].body).toContain('Discussed renewal pricing.');
 
         await page.locator('section.min-w-0 .card', { hasText: 'Call recap' }).getByTitle('Edit').click();
-        await modal(page).locator('textarea').fill('Discussed renewal pricing and terms.');
+        await modal(page).locator('[contenteditable]').fill('Discussed renewal pricing and terms.');
         await modal(page).locator('button[form=ntform]').click();
         await expect(page.locator('section.min-w-0 .card', { hasText: 'and terms' })).toBeVisible();
-        expect((await api(page, 'GET', `/contacts/${state.contactId}/notes`)).json.data[0].body).toBe('Discussed renewal pricing and terms.');
+        expect((await api(page, 'GET', `/contacts/${state.contactId}/notes`)).json.data[0].body).toContain('Discussed renewal pricing and terms.');
 
         await page.locator('section.min-w-0 .card', { hasText: 'Call recap' }).getByTitle('Delete').click();
         await confirm(page, 'Delete');
@@ -192,6 +193,25 @@ test.describe('notes & tasks', () => {
         await page.getByLabel('Show tasks that are').selectOption('done');
         await expect(row).toBeVisible();
         await expect(row.locator('input[type=checkbox]')).toBeChecked();
+    });
+
+    test('a task description is rich text: formatted in the detail, plain in the list, unsafe parts removed; the numbers and the cards view are there', async ({ page }) => {
+        await page.goto('/tasks');
+        const r = await api(page, 'POST', '/tasks', { title: 'Rich one', description: '<p>Call <strong>Ana</strong> <script>alert(1)</script></p>' });
+        expect(r.status).toBe(201);
+        await page.reload();
+        await expect(page.getByTestId('tasks-summary')).toContainText('Due today');
+        const row = page.locator('.divide-y > div', { hasText: 'Rich one' });
+        await expect(row.getByTestId('task-snippet')).toHaveText('Call Ana');
+        await row.getByTestId('task-open').click();
+        const body = page.getByTestId('task-detail-body');
+        await expect(body.locator('strong')).toHaveText('Ana');
+        await expect(body.locator('script')).toHaveCount(0);
+        await page.keyboard.press('Escape');
+
+        await page.getByTestId('view-cards').click();                                          // the same tasks as cards
+        await expect(page.locator('article[data-testid="task-row"]', { hasText: 'Rich one' })).toBeVisible();
+        await page.getByTestId('view-list').click();
     });
 });
 

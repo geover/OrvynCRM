@@ -167,7 +167,7 @@ export const docs: DocPage[] = [
                             head: ['Tab', 'What it holds'],
                             rows: [
                                 ['Overview', 'Quick info (job, company, website, birthday, other e-mails and phones), addresses, status, owner, type, tags, dates and your own custom fields, plus the contact’s notes.'],
-                                ['Notes & tasks', 'Add notes and tasks (with a due date and a priority) in one list, search them, complete them, see what is overdue. Click one to read it in full. Make a task from a note, or link a task to one, and each shows a chip that jumps to the other. Completing a task writes a note on the contact. Both can carry documents, images and links.'],
+                                ['Notes & tasks', 'Add notes and tasks (with a due date and a priority) in one list, written in a rich text editor with headings, lists, links and colours, search them, complete them, see what is overdue. Click one to read it in full. Make a task from a note, or link a task to one, and each shows a chip that jumps to the other. Completing a task writes a note on the contact. Both can carry documents, images and links.'],
                                 ['Data', 'One section per data object linked to this contact. **Add item** creates or links a record.'],
                                 ['Communication', 'E-mail and text history with status, sends, opens and clicks. Open a message to preview it, or resend a failed one.'],
                                 ['Relationships', 'Direct links to other contacts, such as Spouse or Manager.'],
@@ -239,7 +239,8 @@ export const docs: DocPage[] = [
                 id: 'tasks-and-schedules',
                 title: 'Tasks and schedules',
                 blocks: [
-                    { list: ['**My tasks** shows what is open, overdue and completed. Add a task in a line, give it a date, tick it when done. Tasks created on a contact (or by an automation) appear here too.', '**Schedules** is a calendar of your tasks and of the dates your administrator chose to show from data objects, such as viewing dates or deadlines.', 'Overdue tasks are e-mailed to their owner as a digest, so nothing slips quietly.'] },
+                    { list: ['**My tasks** opens with the numbers of your day (open, due today with a progress bar, overdue, done this week, high priority), as a list or as cards with a coloured edge for the priority. Add a task in a line (with Today or Tomorrow), tick it when done, and write its description in a rich text editor with headings, lists, links and colours.',
+                    '**My tasks** shows what is open, overdue and completed. Add a task in a line, give it a date, tick it when done. Tasks created on a contact (or by an automation) appear here too.', '**Schedules** is a calendar of your tasks and of the dates your administrator chose to show from data objects, such as viewing dates or deadlines.', 'Overdue tasks are e-mailed to their owner as a digest, so nothing slips quietly.'] },
                 ],
             },
         ],
@@ -301,6 +302,8 @@ export const docs: DocPage[] = [
                     {
                         list: [
                             '**Search** records or open **Filters** to narrow by field values.',
+                            'The top of the page shows the numbers of the object (items, added this week, linked contacts, last change) and a colour bar of how the items spread over its first dropdown field: click a value to show only those items.',
+                            'Switch between a **table** and **cards**. Dropdown choices keep one colour everywhere: in the bar, in the table and on the cards.',
                             '**New item** opens a form with the tabs **Details**, **Contacts** (who it is linked to, and as what), **Attachments** and **History**.',
                             'Every change is recorded in the item’s history.',
                             '**Import / export** moves records in and out by CSV.',

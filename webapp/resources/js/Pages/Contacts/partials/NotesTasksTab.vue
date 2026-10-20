@@ -3,7 +3,9 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { CheckCircle2, Circle, Eye, FileText, Link2, ListPlus, ListTodo, Pencil, Plus, StickyNote, Trash2, X } from 'lucide-vue-next';
 import AttachmentPicker from '@/Components/AttachmentPicker.vue';
 import Modal from '@/Components/Modal.vue';
+import RichTextEditor from '@/Components/RichTextEditor.vue';
 import { api } from '@/lib/api';
+import { forEditor, toHtml, toText } from '@/lib/richtext';
 import { confirmDialog, fmtDate, run } from '@/lib/ui';
 
 const props = defineProps({ contactId: Number, focusTask: { type: Number, default: null } });       // focusTask: a task to open in full at once (from the dashboard)
@@ -44,14 +46,14 @@ onMounted(async () => {
 });
 
 const allItems = computed(() => [
-        ...notes.value.map((n) => ({ kind: 'note', id: n.id, title: n.title, body: n.body, tags: n.tags ?? [], by: n.author?.name, at: n.created_at, attachments: n.attachments ?? [], task: n.task, raw: n })),
-        ...tasks.value.map((t) => ({ kind: 'task', id: t.id, title: t.title, body: t.description, tags: [], by: t.assignee?.name, at: t.due_at ?? t.created_at, done: !!t.completed_at, due: t.due_at, priority: t.priority, attachments: t.attachments ?? [], note: t.note, raw: t })),
+        ...notes.value.map((n) => ({ kind: 'note', id: n.id, title: n.title, body: n.body, html: true, tags: n.tags ?? [], by: n.author?.name, at: n.created_at, attachments: n.attachments ?? [], task: n.task, raw: n })),
+        ...tasks.value.map((t) => ({ kind: 'task', id: t.id, title: t.title, body: t.description, html: true, tags: [], by: t.assignee?.name, at: t.due_at ?? t.created_at, done: !!t.completed_at, due: t.due_at, priority: t.priority, attachments: t.attachments ?? [], note: t.note, raw: t })),
 ]);
 const items = computed(() => {
     const term = q.value.trim().toLowerCase();
     return allItems.value
         .filter((i) => (filter.value === 'all' ? true : filter.value === 'notes' ? i.kind === 'note' : filter.value === 'tasks' ? i.kind === 'task' : i.kind === 'task' && !i.done))
-        .filter((i) => !term || [i.title, i.body, ...(i.tags ?? [])].some((s) => (s ?? '').toLowerCase().includes(term)))
+        .filter((i) => !term || [i.title, i.html ? toText(i.body) : i.body, ...(i.tags ?? [])].some((s) => (s ?? '').toLowerCase().includes(term)))
         .sort((a, b) => new Date(b.at) - new Date(a.at));
 });
 
@@ -77,15 +79,15 @@ const freshPending = () => ({ files: [], links: [], removed: [] });
 function openNew(kind, fromNote = null) {
     editing.value = null; errors.value = {};
     draft.value = kind === 'note' ? { title: '', body: '', tags: [], tagInput: '' }
-        : { title: fromNote ? `Follow up: ${(fromNote.title || fromNote.body || '').split('\n')[0].slice(0, 80)}` : '', description: '', assigned_to: '', due_at: '', priority: 'normal', note_id: fromNote?.id ?? '' };
+        : { title: fromNote ? `Follow up: ${(fromNote.title || toText(fromNote.body) || '').split('\n')[0].slice(0, 80)}` : '', description: '', assigned_to: '', due_at: '', priority: 'normal', note_id: fromNote?.id ?? '' };
     pending.value = freshPending();
     modal.value = kind;
 }
 const pending = ref(freshPending());
 function openEdit(i) {
     editing.value = i; errors.value = {};
-    draft.value = i.kind === 'note' ? { title: i.raw.title ?? '', body: i.raw.body, tags: [...(i.raw.tags ?? [])], tagInput: '' }
-        : { title: i.raw.title, description: i.raw.description ?? '', assigned_to: i.raw.assigned_to ?? '', due_at: i.raw.due_at ? i.raw.due_at.slice(0, 16) : '', priority: i.raw.priority, note_id: i.raw.note_id ?? '' };
+    draft.value = i.kind === 'note' ? { title: i.raw.title ?? '', body: forEditor(i.raw.body), tags: [...(i.raw.tags ?? [])], tagInput: '' }
+        : { title: i.raw.title, description: forEditor(i.raw.description), assigned_to: i.raw.assigned_to ?? '', due_at: i.raw.due_at ? i.raw.due_at.slice(0, 16) : '', priority: i.raw.priority, note_id: i.raw.note_id ?? '' };
     pending.value = freshPending();
     modal.value = i.kind;
 }
@@ -100,6 +102,7 @@ async function save() {
     try {
         if (modal.value === 'note') {
             addTag();
+            if (!toText(draft.value.body).trim()) { errors.value = { body: ['Write something in the note.'] }; return; }
             const body = { title: draft.value.title || null, body: draft.value.body, tags: draft.value.tags };
             const saved = editing.value ? await api.patch(`/contacts/${props.contactId}/notes/${editing.value.id}`, body) : await api.post(`/contacts/${props.contactId}/notes`, body);
             await syncAttachments(`/notes/${saved.data.id}`);
@@ -176,7 +179,7 @@ const overdue = (i) => i.kind === 'task' && !i.done && i.due && new Date(i.due) 
                         <span v-if="overdue(i)" class="badge !bg-red-50 !text-red-600">overdue</span>
                         <span v-for="t in i.tags" :key="t" class="badge !bg-amber-50 !text-amber-700">{{ t }}</span>
                     </div>
-                    <p v-if="i.body" class="mt-1 line-clamp-3 whitespace-pre-wrap text-slate-600">{{ i.body }}</p>
+                    <p v-if="i.body" class="mt-1 line-clamp-3 text-slate-600" :class="!i.html && 'whitespace-pre-wrap'">{{ i.html ? toText(i.body) : i.body }}</p>
                     <div v-if="i.kind === 'task' && i.note" class="mt-1.5"><button type="button" class="badge inline-flex items-center gap-1.5 !bg-amber-50 !text-amber-700 hover:!bg-amber-100" data-testid="nt-related-note" @click="reveal('note', i.note.id)"><StickyNote class="size-3" /> About note: {{ i.note.title || 'Note' }}</button></div>
                     <div v-if="i.kind === 'note' && i.task" class="mt-1.5"><button type="button" class="badge inline-flex items-center gap-1.5 !bg-emerald-50 !text-emerald-700 hover:!bg-emerald-100" data-testid="nt-related-task" @click="reveal('task', i.task.id)"><CheckCircle2 class="size-3" /> From task: {{ i.task.title }}</button></div>
                     <ul v-if="i.attachments.length" class="mt-2 flex flex-wrap gap-2" data-testid="nt-attachments">
@@ -231,7 +234,8 @@ const overdue = (i) => i.kind === 'task' && !i.done && i.due && new Date(i.due) 
                     <div v-if="viewed.raw.updated_at && viewed.raw.updated_at !== viewed.raw.created_at"><dt class="text-xs uppercase tracking-wide text-slate-400">Last changed</dt><dd>{{ fmtDate(viewed.raw.updated_at, true) }}</dd></div>
                 </dl>
 
-                <p v-if="viewed.body" class="whitespace-pre-wrap rounded-lg bg-slate-50 p-4 text-slate-700" data-testid="nt-detail-body">{{ viewed.body }}</p>
+                <div v-if="viewed.body && viewed.html" class="rich-view rounded-lg bg-slate-50 p-4 text-slate-700" data-testid="nt-detail-body" v-html="toHtml(viewed.body)" />
+                <p v-else-if="viewed.body" class="whitespace-pre-wrap rounded-lg bg-slate-50 p-4 text-slate-700" data-testid="nt-detail-body">{{ viewed.body }}</p>
                 <p v-else class="text-slate-400">{{ viewed.kind === 'note' ? 'No text.' : 'No description.' }}</p>
 
                 <div v-if="viewed.kind === 'task' && viewed.note"><button type="button" class="badge inline-flex items-center gap-1.5 !bg-amber-50 !text-amber-700 hover:!bg-amber-100" @click="fromView(() => reveal('note', viewed.note.id))"><StickyNote class="size-3" /> About note: {{ viewed.note.title || 'Note' }}</button></div>
@@ -259,11 +263,11 @@ const overdue = (i) => i.kind === 'task' && !i.done && i.due && new Date(i.due) 
             </template>
         </Modal>
 
-        <Modal v-if="modal" :title="`${editing ? 'Edit' : 'Add'} ${modal}`" @close="modal = null">
+        <Modal v-if="modal" :title="`${editing ? 'Edit' : 'Add'} ${modal}`" width="max-w-3xl" @close="modal = null">
             <form id="ntform" class="space-y-3" @submit.prevent="save">
                 <div><label class="label">Title</label><input v-model="draft.title" class="input" :required="modal === 'task'" /><p v-if="errors.title" class="mt-1 text-xs text-red-600">{{ errors.title[0] }}</p></div>
                 <template v-if="modal === 'note'">
-                    <div><label class="label">Note</label><textarea v-model="draft.body" rows="6" class="input" required /><p v-if="errors.body" class="mt-1 text-xs text-red-600">{{ errors.body[0] }}</p></div>
+                    <div><label class="label">Note</label><RichTextEditor v-model="draft.body" min-height="min-h-48" max-height="max-h-96" placeholder="What happened, what was agreed, what comes next…" data-testid="note-body" /><p v-if="errors.body" class="mt-1 text-xs text-red-600">{{ errors.body[0] }}</p></div>
                     <div>
                         <label class="label">Tags</label>
                         <div class="flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-200 p-2">
@@ -275,7 +279,7 @@ const overdue = (i) => i.kind === 'task' && !i.done && i.due && new Date(i.due) 
                     <AttachmentPicker :existing="editing?.attachments ?? []" :pending="pending" />
                 </template>
                 <template v-else>
-                    <div><label class="label">Description</label><textarea v-model="draft.description" rows="3" class="input" /></div>
+                    <div><label class="label">Description</label><RichTextEditor v-model="draft.description" min-height="min-h-28" max-height="max-h-64" placeholder="What needs doing, links, steps…" /></div>
                     <div class="grid gap-3 sm:grid-cols-2">
                         <div><label class="label">Assign to</label><select v-model="draft.assigned_to" class="input"><option value="">Me</option><option v-for="u in users" :key="u.id" :value="u.id">{{ u.name }}</option></select></div>
                         <div><label class="label">Due</label><input v-model="draft.due_at" type="datetime-local" class="input" /></div>

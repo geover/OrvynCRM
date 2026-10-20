@@ -82,13 +82,13 @@ class ProcessDataExport implements ShouldQueue
         $contact = $o['contact_id'] ?? null;
         Note::when($contact, fn ($q) => $q->where('contact_id', $contact))->chunkById(1000, function ($chunk) use ($out, &$n) {
             foreach ($chunk as $x) {
-                fputcsv($out, ['note', $x->id, $x->contact_id, $this->safe($x->title), $this->safe($x->body), '', '', $x->created_at]);
+                fputcsv($out, ['note', $x->id, $x->contact_id, $this->safe($x->title), $this->safe(strip_tags((string) $x->body)), '', '', $x->created_at]);
                 $n++;
             }
         });
         Task::when($contact, fn ($q) => $q->where('contact_id', $contact))->chunkById(1000, function ($chunk) use ($out, &$n) {
             foreach ($chunk as $x) {
-                fputcsv($out, ['task', $x->id, $x->contact_id, $this->safe($x->title), $this->safe($x->description), $x->due_at, $x->completed_at, $x->created_at]);
+                fputcsv($out, ['task', $x->id, $x->contact_id, $this->safe($x->title), $this->safe(strip_tags((string) $x->description)), $x->due_at, $x->completed_at, $x->created_at]);
                 $n++;
             }
         });
