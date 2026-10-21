@@ -99,7 +99,7 @@ test.describe('dark mode', () => {
         expect(await brightness(input, 'color')).toBeGreaterThan(150);          // light text on the dark field
         const primary = page.getByRole('button', { name: 'New contact' });
         expect(await brightness(primary, 'color')).toBeGreaterThan(250);              // primary buttons keep white text
-        await page.getByRole('link', { name: 'Admin Settings' }).click();
+        await page.getByRole('link', { name: 'Company Settings' }).click();
         const card = page.locator('main a.card').first();
         expect(await brightness(card)).toBeLessThan(60);
         // leave the browser profile as we found it

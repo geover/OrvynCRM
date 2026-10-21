@@ -22,7 +22,7 @@ class KeapClient
 
         $c = (array) $integration->credentials;
         $http = Http::baseUrl(self::BASE);
-        // the company's service account key or personal access token (Admin settings, Keap); an OAuth access token from an old import still works
+        // the company's service account key or personal access token (Company settings, Keap); an OAuth access token from an old import still works
         $http = ! empty($c['api_key']) ? $http->withHeaders(['X-Keap-API-Key' => $c['api_key']]) : $http->withToken($c['access_token'] ?? '');
 
         return $http->acceptJson()->timeout(30)

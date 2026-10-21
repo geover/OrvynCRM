@@ -136,7 +136,7 @@ class ObjectAndAutomationLimitTest extends TenantTestCase
         $this->platformAdmin();
 
         foreach (SeatRequest::orderBy('id')->get() as $request) {
-            $this->post("/platform/seat-requests/{$request->id}/approve", [])->assertRedirect();
+            $this->post("/platform/requests/{$request->id}/approve", [])->assertRedirect();
         }
 
         $this->assertSame($max + 5, $acme->fresh()->max_data_objects);
@@ -199,7 +199,7 @@ class ObjectAndAutomationLimitTest extends TenantTestCase
 
         $api()->postJson("/api/v1/limits/requests/{$request->id}/dismiss")->assertUnprocessable();                         // still waiting: it stays visible
         $this->platformAdmin();
-        $this->post("/platform/seat-requests/{$request->id}/approve", [])->assertRedirect();
+        $this->post("/platform/requests/{$request->id}/approve", [])->assertRedirect();
 
         $api()->getJson('/api/v1/limits')->assertJsonPath('data.requests.0.status', 'approved')->assertJsonPath('data.requests.0.id', $request->id);
         $api()->postJson("/api/v1/limits/requests/{$request->id}/dismiss")->assertNoContent();
@@ -216,7 +216,7 @@ class ObjectAndAutomationLimitTest extends TenantTestCase
         $api()->postJson('/api/v1/seats/request', ['requested_limit' => $acme->max_users + 1])->assertCreated();
         $request = SeatRequest::firstOrFail();
         $this->platformAdmin();
-        $this->post("/platform/seat-requests/{$request->id}/decline", [])->assertRedirect();
+        $this->post("/platform/requests/{$request->id}/decline", [])->assertRedirect();
 
         $api('owner@beta.test', 'beta')->postJson("/api/v1/limits/requests/{$request->id}/dismiss")->assertNotFound();      // another company's request
         $this->assertNull($request->fresh()->tenant_dismissed_at);

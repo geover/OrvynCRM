@@ -1,8 +1,10 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { Link } from '@inertiajs/vue3';
-import { History, Pause, Play, Plus, Trash2, Zap } from 'lucide-vue-next';
+import { CheckCheck, History, Pause, PauseCircle, Play, Plus, Trash2, Zap } from 'lucide-vue-next';
 import AdminPage from '@/Components/AdminPage.vue';
+import ItemCollection from '@/Components/ItemCollection.vue';
+import TicketTile from '@/Components/support/TicketTile.vue';
 import LimitRequest from '@/Components/LimitRequest.vue';
 import RequestOutcome from '@/Components/RequestOutcome.vue';
 import Modal from '@/Components/Modal.vue';
@@ -11,6 +13,7 @@ import { api } from '@/lib/api';
 import { confirmDialog, fmtDate, run } from '@/lib/ui';
 
 const items = ref(null);
+const countOf = (status) => (items.value ?? []).filter((a) => a.status === status).length;
 const runs = ref(null);        // {automation, rows}
 const load = async () => (items.value = (await api.get('/automations')).data);
 const limits = ref(null);                        // { objects: [{ id, name, used, max, full, custom }], requests, pricing, ... }
@@ -45,18 +48,20 @@ const color = { done: '!bg-emerald-50 !text-emerald-700', failed: '!bg-red-50 !t
                 </li>
             </ul>
         </section>
-        <div class="card divide-y divide-slate-100">
-            <div v-for="a in items" :key="a.id" class="flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-sm">
-                <div class="flex min-w-0 gap-3"><div class="mt-0.5 grid size-9 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600"><Zap class="size-4" /></div>
-                    <div class="min-w-0"><Link :href="`/automations/${a.id}`" class="font-medium hover:text-brand-700">{{ a.name }}</Link>
-                        <div class="mt-1 flex flex-wrap gap-1.5 text-xs text-slate-500"><span class="badge">{{ a.data_object?.name ?? 'No object' }}</span><span class="badge">{{ SCHEDULE[a.schedule] }}</span><span class="badge">{{ a.actions.length }} action{{ a.actions.length === 1 ? '' : 's' }}</span><span class="badge">{{ a.runs_count }} runs</span><span v-if="a.last_run_at">last checked {{ fmtDate(a.last_run_at, true) }}</span></div></div></div>
-                <div class="flex items-center gap-1"><span :class="a.status === 'active' ? '!bg-emerald-50 !text-emerald-700' : '!bg-amber-50 !text-amber-700'" class="badge mr-1">{{ a.status }}</span>
-                    <button class="btn-outline" @click="runNow(a)">Run now</button><button class="btn-ghost !px-1.5" title="History" @click="showRuns(a)"><History class="size-4" /></button>
-                    <button class="btn-ghost !px-1.5" :title="a.status === 'active' ? 'Pause' : 'Resume'" @click="toggle(a)"><component :is="a.status === 'active' ? Pause : Play" class="size-4" /></button>
-                    <button class="btn-ghost !px-1.5 text-slate-400 hover:text-red-600" @click="remove(a)"><Trash2 class="size-4" /></button></div>
-            </div>
-            <p v-if="items && !items.length" class="px-5 py-10 text-center text-sm text-slate-400">No automations yet.</p>
-        </div>
+        <section class="mb-5 grid grid-cols-2 gap-4 lg:grid-cols-3" data-testid="automations-summary" aria-label="Automations in numbers">
+            <TicketTile :icon="Zap" tone="bg-indigo-100 text-indigo-700" label="Automations" :value="items?.length ?? 0" hint="working for you" />
+            <TicketTile :icon="CheckCheck" tone="bg-emerald-100 text-emerald-700" label="Active" :value="countOf('active')" hint="running now" />
+            <TicketTile class="col-span-2 lg:col-span-1" :icon="PauseCircle" tone="bg-amber-100 text-amber-700" label="Paused" :value="countOf('paused')" hint="switched off for now" />
+        </section>
+        <ItemCollection :items="items" storage-key="automations" :icon="Zap" :search-text="(a) => `${a.name} ${a.data_object?.name ?? ''}`" search-label="Find an automation…" empty-title="No automations yet" empty-text="Choose a condition and what should happen, and let the CRM do the repetitive work.">
+            <template #title="{ item: a }"><Link :href="`/automations/${a.id}`" class="hover:text-brand-700">{{ a.name }}</Link></template>
+            <template #badges="{ item: a }"><span class="badge">{{ a.data_object?.name ?? 'No object' }}</span><span class="badge">{{ SCHEDULE[a.schedule] }}</span><span :class="a.status === 'active' ? '!bg-emerald-50 !text-emerald-700' : '!bg-amber-50 !text-amber-700'" class="badge">{{ a.status }}</span></template>
+            <template #meta="{ item: a }">{{ a.actions.length }} action{{ a.actions.length === 1 ? '' : 's' }} · {{ a.runs_count }} runs<template v-if="a.last_run_at"> · last checked {{ fmtDate(a.last_run_at, true) }}</template></template>
+            <template #actions="{ item: a }"><button class="btn-outline" @click="runNow(a)">Run now</button><button class="btn-ghost !px-1.5" title="History" aria-label="History" @click="showRuns(a)"><History class="size-4" /></button>
+                <button class="btn-ghost !px-1.5" :title="a.status === 'active' ? 'Pause' : 'Resume'" :aria-label="a.status === 'active' ? 'Pause' : 'Resume'" @click="toggle(a)"><component :is="a.status === 'active' ? Pause : Play" class="size-4" /></button>
+                <button class="btn-ghost !px-1.5 text-slate-400 hover:text-red-600" title="Delete" aria-label="Delete" @click="remove(a)"><Trash2 class="size-4" /></button></template>
+            <template #empty><Link href="/automations/new" class="btn-primary"><Plus class="size-4" /> New automation</Link></template>
+        </ItemCollection>
 
         <LimitRequest v-if="asking && limits" :limits="limits" kind="automations" :object="asking" @close="asking = null" @sent="(l) => { limits = l; asking = null; }" />
 

@@ -6,8 +6,8 @@ import type { Feature } from '../data/site';
 interface Props { feature: Feature; showPoints?: boolean; level?: 'h2' | 'h3' }
 const { feature, showPoints = false, level: Heading = 'h3' } = Astro.props;
 ---
-<article class="flex flex-col rounded-2xl border border-stone-200 bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-brand-200 hover:shadow-lg">
-    <div class="-mx-2 -mt-2 overflow-hidden rounded-xl"><Illustration name={feature.icon} /></div>
+<article class="group flex flex-col rounded-3xl border border-stone-200 bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-brand-200 hover:shadow-xl hover:shadow-brand-900/10">
+    <div class="-mx-2 -mt-2 overflow-hidden rounded-2xl transition duration-300 group-hover:scale-[1.02]"><Illustration name={feature.icon} /></div>
     <Heading class="mt-5 text-base font-semibold">{feature.title}</Heading>
     <p class="mt-2 text-sm leading-relaxed text-stone-600">{feature.text}</p>
     {showPoints && (

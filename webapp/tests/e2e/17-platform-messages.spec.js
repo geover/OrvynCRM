@@ -20,8 +20,8 @@ test('a company administrator starts a thread with a new message', async ({ page
     state.subject = `Question ${uniq('q')}`.replace(/[^A-Za-z0-9 ]/g, '');
     await signIn(page, 'admin@orvyncrm.test');
     await expect(page).toHaveURL(/127\.0\.0\.1:8123\/$/);
-    await page.goto('/admin/platform-messages');
-    await expect(page.getByRole('heading', { name: 'Message the platform', level: 1 })).toBeVisible();
+    await page.goto('/messages?section=platform');
+    await expect(page.getByRole('heading', { name: 'Messages', level: 1 })).toBeVisible();
 
     await page.getByTestId('new-thread').click();
     await page.locator('#pm-subject').fill(state.subject);
@@ -40,7 +40,7 @@ test('only administrators can reach it: a regular user gets no page and no API',
     await signIn(page, 'multi@orvyncrm.test');                                                          // a regular user in Demo
     await page.locator('[data-company="demo"]').click();
     await expect(page).toHaveURL(/127\.0\.0\.1:8123\/$/);
-    expect((await page.goto('/admin/platform-messages')).status()).toBe(403);
+    expect((await page.goto('/messages')).status()).toBe(403);
     const status = await page.evaluate(async () => (await fetch('/api/v1/platform-threads', { credentials: 'same-origin', headers: { Accept: 'application/json' } })).status);
     expect(status).toBe(403);
 });
@@ -74,7 +74,7 @@ test('the platform sees the thread, reads it, and replies directly in the same t
 test('the company sees the reply in the same thread, answers it, and a second message is a new thread', async ({ page }) => {
     await signIn(page, 'admin@orvyncrm.test');
     await expect(page).toHaveURL(/127\.0\.0\.1:8123\/$/);
-    await page.goto('/admin/platform-messages');
+    await page.goto('/messages?section=platform');
     await expect(page.getByTestId('subnav-unread-badge')).toBeVisible();                             // a new reply is waiting
     await expect(thread(page)).toHaveAttribute('data-unread', 'true');
 
@@ -149,7 +149,7 @@ test('messages arrive on both sides without a refresh, and the view can be compa
 
     await signIn(tenant, 'admin@orvyncrm.test');
     await expect(tenant).toHaveURL(/127\.0\.0\.1:8123\/$/);
-    await tenant.goto('/admin/platform-messages');
+    await tenant.goto('/messages?section=platform');
     await tenant.getByTestId('new-thread').click();
     await tenant.locator('#pm-subject').fill(subject);
     await tenant.locator('#pm-body').fill('First message');

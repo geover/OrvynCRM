@@ -40,6 +40,7 @@ use App\Http\Controllers\PlatformSettingsController;
 use App\Http\Controllers\PlatformSignupController;
 use App\Http\Controllers\PlatformStandingController;
 use App\Http\Controllers\PlatformSubscriptionController;
+use App\Http\Controllers\PlatformTicketController;
 use App\Http\Controllers\PlatformTierChangeController;
 use App\Http\Controllers\PlatformUsageController;
 use App\Http\Controllers\PlatformWebsiteController;
@@ -47,12 +48,14 @@ use App\Http\Controllers\PublicFormController;
 use App\Http\Controllers\SignupController;
 use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\ThreadAttachmentController;
+use App\Http\Controllers\TicketAttachmentController;
 use App\Http\Controllers\TrackingController;
 use App\Http\Controllers\TwoFactorChallengeController;
 use App\Http\Controllers\UnsubscribeController;
 use App\Http\Controllers\UpdatesController;
 use App\Http\Controllers\WebAuthController;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Http\Request;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
@@ -111,6 +114,14 @@ Route::middleware('platform')->prefix('platform')->group(function () {
     Route::post('companies/{tenant}/invoices', [PlatformManualInvoiceController::class, 'store']);
     Route::patch('companies/{tenant}/invoices/{invoice}/paid', [PlatformManualInvoiceController::class, 'paid']);
     Route::delete('companies/{tenant}/invoices/{invoice}', [PlatformManualInvoiceController::class, 'destroy']);
+    Route::get('tickets', [PlatformTicketController::class, 'index']);
+    Route::get('tickets/poll', [PlatformTicketController::class, 'poll'])->middleware('throttle:120,1');
+    Route::patch('tickets/settings', [PlatformTicketController::class, 'saveSettings']);
+    Route::get('tickets/attachments/{attachment}', [PlatformTicketController::class, 'attachment'])->whereNumber('attachment');
+    Route::get('tickets/{ticket}', [PlatformTicketController::class, 'show'])->whereNumber('ticket');
+    Route::post('tickets/{ticket}/reply', [PlatformTicketController::class, 'reply'])->whereNumber('ticket')->middleware('throttle:60,1');
+    Route::patch('tickets/{ticket}', [PlatformTicketController::class, 'update'])->whereNumber('ticket');
+    Route::post('messages/{thread}/ticket', [PlatformTicketController::class, 'fromThread'])->whereNumber('thread');
     Route::get('onboarding', [PlatformOnboardingController::class, 'index']);
     Route::get('onboarding/companies/{tenant}', [PlatformOnboardingController::class, 'show']);
     Route::post('onboarding/companies/{tenant}/start', [PlatformOnboardingController::class, 'start']);
@@ -164,12 +175,13 @@ Route::middleware('platform')->prefix('platform')->group(function () {
     Route::get('pricing', [PlatformPricingController::class, 'show']);
     Route::patch('pricing', [PlatformPricingController::class, 'update']);
 
-    Route::get('seat-requests', [PlatformSeatRequestController::class, 'index']);
-    Route::post('seat-requests/{seatRequest}/approve', [PlatformSeatRequestController::class, 'approve']);
-    Route::post('seat-requests/{seatRequest}/decline', [PlatformSeatRequestController::class, 'decline']);
-    Route::post('seat-requests/{seatRequest}/archive', [PlatformSeatRequestController::class, 'archive']);
-    Route::post('seat-requests/{seatRequest}/unarchive', [PlatformSeatRequestController::class, 'unarchive']);
-    Route::delete('seat-requests/{seatRequest}', [PlatformSeatRequestController::class, 'destroy']);
+    Route::get('requests', [PlatformSeatRequestController::class, 'index']);
+    Route::get('seat-requests', fn () => redirect('/platform/requests'));                                  // the old address
+    Route::post('requests/{seatRequest}/approve', [PlatformSeatRequestController::class, 'approve']);
+    Route::post('requests/{seatRequest}/decline', [PlatformSeatRequestController::class, 'decline']);
+    Route::post('requests/{seatRequest}/archive', [PlatformSeatRequestController::class, 'archive']);
+    Route::post('requests/{seatRequest}/unarchive', [PlatformSeatRequestController::class, 'unarchive']);
+    Route::delete('requests/{seatRequest}', [PlatformSeatRequestController::class, 'destroy']);
 
     Route::get('dashboard', [PlatformDashboardController::class, 'index']);
     Route::post('dashboard/refresh', [PlatformDashboardController::class, 'refresh']);
@@ -305,6 +317,7 @@ Route::middleware(['auth', 'active'])->group(function () {
     // API under /api/v1 only accepts cookies for fetch() calls from the app, so links must not point at it.
     Route::prefix('files')->group(function () {
         Route::get('thread-attachments/{attachment}', [ThreadAttachmentController::class, 'show']);
+        Route::get('ticket-attachments/{attachment}', [TicketAttachmentController::class, 'show']);
         Route::get('contacts/{contact}/attachments/{attachment}', [ContactAttachmentController::class, 'download']);
         Route::get('contacts/{contact}/export', [ContactController::class, 'export']);
         Route::get('data-objects/{dataObject}/records/{record}/attachments/{attachment}', [DataObjectItemExtrasController::class, 'download']);
@@ -337,13 +350,18 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::middleware('admin')->group(function () {
         Route::get('/admin', AdminOverviewController::class)->name('admin');
         foreach ([
-            'app-details' => 'AppDetails', 'platform-messages' => 'PlatformMessages', 'look-and-feel' => 'LookAndFeel', 'support-emails' => 'SupportEmails', 'email-domains' => 'EmailDomains',
+            'app-details' => 'AppDetails', 'look-and-feel' => 'LookAndFeel', 'support-emails' => 'SupportEmails', 'email-domains' => 'EmailDomains',
             'custom-tabs' => 'CustomTabs', 'contact-relationships' => 'ContactRelationships', 'users' => 'Users', 'queries' => 'Queries',
             'blast-progress' => 'BlastProgress', 'data-tools' => 'DataTools', 'workflow-boards' => 'WorkflowBoards', 'scheduler' => 'Scheduler',
             'forms' => 'Forms', 'price-lists' => 'PriceLists', 'phone' => 'Phone', 'keap' => 'Keap', 'twilio' => 'Twilio', 'tours' => 'Tours', 'email-templates' => 'EmailTemplates', 'webhooks' => 'Webhooks',
         ] as $slug => $component) {
             Route::get("/admin/$slug", fn () => Inertia::render("Admin/$component"))->name("admin.$slug");
         }
+        // reaching the platform: pages of the main menu (they used to be Admin settings pages, so the old addresses forward)
+        Route::get('/messages', fn () => Inertia::render('Admin/PlatformMessages'))->name('messages');
+        Route::get('/tickets', fn () => Inertia::render('Admin/Tickets'))->name('tickets');
+        Route::get('/admin/platform-messages', fn (Request $request) => redirect('/messages'.($request->getQueryString() ? '?'.$request->getQueryString() : '')));
+        Route::get('/admin/tickets', fn (Request $request) => redirect('/tickets'.($request->getQueryString() ? '?'.$request->getQueryString() : '')));
         Route::get('/admin/queries/{id}', fn (string $id) => Inertia::render('Admin/QueryEdit', ['queryId' => $id === 'new' ? null : (int) $id]))->where('id', 'new|[0-9]+');
         Route::get('/admin/forms/{id}', fn (string $id) => Inertia::render('Admin/FormEdit', ['formId' => $id === 'new' ? null : (int) $id]))->where('id', 'new|[0-9]+');
         Route::get('/admin/users/templates/{id}', fn (string $id) => Inertia::render('Admin/TemplateEdit', ['templateId' => $id === 'new' ? null : (int) $id]))->where('id', 'new|[0-9]+');

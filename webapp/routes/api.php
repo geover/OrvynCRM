@@ -48,6 +48,13 @@ Route::prefix('v1')->group(function () {
         Route::post('settings/logo', [V1\SettingsController::class, 'logo']);
         Route::delete('settings/logo', [V1\SettingsController::class, 'destroyLogo']);
         Route::post('settings/favicon', [V1\SettingsController::class, 'favicon']);
+        Route::get('support-tickets', [V1\SupportTicketController::class, 'index']);
+        Route::get('support-tickets/poll', [V1\SupportTicketController::class, 'poll'])->middleware('throttle:120,1');
+        Route::post('support-tickets', [V1\SupportTicketController::class, 'store'])->middleware('throttle:20,60');
+        Route::get('support-tickets/{ticket}', [V1\SupportTicketController::class, 'show'])->whereNumber('ticket');
+        Route::post('support-tickets/{ticket}/replies', [V1\SupportTicketController::class, 'reply'])->whereNumber('ticket')->middleware('throttle:60,60');
+        Route::post('support-tickets/{ticket}/close', [V1\SupportTicketController::class, 'close'])->whereNumber('ticket');
+        Route::post('support-tickets/{ticket}/reopen', [V1\SupportTicketController::class, 'reopen'])->whereNumber('ticket');
         Route::get('platform-threads', [V1\PlatformThreadController::class, 'index']);
         Route::get('platform-threads/poll', [V1\PlatformThreadController::class, 'poll'])->middleware('throttle:120,1');
         Route::post('platform-threads', [V1\PlatformThreadController::class, 'store'])->middleware('throttle:10,60');
@@ -167,6 +174,14 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('webhooks', V1\WebhookEndpointController::class)->except('show');
         Route::post('automations/{automation}/run', [V1\AutomationController::class, 'run']);
         Route::post('support', V1\SupportController::class)->middleware('throttle:10,1');
+        Route::get('support/conversations', [V1\SupportController::class, 'conversations']);
+        Route::get('support/unread', [V1\SupportController::class, 'unread'])->middleware('throttle:120,1');
+        Route::post('support/{id}/messages', [V1\SupportController::class, 'write'])->whereNumber('id')->middleware('throttle:30,1');
+        Route::post('support/{id}/read', [V1\SupportController::class, 'read'])->whereNumber('id');
+        Route::get('support-requests', [V1\SupportRequestController::class, 'index']);
+        Route::get('support-requests/poll', [V1\SupportRequestController::class, 'poll'])->middleware('throttle:120,1');
+        Route::post('support-requests/{id}/read', [V1\SupportRequestController::class, 'read'])->whereNumber('id');
+        Route::post('support-requests/{id}/replies', [V1\SupportRequestController::class, 'reply'])->whereNumber('id')->middleware('throttle:30,1');
         Route::get('messages/readiness', [V1\MessageController::class, 'readiness']);
         Route::get('messages/queue', [V1\MessageController::class, 'queue']);
         Route::get('messages/blast', [V1\MessageController::class, 'blast']);

@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { BookOpen, Building2, Database, Gauge, Inbox, KeyRound, MessageSquare, LayoutDashboard, LogOut, Megaphone, Menu, Moon, Rocket, Settings, Sun, SunMoon, UserCog, WalletCards, X } from 'lucide-vue-next';
+import { BookOpen, Building2, Database, Gauge, Inbox, KeyRound, MessageSquare, LayoutDashboard, LogOut, Megaphone, LifeBuoy, Menu, Moon, Rocket, Settings, Sun, SunMoon, UserCog, WalletCards, X } from 'lucide-vue-next';
 import Hosts from '@/Components/Hosts.vue';
 import { useFavicon } from '@/lib/favicon';
 import { applyBrandColor } from '@/lib/brand';
@@ -26,8 +26,10 @@ watch(() => brand.value.timezone, (tz) => setDisplayTimezone(tz), { immediate: t
 const logout = () => router.post('/logout');
 
 // The Messages badge follows new messages without a page load; a fresh page load (props) takes over again.
-const badgeCount = (key) => (key === 'platformMessagesUnread' ? (liveCounts.platformMessages ?? page.props[key]) : page.props[key]);
+const badgeCount = (key) => ({ platformMessagesUnread: liveCounts.platformMessages, ticketsNeedingPlatform: liveCounts.platformTickets }[key] ?? page.props[key]);
 watch(() => page.props.platformMessagesUnread, () => { liveCounts.platformMessages = null; });
+watch(() => page.props.ticketsNeedingPlatform, () => { liveCounts.platformTickets = null; });
+embedded || usePolling(async () => { const t = await getJson('/platform/tickets/poll'); liveCounts.platformTickets = t.needing; liveCounts.platformTicketsSig = t.sig; }, { every: 15000 });
 embedded || usePolling(async () => { liveCounts.platformMessages = (await getJson('/platform/messages/poll', { counts: 1 })).unread; }, { every: 15000 });
 
 const open = ref(false);
@@ -41,10 +43,11 @@ const groups = [
         { href: '/platform/usage', label: 'Usage', icon: Gauge },
         { href: '/platform/standing', label: 'Account standing', icon: WalletCards, badge: 'paymentsFailing' },
         { href: '/platform/administrators', label: 'Administrators', icon: UserCog },
-        { href: '/platform/seat-requests', label: 'Requests', icon: Inbox, badge: 'seatRequestsPending' },
+        { href: '/platform/requests', label: 'Requests', icon: Inbox, badge: 'seatRequestsPending' },
     ] },
     { title: 'Communicate', items: [
         { href: '/platform/messages', label: 'Messages', icon: MessageSquare, badge: 'platformMessagesUnread' },
+        { href: '/platform/tickets', label: 'Tickets', icon: LifeBuoy, badge: 'ticketsNeedingPlatform' },
         { href: '/platform/announcements', label: 'Updates & news', icon: Megaphone },
     ] },
     { title: 'Operations', items: [

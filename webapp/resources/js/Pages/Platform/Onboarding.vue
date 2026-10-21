@@ -1,11 +1,12 @@
 <script setup>
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { AlertTriangle, Check, CheckCircle2, Mail, PauseCircle, PlayCircle, Plus, RefreshCw, Rocket, Search, Send, Settings2 } from 'lucide-vue-next';
+import { AlertTriangle, Check, CheckCheck, CheckCircle2, Gauge, LayoutGrid, LayoutList, List, Mail, PauseCircle, PlayCircle, Plus, RefreshCw, Rocket, Search, Send, Settings2 } from 'lucide-vue-next';
 import Modal from '@/Components/Modal.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import RichTextEditor from '@/Components/RichTextEditor.vue';
-import StatTile from '@/Components/StatTile.vue';
+import Avatar from '@/Components/support/Avatar.vue';
+import TicketTile from '@/Components/support/TicketTile.vue';
 import { useStored } from '@/lib/stored';
 import { confirmDialog, fmtDate, fmtRelative, toast, toastError } from '@/lib/ui';
 
@@ -15,6 +16,10 @@ const props = defineProps({ steps: Array, rows: Array, summary: Object, emails: 
 
 const tab = useStored('platform:onboarding-tab', 'companies');
 const filter = ref('all');
+// how the companies and the e-mails are laid out, kept in this browser: 'list' (slim), 'detailed' (one wide card each) or 'boxes' (a grid)
+const layout = useStored('onboarding:layout', 'list');
+const mailLayout = useStored('onboarding:email-layout', 'boxes');
+const LAYOUTS = [['list', List, 'List'], ['detailed', LayoutList, 'Detailed'], ['boxes', LayoutGrid, 'Boxes']];
 const q = ref('');
 const FILTERS = [['all', 'All'], ['help', 'Needs a hand'], ['track', 'On track'], ['paused', 'Paused or stopped'], ['completed', 'Completed']];
 const STATE = { active: ['On track', '!bg-emerald-50 !text-emerald-700'], paused: ['Paused', '!bg-slate-100 !text-slate-600'], unsubscribed: ['Stopped by the owner', '!bg-slate-100 !text-slate-600'], completed: ['Completed', '!bg-sky-50 !text-sky-700'] };
@@ -106,11 +111,11 @@ onMounted(async () => { if (props.focus && props.rows.some((r) => r.id === props
     </PageHeader>
 
     <section class="mb-5 grid grid-cols-2 gap-4 lg:grid-cols-5" data-testid="onboarding-summary" aria-label="Onboarding in numbers">
-        <StatTile label="In onboarding" :value="summary.total" hint="companies in the series" />
-        <StatTile label="Need a hand" :value="summary.help" :danger="summary.help > 0" :hint="summary.help ? 'stalled, quiet, or about to lose a trial' : 'everybody is moving'" :action="summary.help ? 'Show them' : ''" @click="tab = 'companies'; filter = 'help'" />
-        <StatTile label="Completed" :value="summary.completed" hint="took every step" />
-        <StatTile label="Average progress" :value="`${summary.average}%`"><div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-emerald-500" :style="{ width: `${summary.average}%` }" /></div></StatTile>
-        <StatTile label="E-mails, 7 days" :value="summary.sent_7d" hint="sent to owners" />
+        <TicketTile :icon="Rocket" tone="bg-indigo-100 text-indigo-700" label="In onboarding" :value="summary.total" hint="companies in the series" clickable :active="tab === 'companies' && filter === 'all'" @click="tab = 'companies'; filter = 'all'" />
+        <TicketTile :icon="AlertTriangle" tone="bg-rose-100 text-rose-700" label="Need a hand" :value="summary.help" :alert="summary.help > 0" :hint="summary.help ? 'stalled, quiet, or about to lose a trial' : 'everybody is moving'" wrap clickable :active="tab === 'companies' && filter === 'help'" @click="tab = 'companies'; filter = filter === 'help' ? 'all' : 'help'" />
+        <TicketTile :icon="CheckCheck" tone="bg-emerald-100 text-emerald-700" label="Completed" :value="summary.completed" hint="took every step" clickable :active="tab === 'companies' && filter === 'completed'" @click="tab = 'companies'; filter = filter === 'completed' ? 'all' : 'completed'" />
+        <TicketTile :icon="Gauge" tone="bg-sky-100 text-sky-700" label="Average progress" :value="`${summary.average}%`"><span class="mt-1.5 block h-1.5 w-24 overflow-hidden rounded-full bg-slate-100"><span class="block h-full rounded-full bg-emerald-500" :style="{ width: `${summary.average}%` }" /></span></TicketTile>
+        <TicketTile :icon="Mail" tone="bg-amber-100 text-amber-700" label="E-mails, 7 days" :value="summary.sent_7d" hint="sent to owners" />
     </section>
 
     <div class="mb-4 inline-flex rounded-xl border border-slate-200 p-1 text-sm" role="tablist">
@@ -124,20 +129,23 @@ onMounted(async () => { if (props.focus && props.rows.some((r) => r.id === props
             <div class="inline-flex flex-wrap gap-1">
                 <button v-for="[v, l] in FILTERS" :key="v" type="button" class="rounded-full border px-3 py-1 text-xs font-medium transition" :class="filter === v ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-500 hover:text-slate-700'" :data-testid="`filter-${v}`" @click="filter = v">{{ l }} <span class="text-slate-400">{{ count(v) }}</span></button>
             </div>
-            <form v-if="unstarted.length" class="ml-auto flex items-center gap-2" @submit.prevent="addCompany">
+            <div class="ml-auto inline-flex rounded-xl border border-slate-200 p-1 text-sm" role="group" aria-label="Layout">
+                <button v-for="[v, icon, l] in LAYOUTS" :key="v" type="button" class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-medium transition" :class="layout === v ? 'bg-brand-50 text-brand-700' : 'text-slate-500 hover:text-slate-700'" :aria-pressed="layout === v" :title="l" :data-testid="`layout-${v}`" @click="layout = v"><component :is="icon" class="size-4" /><span class="hidden sm:inline">{{ l }}</span></button>
+            </div>
+            <form v-if="unstarted.length" class="flex items-center gap-2" @submit.prevent="addCompany">
                 <select v-model="adding" class="input !w-56" aria-label="Add a company to the series"><option value="">Add a company to the series…</option><option v-for="c in unstarted" :key="c.id" :value="c.id">{{ c.name }}</option></select>
                 <button class="btn-outline" :disabled="!adding" data-testid="add-company"><Plus class="size-4" /> Add</button>
             </form>
         </div>
 
-        <div class="card table-scroll" data-testid="onboarding-table">
+        <div v-if="layout === 'list'" class="card table-scroll" data-testid="onboarding-table">
             <table class="w-full text-sm">
                 <thead class="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3">Company</th><th class="px-3 py-3">Progress</th><th class="px-3 py-3">Last e-mail</th><th class="px-3 py-3">Last active</th><th class="px-3 py-3">Status</th><th class="px-3 py-3 text-right"><span class="sr-only">Actions</span></th></tr></thead>
                 <tbody class="divide-y divide-slate-100">
-                    <tr v-for="r in shown" :key="r.id" class="cursor-pointer hover:bg-slate-50" :class="r.asks_help && 'bg-red-50/30'" :data-company="r.slug" data-testid="onboarding-row" @click="openDetail(r.id)">
-                        <td class="px-4 py-3"><div class="font-medium">{{ r.name }}</div><div class="text-xs text-slate-400">started {{ fmtRelative(r.started_at) }}</div></td>
+                    <tr v-for="r in shown" :key="r.id" class="msg-row cursor-pointer hover:bg-slate-50" :class="r.asks_help && 'bg-red-50/30'" :data-company="r.slug" data-testid="onboarding-row" @click="openDetail(r.id)">
+                        <td class="px-4 py-3"><div class="flex items-center gap-3"><Avatar :name="r.name" /><div><div class="font-medium">{{ r.name }}</div><div class="text-xs text-slate-400">started {{ fmtRelative(r.started_at) }}</div></div></div></td>
                         <td class="min-w-56 px-3 py-3">
-                            <div class="flex items-center gap-2"><div class="h-2 w-28 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-gradient-to-r from-brand-500 to-emerald-500" :style="{ width: `${Math.max(r.done ? 4 : 0, r.percent)}%` }" /></div><span class="text-xs tabular-nums text-slate-500">{{ r.done }} of {{ r.total }}</span></div>
+                            <div class="flex items-center gap-2"><div class="h-2 w-28 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-emerald-500" :style="{ width: `${Math.max(r.done ? 4 : 0, r.percent)}%` }" /></div><span class="text-xs tabular-nums text-slate-500">{{ r.done }} of {{ r.total }}</span></div>
                             <div class="mt-1.5 flex gap-1" aria-hidden="true"><span v-for="s in steps" :key="s.key" class="size-2 rounded-full" :class="r.reached.includes(s.key) ? 'bg-emerald-500' : 'bg-slate-200'" :title="`${s.title}${r.reached.includes(s.key) ? ': done' : ''}`" /></div>
                             <div v-if="r.next && r.state !== 'completed'" class="mt-1 truncate text-xs text-slate-400">Next: {{ r.next }}</div>
                         </td>
@@ -158,18 +166,58 @@ onMounted(async () => { if (props.focus && props.rows.some((r) => r.id === props
                 </tbody>
             </table>
         </div>
+
+        <div v-else-if="shown.length && layout === 'detailed'" class="space-y-3" data-testid="onboarding-cards">
+            <article v-for="r in shown" :key="r.id" class="card msg-row cursor-pointer p-4 transition hover:shadow-md" :class="r.asks_help && 'border-red-200'" :data-company="r.slug" data-testid="onboarding-row" @click="openDetail(r.id)">
+                <div class="flex flex-wrap items-center gap-4">
+                    <Avatar :name="r.name" size="lg" />
+                    <div class="min-w-0 flex-1">
+                        <div class="flex flex-wrap items-center gap-2"><span class="font-semibold">{{ r.name }}</span>
+                            <span v-if="r.asks_help" class="badge !bg-red-50 !text-red-600"><AlertTriangle class="mr-1 size-3" />Needs a hand</span><span v-else class="badge" :class="STATE[r.state][1]">{{ STATE[r.state][0] }}</span>
+                            <span v-for="h in (r.asks_help ? r.help_reasons : [])" :key="h" class="text-xs text-red-600">{{ helpLabels[h] }}</span></div>
+                        <div class="mt-2 flex items-center gap-2"><div class="h-2 w-40 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-emerald-500" :style="{ width: `${Math.max(r.done ? 4 : 0, r.percent)}%` }" /></div><span class="text-xs tabular-nums text-slate-500">{{ r.percent }}%</span>
+                            <span class="flex gap-1" aria-hidden="true"><span v-for="st in steps" :key="st.key" class="size-2 rounded-full" :class="r.reached.includes(st.key) ? 'bg-emerald-500' : 'bg-slate-200'" :title="`${st.title}${r.reached.includes(st.key) ? ': done' : ''}`" /></span></div>
+                        <p class="mt-1 text-xs text-slate-400"><template v-if="r.next && r.state !== 'completed'">Next: {{ r.next }} · </template>started {{ fmtRelative(r.started_at) }} · last e-mail {{ rel(r.last_sent_at) }} ({{ r.emails_sent }} sent) · last active {{ rel(r.last_active_at) }}<template v-if="r.snoozed_until && !r.asks_help"> · handled until {{ fmtDate(r.snoozed_until) }}</template></p>
+                    </div>
+                    <div class="flex shrink-0 items-center gap-1" @click.stop>
+                        <button v-if="r.state === 'active'" type="button" class="btn-ghost !px-2 text-xs" :title="`Send the next e-mail to ${r.name} now`" data-testid="row-send" @click="sendNext(r)"><Send class="size-4" /> Send next</button>
+                        <button type="button" class="btn-ghost !px-2 text-xs" @click="openDetail(r.id)">Details</button>
+                    </div>
+                </div>
+            </article>
+        </div>
+
+        <div v-else-if="shown.length" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" data-testid="onboarding-boxes">
+            <article v-for="r in shown" :key="r.id" class="card msg-row flex cursor-pointer flex-col p-4 transition duration-200 hover:-translate-y-0.5 hover:shadow-md" :class="r.asks_help && 'border-red-200'" :data-company="r.slug" data-testid="onboarding-row" @click="openDetail(r.id)">
+                <div class="flex items-start gap-3"><Avatar :name="r.name" size="lg" />
+                    <div class="min-w-0 flex-1"><div class="truncate font-semibold">{{ r.name }}</div>
+                        <span v-if="r.asks_help" class="badge mt-1 !bg-red-50 !text-red-600"><AlertTriangle class="mr-1 size-3" />Needs a hand</span><span v-else class="badge mt-1" :class="STATE[r.state][1]">{{ STATE[r.state][0] }}</span></div></div>
+                <div class="mt-3 flex items-center gap-2"><div class="h-2 flex-1 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-emerald-500" :style="{ width: `${Math.max(r.done ? 4 : 0, r.percent)}%` }" /></div><span class="text-xs tabular-nums text-slate-500">{{ r.percent }}%</span></div>
+                <div class="mt-1.5 flex gap-1" aria-hidden="true"><span v-for="st in steps" :key="st.key" class="size-2 rounded-full" :class="r.reached.includes(st.key) ? 'bg-emerald-500' : 'bg-slate-200'" :title="`${st.title}${r.reached.includes(st.key) ? ': done' : ''}`" /></div>
+                <p v-if="r.asks_help" class="mt-2 text-xs text-red-600">{{ r.help_reasons.map((h) => helpLabels[h]).join(' · ') }}</p>
+                <p v-else-if="r.next && r.state !== 'completed'" class="mt-2 truncate text-xs text-slate-400">Next: {{ r.next }}</p>
+                <div class="mt-auto flex items-center gap-2 pt-3 text-xs text-slate-400"><span class="truncate">last e-mail {{ rel(r.last_sent_at) }} · active {{ rel(r.last_active_at) }}</span>
+                    <button v-if="r.state === 'active'" type="button" class="btn-ghost ml-auto !px-2 text-xs" :title="`Send the next e-mail to ${r.name} now`" data-testid="row-send" @click.stop="sendNext(r)"><Send class="size-4" /> Send next</button></div>
+            </article>
+        </div>
+
+        <div v-else class="card msg-row px-6 py-14 text-center text-slate-500"><span class="mx-auto mb-3 grid size-16 place-items-center rounded-3xl bg-indigo-100 text-indigo-700"><Rocket class="size-8" /></span><p class="font-semibold text-slate-700">{{ rows.length ? 'No company matches' : 'No company is in the series yet' }}</p><p v-if="!rows.length" class="mt-1 text-sm">New sign-ups join it automatically.</p></div>
     </div>
 
     <!-- e-mails -->
     <div v-else-if="tab === 'emails'" class="space-y-3" data-testid="onboarding-emails">
         <p class="max-w-3xl text-sm text-slate-500">Each e-mail is sent to a company's owner when the company has not yet taken the step it is about (and never when it has). The welcome goes first, the last one when every step is done. Write them in your own voice; the merge fields fill in the company's details.</p>
-        <div class="grid gap-3 lg:grid-cols-2">
-            <article v-for="e in emails" :key="e.id" class="card flex gap-4 p-4" :class="!e.enabled && 'opacity-60'" data-testid="email-card">
+        <div class="flex justify-end"><div class="inline-flex rounded-xl border border-slate-200 p-1 text-sm" role="group" aria-label="Layout of the e-mails">
+            <button v-for="[v, icon, l] in LAYOUTS" :key="v" type="button" class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-medium transition" :class="mailLayout === v ? 'bg-brand-50 text-brand-700' : 'text-slate-500 hover:text-slate-700'" :aria-pressed="mailLayout === v" :title="l" :data-testid="`mail-layout-${v}`" @click="mailLayout = v"><component :is="icon" class="size-4" /><span class="hidden sm:inline">{{ l }}</span></button>
+        </div></div>
+        <div :class="mailLayout === 'boxes' ? 'grid gap-3 lg:grid-cols-2' : mailLayout === 'list' ? 'space-y-1.5' : 'space-y-3'">
+            <article v-for="e in emails" :key="e.id" class="card msg-row flex items-start gap-4" :class="[!e.enabled && 'opacity-60', mailLayout === 'list' ? 'items-center px-4 py-2' : 'p-4']" data-testid="email-card">
+                <span class="grid shrink-0 place-items-center rounded-xl bg-indigo-100 text-xl" :class="mailLayout === 'list' ? 'size-9' : 'size-11'" aria-hidden="true">{{ e.icon || '✉️' }}</span>
                 <div class="min-w-0 flex-1">
                     <div class="flex flex-wrap items-center gap-2"><h3 class="font-semibold">{{ e.title }}</h3><span class="badge">{{ e.milestone ? `When “${MILESTONE_NAME[e.milestone]}” is not done` : e.key === 'welcome' ? 'First, at once' : 'When everything is done' }}</span></div>
                     <p class="mt-1 truncate text-sm text-slate-600" :title="e.subject">{{ e.subject }}</p>
-                    <p v-if="e.preheader" class="mt-0.5 truncate text-xs text-slate-400">{{ e.preheader }}</p>
-                    <div class="mt-3 flex items-center gap-2"><button type="button" class="btn-outline !py-1.5" data-testid="email-edit" @click="edit(e)">Edit and preview</button>
+                    <p v-if="e.preheader && mailLayout !== 'list'" class="mt-0.5 truncate text-xs text-slate-400">{{ e.preheader }}</p>
+                    <div :class="mailLayout === 'list' ? 'mt-1' : 'mt-3'" class="flex items-center gap-2"><button type="button" class="btn-outline !py-1.5" data-testid="email-edit" @click="edit(e)">Edit and preview</button>
                         <label class="ml-auto flex cursor-pointer items-center gap-2 text-xs text-slate-500"><input type="checkbox" class="rounded" :checked="e.enabled" :aria-label="`${e.title} is sent`" data-testid="email-enabled" @change="toggleEmail(e)" /> Sent</label></div>
                 </div>
             </article>

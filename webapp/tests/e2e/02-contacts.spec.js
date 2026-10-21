@@ -155,7 +155,7 @@ test.describe('notes & tasks', () => {
         await page.getByRole('button', { name: 'Add task' }).click();
         let m = modal(page);
         await m.locator('input.input').first().fill('Send contract');
-        await m.locator('textarea').fill('Use the 2026 template');
+        await m.locator('[contenteditable]').fill('Use the 2026 template');                        // the description is rich text
         await field(m, 'Due').fill('2030-01-15T10:30');
         await field(m, 'Priority').selectOption('high');
         await m.locator('button[form=ntform]').click();
@@ -163,7 +163,8 @@ test.describe('notes & tasks', () => {
         await expect(card).toContainText('high');
 
         let t = (await api(page, 'GET', `/tasks?filter[contact_id]=${state.contactId}`)).json.data.find((x) => x.title === 'Send contract');
-        expect(t).toMatchObject({ description: 'Use the 2026 template', priority: 'high', completed_at: null });
+        expect(t).toMatchObject({ priority: 'high', completed_at: null });
+        expect(t.description).toContain('Use the 2026 template');
         expect(t.assigned_to).not.toBeNull();                                                   // defaulted to me
         expect(t.due_at).toContain('2030-01-15');
 

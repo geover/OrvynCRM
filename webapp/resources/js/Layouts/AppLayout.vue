@@ -2,11 +2,14 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { installUnsavedGuard } from '@/lib/unsavedGuard';
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { ArrowLeftRight, BookOpen, Bell, Building2, ChevronDown, LifeBuoy, Megaphone, Shield, SlidersHorizontal, LogOut, Menu, PanelLeftClose, PanelLeftOpen, KeyRound, Search, Settings, UserCog, UserPlus } from 'lucide-vue-next';
+import { ArrowLeftRight, BookOpen, Bell, Building2, ChevronDown, LifeBuoy, Megaphone, MessageSquare, Shield, SlidersHorizontal, LogOut, Menu, PanelLeftClose, PanelLeftOpen, KeyRound, Search, Settings, UserCog, UserPlus } from 'lucide-vue-next';
 import Hosts from '@/Components/Hosts.vue';
 import { useFavicon } from '@/lib/favicon';
 import Modal from '@/Components/Modal.vue';
+import ContactSupportModal from '@/Components/support/ContactSupportModal.vue';
 import ContactModalHost from '@/Components/ContactModalHost.vue';
+import ReportProblemHost from '@/Components/support/ReportProblemHost.vue';
+import { openReport } from '@/lib/support';
 import ContactForm from '@/Pages/Contacts/partials/ContactForm.vue';
 import AdvancedSearch from '@/Components/AdvancedSearch.vue';
 import CommandPalette from '@/Components/CommandPalette.vue';
@@ -39,7 +42,12 @@ const nav = computed(() => [
     ...MAIN_NAV.map((n) => ({ ...n, match: n.href === '/' ? (u) => u === '/' || u.startsWith('/?') : (u) => u.startsWith(n.href) })),
     // the pages an administrator added to this menu, under a small heading of their own so it is clear they are not part of the standard menu
     ...(page.props.sidebarTabs ?? []).map((t, i) => ({ href: `/tabs/${t.id}`, label: t.title, icon: tabIcon(t.icon), heading: i === 0 ? 'Your pages' : null, match: (u) => u === `/tabs/${t.id}` })),
-    ...(user.value.is_admin ? [{ href: '/admin', label: 'Admin Settings', icon: Settings, badge: (liveCounts.platformThreads ?? page.props.platformThreadsUnread) || 0, match: (u) => u.startsWith('/admin') || u.startsWith('/automations') }] : []),
+    // reaching the platform: messages and tickets, each with its own badge
+    ...(user.value.is_admin ? [
+        { href: '/messages', label: 'Messages', icon: MessageSquare, heading: 'Support', badge: (liveCounts.platformThreads ?? page.props.platformThreadsUnread) || 0, match: (u) => u.startsWith('/messages') },
+        ...(user.value.is_platform_support ? [] : [{ href: '/tickets', label: 'Support tickets', icon: LifeBuoy, badge: (liveCounts.tickets ?? page.props.ticketsUnread) || 0, match: (u) => u.startsWith('/tickets') }]),
+        { href: '/admin', label: 'Company Settings', icon: Settings, heading: ' ', match: (u) => u.startsWith('/admin') || u.startsWith('/automations') },
+    ] : []),
     { href: '/manual', label: 'Manual', icon: BookOpen, match: (u) => u.startsWith('/manual') },
 ]);
 // The free trial: a reminder for administrators over the last month, and the notice everybody sees once it has ended without billing details.
@@ -94,6 +102,20 @@ const notes = ref({ unread: 0, data: [] });
 const showNotes = ref(false);
 // Only company administrators can message the platform; their badge follows new replies without a page load.
 watch(() => page.props.platformThreadsUnread, () => { liveCounts.platformThreads = null; });
+watch(() => page.props.ticketsUnread, () => { liveCounts.tickets = null; });
+const support = ref(false);                                  // the Contact support window
+// everyone else: an answer to their Contact support message shows as a badge on the account menu, without a page load
+watch(() => page.props.supportUnread, () => { liveCounts.support = null; });
+const supportUnread = computed(() => (liveCounts.support ?? page.props.supportUnread) || 0);
+usePolling(async () => { if (!user.value.is_admin) liveCounts.support = (await api.get('/support/unread')).unread; }, { every: 20000 });
+watch(() => page.url, (u) => { if (!user.value.is_admin && /[?&]support(=|&|$)/.test(u)) support.value = true; }, { immediate: true });     // the bell's link
+function closeSupport() { support.value = false; if (/[?&]support(=|&|$)/.test(location.search)) history.replaceState(null, '', location.pathname); }
+usePolling(async () => {
+    if (!user.value.is_admin || user.value.is_platform_support) return;
+    const t = await api.get('/support-tickets/poll');
+    liveCounts.tickets = t.unread;
+    liveCounts.ticketsSig = t.sig;
+}, { every: 15000 });
 usePolling(async () => { if (user.value.is_admin) liveCounts.platformThreads = (await api.get('/platform-threads/poll', { counts: 1 })).unread; }, { every: 20000 });
 const newUpdates = computed(() => unreadUpdates(page.props.updates?.ids ?? []));
 const showUser = ref(false);
@@ -111,10 +133,6 @@ async function clearNotes() { await api.delete('/notifications'); loadNotes(); }
 const adding = ref(false);
 const onCreated = (c) => { adding.value = false; router.visit(`/contacts/${c.id}`); };
 const advanced = ref(false);
-const support = ref(null);
-async function sendSupport() {
-    if (await run(() => api.post('/support', support.value), 'Message sent to support')) support.value = null;
-}
 const logout = () => router.post('/logout');
 </script>
 
@@ -186,9 +204,10 @@ const logout = () => router.post('/logout');
                 </div>
 
                 <div class="relative" data-popup="user">
-                    <button class="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-slate-100" @click="showUser = !showUser; showNotes = false">
+                    <button class="relative flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-slate-100" @click="showUser = !showUser; showNotes = false">
                         <span class="grid size-8 place-items-center overflow-hidden rounded-full bg-brand-100 has-[img]:bg-transparent text-sm font-semibold text-brand-700" data-testid="my-avatar"><img v-if="user.avatar_url" :src="user.avatar_url" alt="" class="size-8 object-cover" /><template v-else>{{ user.name[0] }}</template></span>
                         <ChevronDown class="hidden size-4 text-slate-400 sm:block" />
+                        <span v-if="supportUnread" class="absolute right-1 top-0.5 grid min-w-4 place-items-center rounded-full bg-amber-500 px-1 text-[10px] font-semibold leading-4 text-white" data-testid="account-badge" :title="`${supportUnread} new ${supportUnread === 1 ? 'answer' : 'answers'} from support`">{{ supportUnread }}</span>
                     </button>
                     <div v-if="showUser" class="card absolute right-0 top-11 z-30 w-60 overflow-hidden py-1 text-sm shadow-lg" @click="showUser = false">
                         <div class="border-b border-slate-100 px-4 py-2"><div class="truncate font-medium">{{ user.name }}</div><div class="truncate text-xs text-slate-500">{{ user.email }}</div></div>
@@ -198,6 +217,7 @@ const logout = () => router.post('/logout');
                         <Link href="/user-settings" class="flex items-center gap-2 px-4 py-2 hover:bg-slate-50"><UserCog class="size-4" /> User settings</Link>
                         <Link href="/security" class="flex items-center gap-2 px-4 py-2 hover:bg-slate-50" data-testid="user-menu-security"><KeyRound class="size-4" /> Sign-in security</Link>
                         <Link href="/manual" class="flex items-center gap-2 px-4 py-2 hover:bg-slate-50" data-testid="user-menu-manual"><BookOpen class="size-4" /> Manual</Link>
+                        <button v-if="user.is_admin && !user.is_platform_support" type="button" class="flex w-full items-center gap-2 px-4 py-2 text-left hover:bg-slate-50" data-testid="user-menu-report" @click="openReport"><LifeBuoy class="size-4" /> Report a problem</button>
                         <div class="flex items-center justify-between gap-2 border-t border-slate-100 px-4 py-2" role="group" aria-label="Theme" @click.stop>
                             <span class="text-xs text-slate-500">Theme</span>
                             <div class="flex rounded-lg bg-slate-100 p-0.5 text-xs">
@@ -205,8 +225,8 @@ const logout = () => router.post('/logout');
                             </div>
                         </div>
                         <div v-if="theme !== 'light'" class="border-t border-slate-100 px-4 py-2" @click.stop><DarkStylePicker v-model="darkStyle" /></div>
-                        <button class="flex w-full items-center gap-2 px-4 py-2 text-left hover:bg-slate-50" @click="support = { subject: '', message: '' }"><LifeBuoy class="size-4" /> Contact support</button>
-                        <Link v-if="user.is_admin" href="/admin" class="flex items-center gap-2 px-4 py-2 hover:bg-slate-50"><Settings class="size-4" /> Admin settings</Link>
+                        <button v-if="!user.is_admin" class="flex w-full items-center gap-2 px-4 py-2 text-left hover:bg-slate-50" @click="support = true"><LifeBuoy class="size-4" /> Contact support<span v-if="supportUnread" class="ml-auto grid min-w-5 place-items-center rounded-full bg-amber-500 px-1.5 text-[11px] font-semibold text-white" data-testid="support-unread">{{ supportUnread }}</span></button>
+                        <Link v-if="user.is_admin" href="/admin" class="flex items-center gap-2 px-4 py-2 hover:bg-slate-50"><Settings class="size-4" /> Company settings</Link>
                         <button class="flex w-full items-center gap-2 px-4 py-2 text-left hover:bg-slate-50" @click="logout"><LogOut class="size-4" /> Sign out</button>
                     </div>
                 </div>
@@ -225,16 +245,10 @@ const logout = () => router.post('/logout');
 
     <!-- every link to a contact opens it here, in a wide pop-up -->
     <ContactModalHost />
+    <ReportProblemHost />
 
     <CommandPalette v-if="palette" @close="palette = false" />
     <AdvancedSearch v-if="advanced" @close="advanced = false" />
-    <Modal v-if="support" title="Contact support" @close="support = null">
-        <form id="sup" class="space-y-3" @submit.prevent="sendSupport">
-            <div><label class="label">Subject</label><input v-model="support.subject" class="input" required /></div>
-            <div><label class="label">How can we help?</label><textarea v-model="support.message" rows="6" class="input" required /></div>
-            <p class="text-xs text-slate-400">Goes to your organisation's internal support addresses; you'll be copied.</p>
-        </form>
-        <template #footer><button class="btn-ghost" @click="support = null">Cancel</button><button class="btn-primary" form="sup">Send</button></template>
-    </Modal>
+    <ContactSupportModal v-if="support" @close="closeSupport" />
     <Modal v-if="adding" title="Add contact" width="max-w-3xl" @close="adding = false"><ContactForm @saved="onCreated" @cancel="adding = false" /></Modal>
 </template>

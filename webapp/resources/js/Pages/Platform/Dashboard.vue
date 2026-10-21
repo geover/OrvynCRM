@@ -92,7 +92,7 @@ const cards = computed(() => [
     <Link v-if="kpis.messages_unread" href="/platform/messages" class="mb-4 flex items-center gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 hover:bg-sky-100" data-testid="dashboard-messages">
         <MessageSquare class="size-5 shrink-0" /><span><strong>{{ kpis.messages_unread }}</strong> unread {{ kpis.messages_unread === 1 ? 'message' : 'messages' }} from companies.</span>
     </Link>
-    <Link v-if="kpis.seat_requests" href="/platform/seat-requests" class="mb-4 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 hover:bg-amber-100" data-testid="dashboard-requests">
+    <Link v-if="kpis.seat_requests" href="/platform/requests" class="mb-4 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 hover:bg-amber-100" data-testid="dashboard-requests">
         <Inbox class="size-5 shrink-0" /><span><strong>{{ kpis.seat_requests }}</strong> {{ kpis.seat_requests === 1 ? 'request is' : 'requests are' }} waiting for more users, data objects or automations. Review {{ kpis.seat_requests === 1 ? 'it' : 'them' }}.</span>
     </Link>
 

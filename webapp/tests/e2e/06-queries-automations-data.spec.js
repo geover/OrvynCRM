@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => { await login(page); });
 
 // a single record comes back either unwrapped ({id,data}) or wrapped ({data:{id,data}})
 const rec = (j) => (j.data && j.data.data ? j.data : j);
-const row = (page, text) => page.locator('main .divide-y > div', { hasText: text }).first();
+const row = (page, text) => page.locator('main [data-testid="item-collection"] article', { hasText: text }).first();
 const section = (page, heading) => page.locator('section', { has: page.getByRole('heading', { name: heading }) }).first();
 
 test.describe('saved queries & dashboard widgets', () => {

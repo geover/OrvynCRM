@@ -3,7 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { router, usePage } from '@inertiajs/vue3';
 import { BookOpen, CornerDownLeft, ListPlus, Search, UserPlus } from 'lucide-vue-next';
 import { api } from '@/lib/api';
-import { ADMIN_ITEMS, MAIN_NAV } from '@/lib/nav';
+import { ADMIN_ITEMS, MAIN_NAV, SUPPORT_NAV } from '@/lib/nav';
 
 // Ctrl/Cmd+K: jump to any page, start a common action, or find a contact / record.
 const emit = defineEmits(['close']);
@@ -18,7 +18,7 @@ const everything = computed(() => [
     { key: 'a:task', group: 'Actions', label: 'Create task', hint: 'Jump to My tasks', icon: ListPlus, href: '/tasks?new=1' },
     ...MAIN_NAV.map((n) => ({ key: `p:${n.href}`, group: 'Go to', label: n.label, icon: n.icon, href: n.href })),
     { key: 'p:/manual', group: 'Go to', label: 'Manual', hint: 'How to use the workspace', icon: BookOpen, href: '/manual' },
-    ...(user.is_admin ? [{ key: 'p:/admin', group: 'Go to', label: 'Admin settings', icon: ADMIN_ITEMS[0].icon, href: '/admin' }, ...ADMIN_ITEMS.map((i) => ({ key: `s:${i.href}`, group: 'Settings', label: i.title, hint: i.text, icon: i.icon, href: i.href }))] : []),
+    ...(user.is_admin ? [{ key: 'p:/admin', group: 'Go to', label: 'Company settings', icon: ADMIN_ITEMS[0].icon, href: '/admin' }, ...SUPPORT_NAV.map((i) => ({ key: `p:${i.href}`, group: 'Go to', label: i.title, hint: i.text, icon: i.icon, href: i.href })), ...ADMIN_ITEMS.map((i) => ({ key: `s:${i.href}`, group: 'Settings', label: i.title, hint: i.text, icon: i.icon, href: i.href }))] : []),
 ]);
 const local = computed(() => {
     const t = q.value.trim().toLowerCase();

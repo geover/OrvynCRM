@@ -12,7 +12,9 @@ use App\Models\CustomTab;
 use App\Models\MessageThread;
 use App\Models\SeatRequest;
 use App\Models\SubscriptionRequest;
+use App\Models\SupportRequest;
 use App\Models\Tenant;
+use App\Models\Ticket;
 use App\Services\Heartbeat;
 use App\Services\Onboarding\OnboardingSettings;
 use App\Services\Tenancy\Plans;
@@ -88,7 +90,7 @@ class HandleInertiaRequests extends Middleware
             'app' => $this->branding($request),
             'auth' => ['user' => $user ? [
                 'id' => $user->id, 'name' => $user->name, 'email' => $user->email, 'avatar_url' => $user->is_platform_support ? app(UserProfiles::class)->supportUrl($user, '/files/users') : app(UserProfiles::class)->url($user, '/files/users'),
-                'role' => $user->role, 'is_admin' => $user->isAdmin(), 'permissions' => $user->permissionTemplate?->permissions ?? [],
+                'role' => $user->role, 'is_admin' => $user->isAdmin(), 'is_platform_support' => (bool) $user->is_platform_support, 'permissions' => $user->permissionTemplate?->permissions ?? [],
             ] : null],
             // The pages an administrator added to the main left-hand menu, for the people they are meant for.
             'sidebarTabs' => fn () => $user && Company::isOpen() && ! Company::isSignInPage($request) && ! Company::isPlatformArea($request) && tenancy()->initialized
@@ -119,11 +121,18 @@ class HandleInertiaRequests extends Middleware
             // new companies that need a hand getting started (the badge on the platform's Onboarding menu; the platform can switch it off)
             'onboardingHelp' => fn () => Company::isPlatformArea($request) && app(OnboardingSettings::class)->on('alert_badge')
                 ? CompanyOnboarding::where('needs_help', true)->where(fn ($q) => $q->whereNull('help_snoozed_until')->orWhere('help_snoozed_until', '<', now()))->count() : 0,
+            // support tickets: the platform's badge (the company wrote and nobody looked yet) and a company administrator's (the platform answered and they have not read it)
+            'ticketsNeedingPlatform' => fn () => Company::isPlatformArea($request) ? Ticket::needingPlatform()->count() : 0,
+            'ticketsUnread' => fn () => Company::isOpen() && ! Company::isSignInPage($request) && ! Company::isPlatformArea($request) && $request->user()?->isAdmin() && ! $request->user()?->is_platform_support && tenancy()->initialized
+                ? Ticket::forTenant((string) tenant('id'))->where('unread_tenant', true)->count() : 0,
             'seatRequestsPending' => fn () => Company::isPlatformArea($request) ? SeatRequest::pending()->count() + SubscriptionRequest::pending()->count() : 0,
             'platformMessagesUnread' => fn () => Company::isPlatformArea($request) ? MessageThread::unreadForPlatform()->count() : 0,
             // a company administrator: conversations with the platform that have a new reply
             'platformThreadsUnread' => fn () => Company::isOpen() && ! Company::isSignInPage($request) && ! Company::isPlatformArea($request) && $request->user()?->isAdmin() && tenancy()->initialized
-                ? MessageThread::unreadForTenant((string) tenant('id'))->count() : 0,
+                ? MessageThread::unreadForTenant((string) tenant('id'))->count() + SupportRequest::where('unread_admin', true)->count() : 0,
+            // any user: answers to their Contact support messages they have not read
+            'supportUnread' => fn () => Company::isOpen() && ! Company::isSignInPage($request) && ! Company::isPlatformArea($request) && $request->user() && tenancy()->initialized
+                ? SupportRequest::where('user_id', $request->user()->id)->where('unread_user', true)->count() : 0,
             // who is signed in at the platform level (the platform area has no company profile to show)
             'identity' => fn () => $identityId && ($who = AccountUser::find($identityId)) ? ['name' => $who->name, 'email' => $who->email, 'avatar_url' => $who->avatarUrl()] : null,
             'platform' => fn () => $identityId && AccountUser::whereKey($identityId)->where('is_platform_admin', true)->exists(),

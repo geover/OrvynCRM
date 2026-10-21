@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 use Throwable;
 
 /**
- * A company's own Twilio account (Admin settings, Twilio). It is optional: without it the company uses the platform's
+ * A company's own Twilio account (Company settings, Twilio). It is optional: without it the company uses the platform's
  * account when the platform has switched that on. With it, texts and phone numbers come from the company's own account.
  * The auth token is stored encrypted in the company's own integrations table and is never sent back.
  */

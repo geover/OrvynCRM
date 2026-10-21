@@ -89,7 +89,7 @@ class BillingController extends Controller
         $chosen = count($numbers->chosen());
         $allowedNumbers = $target['sms_numbers'] + (int) $company->extra_numbers;
         if ($chosen > $allowedNumbers) {
-            throw ValidationException::withMessages(['tier' => "{$target['name']} allows {$allowedNumbers} texting ".($allowedNumbers === 1 ? 'number' : 'numbers')." and you use {$chosen}. Remove some under Admin settings, Twilio."]);
+            throw ValidationException::withMessages(['tier' => "{$target['name']} allows {$allowedNumbers} texting ".($allowedNumbers === 1 ? 'number' : 'numbers')." and you use {$chosen}. Remove some under Company settings, Twilio."]);
         }
 
         $from = $this->plans->tier((int) $company->tier)['name'];

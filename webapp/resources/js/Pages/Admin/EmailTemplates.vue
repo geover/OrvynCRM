@@ -1,8 +1,10 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 import RichTextEditor from '@/Components/RichTextEditor.vue';
-import { Copy, Pencil, Plus, Trash2 } from 'lucide-vue-next';
+import { Copy, FolderOpen, Mail, Pencil, Plus, Trash2 } from 'lucide-vue-next';
 import AdminPage from '@/Components/AdminPage.vue';
+import ItemCollection from '@/Components/ItemCollection.vue';
+import TicketTile from '@/Components/support/TicketTile.vue';
 import Modal from '@/Components/Modal.vue';
 import { api } from '@/lib/api';
 import { confirmDialog, run, toast } from '@/lib/ui';
@@ -33,13 +35,17 @@ async function remove(t) { if (await confirmDialog({ title: `Delete “${t.name}
 <template>
     <AdminPage title="Email templates" subtitle="Reusable templates, grouped for the email composer.">
         <template #actions><button class="btn-primary" @click="open()"><Plus class="size-4" /> New template</button></template>
-        <div class="card divide-y divide-slate-100">
-            <div v-for="t in items" :key="t.id" class="flex items-center justify-between gap-3 px-5 py-4 text-sm">
-                <div class="min-w-0"><div class="font-medium">{{ t.name }} <span v-if="t.group" class="badge ml-1">{{ t.group }}</span></div><div class="truncate text-xs text-slate-400">{{ t.subject || 'No subject' }}</div></div>
-                <div class="flex gap-1"><button class="btn-ghost !px-1.5" @click="open(t)"><Pencil class="size-4" /></button><button class="btn-ghost !px-1.5" title="Duplicate" @click="dup(t)"><Copy class="size-4" /></button><button class="btn-ghost !px-1.5 text-slate-400 hover:text-red-600" @click="remove(t)"><Trash2 class="size-4" /></button></div>
-            </div>
-            <p v-if="items && !items.length" class="px-5 py-10 text-center text-sm text-slate-400">No templates yet.</p>
-        </div>
+                <section class="mb-5 grid grid-cols-2 gap-4" data-testid="templates-summary" aria-label="Templates in numbers">
+            <TicketTile :icon="Mail" tone="bg-indigo-100 text-indigo-700" label="Templates" :value="items?.length ?? 0" hint="ready for the composers" />
+            <TicketTile :icon="FolderOpen" tone="bg-amber-100 text-amber-700" label="Groups" :value="groups.length" hint="to keep them tidy" />
+        </section>
+        <ItemCollection :items="items" storage-key="email-templates" :icon="Mail" :search-text="(t) => `${t.name} ${t.group ?? ''} ${t.subject ?? ''}`" search-label="Find a template…" empty-title="No templates yet" empty-text="Write a message once and use it again from any e-mail composer.">
+            <template #title="{ item: t }">{{ t.name }}</template>
+            <template #badges="{ item: t }"><span v-if="t.group" class="badge">{{ t.group }}</span></template>
+            <template #meta="{ item: t }">{{ t.subject || 'No subject' }}</template>
+            <template #actions="{ item: t }"><button class="btn-ghost !px-1.5" title="Edit" aria-label="Edit" @click="open(t)"><Pencil class="size-4" /></button><button class="btn-ghost !px-1.5" title="Duplicate" aria-label="Duplicate" @click="dup(t)"><Copy class="size-4" /></button><button class="btn-ghost !px-1.5 text-slate-400 hover:text-red-600" title="Delete" aria-label="Delete" @click="remove(t)"><Trash2 class="size-4" /></button></template>
+            <template #empty><button class="btn-primary" @click="open()"><Plus class="size-4" /> New template</button></template>
+        </ItemCollection>
 
         <Modal v-if="modal" :title="d.id ? 'Edit template' : 'New template'" width="max-w-3xl" @close="modal = false">
             <form id="ef" class="space-y-3" @submit.prevent="save">

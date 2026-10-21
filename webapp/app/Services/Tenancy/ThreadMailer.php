@@ -6,6 +6,7 @@ use App\Models\MessageThread;
 use App\Models\Tenant;
 use App\Models\ThreadMessage;
 use App\Models\User;
+use App\Support\SafeHtml;
 use Illuminate\Support\Facades\Mail;
 use Throwable;
 
@@ -33,7 +34,7 @@ class ThreadMailer
             return;
         }
         $emails = $tenant->run(fn () => User::listed()->with('permissionTemplate')->where('status', 'active')->get()->filter(fn (User $u) => $u->isAdmin())->pluck('email')->all());
-        $text = "{$message->sender_name} from the platform replied:\n\n{$thread->subject}\n\n".$this->content($message)."\n\nOpen the conversation under Admin settings > Message the platform: ".url("/admin/platform-messages?thread={$thread->id}");
+        $text = "{$message->sender_name} from the platform replied:\n\n{$thread->subject}\n\n".$this->content($message)."\n\nOpen the conversation under Messages: ".url("/messages?thread={$thread->id}");
 
         $this->send($emails, "Re: {$thread->subject}", $text, $message->sender_email, $message->sender_name);
     }
@@ -43,7 +44,7 @@ class ThreadMailer
     {
         $images = $message->attachments()->count();
 
-        return trim($message->body.($images ? "\n\n[".app(ThreadAttachments::class)->description($images).' - open the conversation to see '.($images === 1 ? 'it' : 'them').']' : ''));
+        return trim(SafeHtml::toText($message->body).($images ? "\n\n[".app(ThreadAttachments::class)->description($images).' - open the conversation to see '.($images === 1 ? 'it' : 'them').']' : ''));
     }
 
     /** @param  list<string>  $to */

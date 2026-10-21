@@ -1,8 +1,10 @@
 <script setup>
-import { onMounted, ref, watch } from 'vue';
-import { Archive, Mail, Pencil, Plus, Trash2, X } from 'lucide-vue-next';
+import { computed, onMounted, ref, watch } from 'vue';
+import { Archive, CalendarRange, CheckCheck, Mail, MapPin, Pencil, Plus, Trash2, X } from 'lucide-vue-next';
 import AdminPage from '@/Components/AdminPage.vue';
+import ItemCollection from '@/Components/ItemCollection.vue';
 import Modal from '@/Components/Modal.vue';
+import TicketTile from '@/Components/support/TicketTile.vue';
 import { api } from '@/lib/api';
 import { confirmDialog, fmtDate, run, toast } from '@/lib/ui';
 
@@ -15,6 +17,7 @@ const search = ref('');
 const found = ref([]);
 const mail = ref({ subject: '', html: '' });
 
+const stopsCount = computed(() => (tours.value ?? []).reduce((n, t) => n + (t.stops_count ?? 0), 0));
 const load = async () => (tours.value = (await api.get('/tours', { archived: showArchived.value ? 1 : 0 })).data);
 onMounted(async () => { load(); users.value = (await api.get('/users')).data; });
 watch(showArchived, load);
@@ -51,14 +54,19 @@ async function notify() {
 <template>
     <AdminPage title="Tour manager" subtitle="Schedule and manage tours of contact visits.">
         <template #actions><label class="flex items-center gap-2 text-sm"><input v-model="showArchived" type="checkbox" class="rounded" /> Show archived</label><button class="btn-primary" @click="open()"><Plus class="size-4" /> New tour</button></template>
-        <div class="card divide-y divide-slate-100">
-            <div v-for="t in tours" :key="t.id" class="flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-sm">
-                <div><div class="font-medium">{{ t.title }} <span v-if="t.archived" class="badge ml-1">archived</span></div><div class="mt-0.5 text-xs text-slate-400">{{ t.starts_on ? fmtDate(t.starts_on) : 'No dates' }}{{ t.ends_on ? ` → ${fmtDate(t.ends_on)}` : '' }} · {{ t.stops_count }} stop{{ t.stops_count === 1 ? '' : 's' }}</div></div>
-                <div class="flex gap-1"><button class="btn-outline" @click="openNotify(t)"><Mail class="size-4" /> Notify</button><button class="btn-ghost !px-1.5" @click="open(t)"><Pencil class="size-4" /></button>
-                    <button class="btn-ghost !px-1.5" :title="t.archived ? 'Restore' : 'Archive'" @click="archive(t)"><Archive class="size-4" /></button><button class="btn-ghost !px-1.5 text-slate-400 hover:text-red-600" @click="remove(t)"><Trash2 class="size-4" /></button></div>
-            </div>
-            <p v-if="tours && !tours.length" class="px-5 py-10 text-center text-sm text-slate-400">No tours.</p>
-        </div>
+                <section class="mb-5 grid grid-cols-2 gap-4 lg:grid-cols-3" data-testid="tours-summary" aria-label="Tours in numbers">
+            <TicketTile :icon="MapPin" tone="bg-indigo-100 text-indigo-700" label="Tours" :value="tours?.length ?? 0" :hint="showArchived ? 'including archived' : 'planned'" />
+            <TicketTile :icon="CalendarRange" tone="bg-sky-100 text-sky-700" label="Stops" :value="stopsCount" hint="contacts to visit" />
+            <TicketTile class="col-span-2 lg:col-span-1" :icon="CheckCheck" tone="bg-emerald-100 text-emerald-700" label="Archived" :value="(tours ?? []).filter((t) => t.archived).length" hint="done and put away" />
+        </section>
+        <ItemCollection :items="tours" storage-key="tours" :icon="MapPin" :search-text="(t) => `${t.title} ${t.description ?? ''}`" search-label="Find a tour…" empty-title="No tours" empty-text="Plan a tour of visits: add the contacts, set the dates and let them know.">
+            <template #title="{ item: t }">{{ t.title }}</template>
+            <template #badges="{ item: t }"><span v-if="t.archived" class="badge">archived</span></template>
+            <template #meta="{ item: t }">{{ t.starts_on ? fmtDate(t.starts_on) : 'No dates' }}{{ t.ends_on ? ` → ${fmtDate(t.ends_on)}` : '' }} · {{ t.stops_count }} stop{{ t.stops_count === 1 ? '' : 's' }}</template>
+            <template #actions="{ item: t }"><button class="btn-outline" @click="openNotify(t)"><Mail class="size-4" /> Notify</button><button class="btn-ghost !px-1.5" title="Edit" aria-label="Edit" @click="open(t)"><Pencil class="size-4" /></button>
+                <button class="btn-ghost !px-1.5" :title="t.archived ? 'Restore' : 'Archive'" :aria-label="t.archived ? 'Restore' : 'Archive'" @click="archive(t)"><Archive class="size-4" /></button><button class="btn-ghost !px-1.5 text-slate-400 hover:text-red-600" title="Delete" aria-label="Delete" @click="remove(t)"><Trash2 class="size-4" /></button></template>
+            <template #empty><button class="btn-primary" @click="open()"><Plus class="size-4" /> New tour</button></template>
+        </ItemCollection>
 
         <Modal v-if="modal === 'edit'" :title="d.id ? 'Edit tour' : 'New tour'" width="max-w-3xl" @close="modal = null">
             <form id="tf" class="space-y-4" @submit.prevent="save">

@@ -35,7 +35,7 @@ class MessagingReadiness
     {
         return $this->twilio->available()
             ? null
-            : 'No Twilio account is available, so text messages are not sent. Add your own under Admin settings, Twilio, or ask your platform administrator to switch on the platform\'s.';
+            : 'No Twilio account is available, so text messages are not sent. Add your own under Company settings, Twilio, or ask your platform administrator to switch on the platform\'s.';
     }
 
     /** @return array{ready: bool, reason: ?string} */

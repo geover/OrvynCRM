@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 use Throwable;
 
 /**
- * Admin settings > Phone call: the numbers that can be a caller ID, and verifying a new one. Verifying and editing only
+ * Company settings > Phone call: the numbers that can be a caller ID, and verifying a new one. Verifying and editing only
  * work on the company's own Twilio account; a company on the platform's account picks from what the platform offers.
  */
 class CallerIdController extends Controller

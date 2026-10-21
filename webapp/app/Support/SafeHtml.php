@@ -19,6 +19,14 @@ class SafeHtml
 
     private const STYLES = ['color', 'background-color', 'font-weight', 'font-style', 'text-decoration', 'text-align', 'font-family', 'font-size'];
 
+    /** The words of formatted text as plain lines (for an e-mail without formatting, or a one-line preview). */
+    public static function toText(?string $html): string
+    {
+        $text = preg_replace(['/<br\s*\/?>/i', '/<\/(p|div|li|h[1-3]|blockquote|pre)>/i'], "\n", (string) $html);
+
+        return trim(preg_replace("/\n{3,}/", "\n\n", html_entity_decode(strip_tags((string) $text), ENT_QUOTES | ENT_HTML5)));
+    }
+
     public static function clean(?string $html): ?string
     {
         if ($html === null || trim($html) === '') {

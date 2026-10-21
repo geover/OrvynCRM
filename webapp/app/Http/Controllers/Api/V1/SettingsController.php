@@ -54,6 +54,8 @@ class SettingsController extends Controller
         if ($request->user()->isAdmin()) {
             $data += [
                 'internal_support_emails' => Setting::get('support.internal_emails', []),
+                'support_email_admins' => (bool) Setting::get('support.email_admins', true),
+                'support_email_user' => (bool) Setting::get('support.email_user', true),
                 'excluded_email_domains' => Setting::get('email.excluded_domains', []),
                 'app_url' => config('app.url'),
                 'api_docs_url' => url('/docs/api'),
@@ -78,12 +80,14 @@ class SettingsController extends Controller
             'email_format' => ['sometimes', 'string', 'max:255', 'regex:/^[A-Za-z]+@[A-Za-z0-9.\-]+$/'],   // local part + hostname (no port)
             'internal_support_emails' => ['sometimes', 'array', 'max:50'],
             'internal_support_emails.*' => ['email:rfc'],
+            'support_email_admins' => ['sometimes', 'boolean'],
+            'support_email_user' => ['sometimes', 'boolean'],
             'excluded_email_domains' => ['sometimes', 'array', 'max:500'],
             'excluded_email_domains.*' => ['string', 'max:255', 'regex:/^(?!-)[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/'],
         ]);
 
         $map = ['timezone' => 'app.timezone', 'color' => 'app.ui_colour', 'sidebar_color' => 'app.sidebar_colour', 'name' => 'app.name', 'tagline' => 'app.tagline', 'gravatar' => 'app.gravatar', 'logo_height' => 'app.logo_height', 'email_format' => 'app.email_format',
-            'internal_support_emails' => 'support.internal_emails', 'excluded_email_domains' => 'email.excluded_domains'];
+            'internal_support_emails' => 'support.internal_emails', 'support_email_admins' => 'support.email_admins', 'support_email_user' => 'support.email_user', 'excluded_email_domains' => 'email.excluded_domains'];
         foreach ($d as $k => $v) {
             // ConvertEmptyStringsToNull turns a cleared tagline into null; store '' so it stays cleared instead of reverting to the default
             $k === 'tagline' && $v = trim((string) $v);

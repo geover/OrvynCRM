@@ -31,7 +31,7 @@ class CompanyServices
      * with what the platform sees while it waits.
      */
     public const NEEDS_DETAILS = [
-        'keap_sync' => 'Waiting for the company to save its Keap details (Admin settings, Keap).',
+        'keap_sync' => 'Waiting for the company to save its Keap details (Company settings, Keap).',
     ];
 
     /** Workers live for an hour: a switch must reach them within seconds, not at their next restart. */

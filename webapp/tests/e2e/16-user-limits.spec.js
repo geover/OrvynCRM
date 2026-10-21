@@ -136,7 +136,7 @@ test('the platform is notified, approves with a number, and the company can add 
 test('a handled request can be archived, restored and deleted permanently', async ({ page }) => {
     await signIn(page, PLATFORM);
     await expect(page).toHaveURL(/\/platform$/);
-    await page.goto('/platform/seat-requests');
+    await page.goto('/platform/requests');
     const request = page.locator('[data-request]', { hasText: `Seat Co ${state.slug}` });
     await expect(request).toContainText('Approved');
     await request.locator('[data-action="archive"]').click();

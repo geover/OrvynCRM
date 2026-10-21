@@ -1,6 +1,8 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue';
+import { Activity, KeyRound, Phone } from 'lucide-vue-next';
 import AdminPage from '@/Components/AdminPage.vue';
+import SectionTitle from '@/Components/SectionTitle.vue';
 import PasswordField from '@/Components/PasswordField.vue';
 import { api } from '@/lib/api';
 import { confirmDialog, run } from '@/lib/ui';
@@ -59,7 +61,7 @@ async function saveNumbers() {
     <AdminPage title="Twilio" subtitle="Use your own Twilio account for text messages and phone numbers. Optional: without it, your company uses the platform's account when the platform offers one.">
         <div v-if="twilio" class="max-w-3xl space-y-4">
             <section class="card space-y-3 p-5" aria-labelledby="tw-status">
-                <h2 id="tw-status" class="text-sm font-semibold">Status</h2>
+                <SectionTitle id="tw-status" :icon="Activity" tone="bg-emerald-100 text-emerald-700" title="Status" hint="Which account sends your texts" />
                 <dl class="grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
                     <div class="flex justify-between gap-3"><dt class="text-slate-500">Your own account</dt><dd class="font-medium" data-testid="twilio-own"><span class="badge" :class="twilio.configured ? '!bg-emerald-50 !text-emerald-700' : ''">{{ twilio.configured ? `Saved (${twilio.account_sid.slice(0, 6)}…)` : 'Not set' }}</span></dd></div>
                     <div class="flex justify-between gap-3"><dt class="text-slate-500">Texts are sent through</dt><dd class="font-medium" data-testid="twilio-using">{{ twilio.configured ? 'Your account' : twilio.platform_available ? 'The platform\'s account' : 'Nothing yet' }}</dd></div>
@@ -72,7 +74,7 @@ async function saveNumbers() {
             </section>
 
             <form class="card space-y-3 p-5" data-testid="twilio-form" @submit.prevent="save">
-                <h2 class="text-sm font-semibold">{{ twilio.configured ? 'Change your account' : 'Your Twilio account' }}</h2>
+                <SectionTitle :icon="KeyRound" tone="bg-amber-100 text-amber-700" :title="twilio.configured ? 'Change your account' : 'Your Twilio account'" hint="Stored encrypted; the token is never shown again" />
                 <div class="grid gap-3 sm:grid-cols-2">
                     <div><label class="label" for="tw-sid">Account SID</label><input id="tw-sid" v-model="form.account_sid" class="input font-mono text-xs" placeholder="AC…" autocomplete="off" required data-testid="twilio-sid" /><p v-if="errors.account_sid" class="mt-1 text-xs text-red-600">{{ errors.account_sid[0] }}</p></div>
                     <div><label class="label" for="tw-token">Auth token</label><PasswordField id="tw-token" v-model="form.auth_token" autocomplete="new-password" :placeholder="twilio.configured ? `Saved (${twilio.token_hint}). Type to replace it.` : ''" /><p v-if="errors.auth_token" class="mt-1 text-xs text-red-600">{{ errors.auth_token[0] }}</p></div>
@@ -86,7 +88,7 @@ async function saveNumbers() {
             </form>
 
             <section v-if="nums" class="card space-y-3 p-5" aria-labelledby="tw-numbers" data-testid="sms-numbers">
-                <div class="flex flex-wrap items-baseline justify-between gap-2"><h2 id="tw-numbers" class="text-sm font-semibold">Texting numbers</h2><span class="text-xs text-slate-500" data-testid="sms-numbers-count">{{ picked.length }} of {{ nums.max }} allowed by your plan</span></div>
+                <div class="flex flex-wrap items-baseline justify-between gap-2"><SectionTitle id="tw-numbers" :icon="Phone" tone="bg-sky-100 text-sky-700" title="Texting numbers" /><span class="text-xs text-slate-500" data-testid="sms-numbers-count">{{ picked.length }} of {{ nums.max }} allowed by your plan</span></div>
                 <p class="text-xs text-slate-500">The numbers your texts are sent from. The first one is the default; whoever writes a text can choose another. With none chosen, texts go out from the number saved with your account, or the platform's.</p>
                 <ul v-if="picked.length" class="space-y-1.5">
                     <li v-for="(n, i) in picked" :key="n" class="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm" :data-number="n">

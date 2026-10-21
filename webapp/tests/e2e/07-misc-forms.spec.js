@@ -33,36 +33,43 @@ test.describe('phone / caller IDs', () => {
 });
 
 test.describe('contact support', () => {
-    test('without support addresses the user gets a clear message; once configured, the message is sent', async ({ page }) => {
-        await api(page, 'PUT', '/settings', { internal_support_emails: [] });          // none configured
+    test('a person writes to support in a chat, an administrator answers under Messages, and the person reads the answer', async ({ page, browser }) => {
+        await api(page, 'PUT', '/settings', { internal_support_emails: [], support_email_admins: true });          // none configured
+        const email = `${uniq('cs')}@example.com`;
+        expect((await api(page, 'POST', '/users', { name: 'Chat User', email, password: 'Chat-Passw0rd-1', role: 'user' })).status).toBe(201);
 
-        await page.goto('/');
-        await page.locator('header button:has(span.rounded-full)').last().click();
-        await page.getByRole('button', { name: 'Contact support' }).click();
-        let m = modal(page);
-        await field(m, 'Subject').fill('Need help');
-        await m.locator('textarea').fill('Something is odd.');
-        await m.getByRole('button', { name: 'Send' }).click();
-        await expect(toast(page, 'error').first()).toContainText('No internal support emails');
-        await expect(modal(page)).toBeVisible();                                    // draft is kept so nothing is lost
-        await expect(field(modal(page), 'Subject')).toHaveValue('Need help');
-        await page.keyboard.press('Escape');
+        const context = await browser.newContext();
+        const user = await context.newPage();
+        await login(user, { email, password: 'Chat-Passw0rd-1' });
+        await user.locator('header button:has(span.rounded-full)').last().click();
+        await user.getByRole('button', { name: 'Contact support' }).click();
+        const chat = modal(user);
+        await chat.getByTestId('support-subject').fill('Need help');
+        await chat.locator('[contenteditable]').fill('Something is odd.');
+        await chat.getByTestId('support-send').click();
+        await expect(toast(user, 'error').first()).toContainText('No internal support emails');
+        await expect(chat).toBeVisible();                                                       // the draft is kept so nothing is lost
+        await expect(chat.getByTestId('support-subject')).toHaveValue('Need help');
 
-        // configure one through the admin screen, then send again
-        await page.goto('/admin/support-emails');
-        await page.getByPlaceholder('support@yourcompany.com').fill('help@example.com');
-        await page.getByRole('button', { name: 'Add', exact: true }).click();
-        await expect(page.getByText('help@example.com')).toBeVisible();
+        // the company adds an address, and the same message goes
+        expect((await api(page, 'PUT', '/settings', { internal_support_emails: ['help@example.com'] })).status).toBe(200);
+        await chat.getByTestId('support-send').click();
+        await expectSuccess(user, 'Message sent to support');
+        await expect(chat.getByTestId('support-subject-line')).toContainText('Need help');
 
-        await page.goto('/');
-        await page.locator('header button:has(span.rounded-full)').last().click();
-        await page.getByRole('button', { name: 'Contact support' }).click();
-        m = modal(page);
-        await field(m, 'Subject').fill('Need help');
-        await m.locator('textarea').fill('Something is odd.');
-        await m.getByRole('button', { name: 'Send' }).click();
-        await expectSuccess(page, 'Message sent to support');
-        await expect(modal(page)).toHaveCount(0);
+        // an administrator reads it under Messages > Internal support and answers
+        await page.goto('/messages');
+        await page.getByTestId('internal-row').filter({ hasText: 'Need help' }).click();
+        await page.getByTestId('internal-answer').locator('[contenteditable]').fill('Try again now.');
+        await page.getByTestId('internal-send').click();
+        await expect(page.getByTestId('internal-reply').or(page.getByTestId('internal-line').filter({ hasText: 'Try again now.' })).first()).toBeVisible();
+
+        // the person reads the answer in the same conversation
+        await user.reload();
+        await user.locator('header button:has(span.rounded-full)').last().click();
+        await user.getByRole('button', { name: 'Contact support' }).click();
+        await expect(modal(user).getByText('Try again now.')).toBeVisible();
+        await context.close();
 
         // blank subject/body are refused by the server too
         expect((await api(page, 'POST', '/support', { subject: '', message: '' })).status).toBe(422);

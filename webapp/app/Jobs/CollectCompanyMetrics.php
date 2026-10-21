@@ -99,15 +99,17 @@ class CollectCompanyMetrics implements ShouldQueue
     }
 
     /**
-     * Records per data object (the biggest first).
+     * Records and automations per data object (the biggest first).
      *
-     * @return list<array{name: string, records: int}>
+     * @return list<array{name: string, records: int, automations: int}>
      */
     private function objectBreakdown(): array
     {
         $per = DB::table('data_object_records')->whereNull('deleted_at')->selectRaw('data_object_id, count(*) as n')->groupBy('data_object_id')->pluck('n', 'data_object_id');
 
-        return DB::table('data_objects')->pluck('name', 'id')->map(fn ($name, $id) => ['name' => $name, 'records' => (int) ($per[$id] ?? 0)])
+        $automations = DB::table('automations')->whereNotNull('data_object_id')->selectRaw('data_object_id, count(*) as n')->groupBy('data_object_id')->pluck('n', 'data_object_id');
+
+        return DB::table('data_objects')->pluck('name', 'id')->map(fn ($name, $id) => ['name' => $name, 'records' => (int) ($per[$id] ?? 0), 'automations' => (int) ($automations[$id] ?? 0)])
             ->sortByDesc('records')->take(20)->values()->all();
     }
 

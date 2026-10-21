@@ -8,7 +8,7 @@ use App\Services\Tenancy\SmsNumbers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-/** The numbers a company sends texts from, as many as its licence tier allows (Admin settings, Twilio). */
+/** The numbers a company sends texts from, as many as its licence tier allows (Company settings, Twilio). */
 class SmsNumbersController extends Controller
 {
     public function show(Request $request, SmsNumbers $numbers, CompanyCallerIds $callerIds): JsonResponse

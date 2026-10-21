@@ -32,7 +32,9 @@ class CustomTabsTest extends TenantTestCase
 
     private function titles(string $email): array
     {
-        return collect($this->signedInAs($email, 'Newbie-Passw0rd-1')->getJson('/api/v1/custom-tabs')->assertOk()->json('data'))->pluck('title')->all();
+        $password = $email === 'admin@alpha.test' ? 'Owner-Passw0rd-1' : 'Newbie-Passw0rd-1';
+
+        return collect($this->signedInAs($email, $password)->getJson('/api/v1/custom-tabs')->assertOk()->json('data'))->pluck('title')->all();
     }
 
     public function test_a_tab_is_seen_by_the_people_it_is_meant_for_and_by_administrators(): void
@@ -67,7 +69,7 @@ class CustomTabsTest extends TenantTestCase
         $this->signedInAs('uli@alpha.test', 'Newbie-Passw0rd-1')->putJson('/api/v1/custom-tabs', ['items' => [$tab]])->assertForbidden();
         $this->admin()->putJson('/api/v1/custom-tabs', ['items' => [['type' => 'iframe', 'content' => 'http://insecure.example.com'] + $tab]])->assertUnprocessable();         // https only
         $this->admin()->putJson('/api/v1/custom-tabs', ['items' => [$tab + ['audience' => ['roles' => []]]]])->assertUnprocessable();                                            // "chosen" with nobody chosen
-        $this->admin()->putJson('/api/v1/custom-tabs', ['items' => [$tab + ['placement' => 'footer']]])->assertUnprocessable();
+        $this->admin()->putJson('/api/v1/custom-tabs', ['items' => [['placement' => 'footer'] + $tab]])->assertUnprocessable();
         $this->admin()->putJson('/api/v1/custom-tabs', ['items' => [$tab + ['icon' => 'not-an-icon']]])->assertUnprocessable();
         $this->assertSame([], $this->admin()->getJson('/api/v1/custom-tabs')->json('data'));
     }

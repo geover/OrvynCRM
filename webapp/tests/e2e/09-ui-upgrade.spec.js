@@ -165,7 +165,7 @@ test.describe('data table: contacts list', () => {
         await page.reload();
         await expect(search(page)).toHaveValue('');
         await page.getByRole('button', { name: /^Views/ }).click();
-        await page.getByRole('button', { name: 'Tagged bulk', exact: true }).click();
+        await page.getByRole('button', { name: /^Tagged bulk/ }).click();
         await expect(search(page)).toHaveValue(state.co);
         await expect(page.getByPlaceholder('Tag')).toHaveValue(state.tag);
         await expect(page.locator('tbody tr')).toHaveCount(1);

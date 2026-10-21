@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 use Throwable;
 
 /**
- * A company's Keap details (Admin settings, Keap). Saving them is what lets the platform switch Keap sync on for the
+ * A company's Keap details (Company settings, Keap). Saving them is what lets the platform switch Keap sync on for the
  * company: until then the switch is disabled. The key is stored encrypted in the company's own integrations table and is
  * never sent back.
  */

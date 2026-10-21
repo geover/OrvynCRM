@@ -33,6 +33,7 @@ test.describe('workflow boards', () => {
         state.boardId = b.id;
 
         // the board page: columns from the dropdown choices, cards from the records; drag New -> Won
+        await page.setViewportSize({ width: 1920, height: 900 });                                 // the columns have a fixed width: every one of the four is on screen
         await page.goto(`/boards/${b.id}`);
         const cols = page.locator('main section');
         await expect(cols.first()).toContainText('Lost');                                         // the columns follow the arrangement

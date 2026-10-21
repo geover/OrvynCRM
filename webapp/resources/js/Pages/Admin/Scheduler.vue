@@ -1,8 +1,10 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { Pencil, Plus, Trash2 } from 'lucide-vue-next';
+import { CalendarDays, CalendarRange, Clock, Pencil, Plus, Trash2 } from 'lucide-vue-next';
 import AdminPage from '@/Components/AdminPage.vue';
+import ItemCollection from '@/Components/ItemCollection.vue';
 import Modal from '@/Components/Modal.vue';
+import TicketTile from '@/Components/support/TicketTile.vue';
 import { api } from '@/lib/api';
 import { confirmDialog, run } from '@/lib/ui';
 
@@ -13,6 +15,7 @@ const d = ref({});
 const errors = ref({});
 
 const ready = ref(false);
+const withTime = computed(() => (items.value ?? []).filter((x) => x.type === 'datetime').length);
 async function load() { [items.value, objects.value] = await Promise.all([api.get('/schedules').then((r) => r.data), api.get('/data-objects').then((r) => r.data)]); ready.value = true; }
 onMounted(load);
 const object = computed(() => objects.value.find((o) => o.id === Number(d.value.data_object_id)));
@@ -38,13 +41,18 @@ async function remove(s) { if (await confirmDialog({ title: `Delete “${s.name}
 <template>
     <AdminPage title="Scheduler" subtitle="Choose which data object dates appear on the Schedules calendar.">
         <template #actions><button class="btn-primary" :disabled="!ready" @click="open()"><Plus class="size-4" /> Add schedule</button></template>
-        <div class="card divide-y divide-slate-100">
-            <div v-for="s in items" :key="s.id" class="flex items-center justify-between gap-4 px-5 py-4 text-sm">
-                <div><div class="font-medium">{{ s.name }}</div><div class="mt-0.5 text-xs text-slate-400">{{ s.data_object?.name }} · starts {{ s.start_field }}{{ s.end_field ? ` · ends ${s.end_field}` : '' }} · {{ s.type }}</div></div>
-                <div class="flex gap-1"><button class="btn-ghost !px-1.5" :disabled="!ready" @click="open(s)"><Pencil class="size-4" /></button><button class="btn-ghost !px-1.5 text-slate-400 hover:text-red-600" @click="remove(s)"><Trash2 class="size-4" /></button></div>
-            </div>
-            <p v-if="items && !items.length" class="px-5 py-10 text-center text-sm text-slate-400">No schedules yet. A schedule needs a data object with a date field.</p>
-        </div>
+                <section class="mb-5 grid grid-cols-2 gap-4 lg:grid-cols-3" data-testid="schedules-summary" aria-label="Schedules in numbers">
+            <TicketTile :icon="CalendarDays" tone="bg-indigo-100 text-indigo-700" label="Schedules" :value="items?.length ?? 0" hint="on the calendar" />
+            <TicketTile :icon="Clock" tone="bg-sky-100 text-sky-700" label="With a time" :value="withTime" hint="date and time" />
+            <TicketTile class="col-span-2 lg:col-span-1" :icon="CalendarRange" tone="bg-emerald-100 text-emerald-700" label="With an end date" :value="(items ?? []).filter((x) => x.end_field).length" hint="a span, not a day" />
+        </section>
+        <ItemCollection :items="items" storage-key="schedules" :icon="CalendarDays" :search-text="(x) => `${x.name} ${x.data_object?.name ?? ''}`" search-label="Find a schedule…" empty-title="No schedules yet" empty-text="A schedule needs a data object with a date field. Add one and its dates appear on the Schedules calendar.">
+            <template #title="{ item: x }">{{ x.name }}</template>
+            <template #badges="{ item: x }"><span class="badge">{{ x.data_object?.name }}</span><span class="badge capitalize">{{ x.type }}</span></template>
+            <template #meta="{ item: x }">starts {{ x.start_field }}{{ x.end_field ? ` · ends ${x.end_field}` : '' }}</template>
+            <template #actions="{ item: x }"><button class="btn-ghost !px-1.5" :disabled="!ready" title="Edit" aria-label="Edit" @click="open(x)"><Pencil class="size-4" /></button><button class="btn-ghost !px-1.5 text-slate-400 hover:text-red-600" title="Delete" aria-label="Delete" @click="remove(x)"><Trash2 class="size-4" /></button></template>
+            <template #empty><button class="btn-primary" :disabled="!ready" @click="open()"><Plus class="size-4" /> Add schedule</button></template>
+        </ItemCollection>
         <Modal v-if="modal" :title="d.id ? 'Edit schedule' : 'Add schedule'" @close="modal = false">
             <form id="sf" class="space-y-3" @submit.prevent="save">
                 <div><label class="label">Name</label><input v-model="d.name" class="input" required /><p v-if="errors.name" class="mt-1 text-xs text-red-600">{{ errors.name[0] }}</p></div>

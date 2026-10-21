@@ -117,7 +117,7 @@ class SeatLimitTest extends TenantTestCase
 
         $this->platformAdmin();                                                                                    // the platform's menu shows it
         $this->get('/platform')->assertInertia(fn ($p) => $p->where('seatRequestsPending', 1)->where('companies.0.pending_requests', 1));
-        $this->get('/platform/seat-requests')->assertOk()->assertInertia(fn ($p) => $p->component('Platform/SeatRequests')->has('requests', 1)->where('requests.0.company', 'Acme')->where('requests.0.status', 'pending'));
+        $this->get('/platform/requests')->assertOk()->assertInertia(fn ($p) => $p->component('Platform/SeatRequests')->has('requests', 1)->where('requests.0.company', 'Acme')->where('requests.0.status', 'pending'));
     }
 
     public function test_the_platform_approves_with_its_own_number_or_declines(): void
@@ -131,16 +131,16 @@ class SeatLimitTest extends TenantTestCase
         [$first, $second] = [SeatRequest::where('tenant_id', $acme->id)->first(), SeatRequest::where('tenant_id', $beta->id)->first()];
 
         $this->platformAdmin();
-        $this->post("/platform/seat-requests/{$first->id}/approve", ['granted_limit' => 6, 'response' => 'Six for now'])->assertRedirect()->assertSessionHas('success');
+        $this->post("/platform/requests/{$first->id}/approve", ['granted_limit' => 6, 'response' => 'Six for now'])->assertRedirect()->assertSessionHas('success');
         $this->assertSame(6, $acme->fresh()->max_users);
         $this->assertSame(['approved', 6, 'Six for now'], [$first->fresh()->status, $first->fresh()->granted_limit, $first->fresh()->response]);
 
-        $this->post("/platform/seat-requests/{$second->id}/decline", ['response' => 'Please talk to sales'])->assertRedirect();
+        $this->post("/platform/requests/{$second->id}/decline", ['response' => 'Please talk to sales'])->assertRedirect();
         $this->assertSame(2, $beta->fresh()->max_users);
         $this->assertSame('declined', $second->fresh()->status);
 
-        $this->post("/platform/seat-requests/{$first->id}/decline")->assertUnprocessable();                       // handled once
-        $this->get('/platform/seat-requests')->assertInertia(fn ($p) => $p->where('seatRequestsPending', 0));
+        $this->post("/platform/requests/{$first->id}/decline")->assertUnprocessable();                       // handled once
+        $this->get('/platform/requests')->assertInertia(fn ($p) => $p->where('seatRequestsPending', 0));
 
         // the company sees the outcome and can add people again
         $this->api('owner@acme.test', 'acme')->getJson('/api/v1/seats')->assertJsonPath('data.max', 6)->assertJsonPath('data.request.status', 'approved')->assertJsonPath('data.request.response', 'Six for now');
@@ -153,8 +153,8 @@ class SeatLimitTest extends TenantTestCase
         $request = SeatRequest::create(['tenant_id' => $acme->id, 'requester_name' => 'x', 'requester_email' => 'x@x.test', 'current_limit' => 2, 'requested_limit' => 9]);
         $this->post('/login', ['email' => 'owner@acme.test', 'password' => 'Owner-Passw0rd-1']);
 
-        $this->get('/platform/seat-requests')->assertForbidden();
-        $this->post("/platform/seat-requests/{$request->id}/approve")->assertForbidden();
+        $this->get('/platform/requests')->assertForbidden();
+        $this->post("/platform/requests/{$request->id}/approve")->assertForbidden();
         $this->get("/platform/companies/{$acme->id}/users")->assertForbidden();
         $this->post("/platform/companies/{$acme->id}/users", $this->person('1'))->assertForbidden();
         $this->patch("/platform/companies/{$acme->id}", ['max_users' => 999])->assertForbidden();
@@ -238,20 +238,20 @@ class SeatLimitTest extends TenantTestCase
         $request = SeatRequest::firstOrFail();
         $this->platformAdmin();
 
-        $this->post("/platform/seat-requests/{$request->id}/archive")->assertUnprocessable();               // a waiting request must be handled first
-        $this->delete("/platform/seat-requests/{$request->id}")->assertUnprocessable();
-        $this->post("/platform/seat-requests/{$request->id}/approve", ['granted_limit' => 4])->assertRedirect();
+        $this->post("/platform/requests/{$request->id}/archive")->assertUnprocessable();               // a waiting request must be handled first
+        $this->delete("/platform/requests/{$request->id}")->assertUnprocessable();
+        $this->post("/platform/requests/{$request->id}/approve", ['granted_limit' => 4])->assertRedirect();
 
-        $this->post("/platform/seat-requests/{$request->id}/archive")->assertRedirect()->assertSessionHas('success', 'Archived.');
-        $this->get('/platform/seat-requests')->assertInertia(fn ($p) => $p->has('requests', 1)->where('requests.0.archived_at', fn ($v) => $v !== null));
+        $this->post("/platform/requests/{$request->id}/archive")->assertRedirect()->assertSessionHas('success', 'Archived.');
+        $this->get('/platform/requests')->assertInertia(fn ($p) => $p->has('requests', 1)->where('requests.0.archived_at', fn ($v) => $v !== null));
         $this->assertSame(4, $acme->fresh()->max_users, 'archiving does not undo what was granted');
 
-        $this->post("/platform/seat-requests/{$request->id}/unarchive")->assertRedirect();
+        $this->post("/platform/requests/{$request->id}/unarchive")->assertRedirect();
         $this->assertNull($request->fresh()->archived_at);
-        $this->delete("/platform/seat-requests/{$request->id}")->assertUnprocessable();                     // not archived: kept
+        $this->delete("/platform/requests/{$request->id}")->assertUnprocessable();                     // not archived: kept
 
-        $this->post("/platform/seat-requests/{$request->id}/archive");
-        $this->delete("/platform/seat-requests/{$request->id}")->assertRedirect()->assertSessionHas('success', 'Deleted.');
+        $this->post("/platform/requests/{$request->id}/archive");
+        $this->delete("/platform/requests/{$request->id}")->assertRedirect()->assertSessionHas('success', 'Deleted.');
         $this->assertNull(SeatRequest::find($request->id));
     }
 
@@ -261,8 +261,8 @@ class SeatLimitTest extends TenantTestCase
         $request = SeatRequest::create(['tenant_id' => $acme->id, 'requester_name' => 'x', 'requester_email' => 'x@x.test', 'current_limit' => 2, 'requested_limit' => 9, 'status' => 'declined']);
         $this->post('/login', ['email' => 'owner@acme.test', 'password' => 'Owner-Passw0rd-1']);
 
-        $this->post("/platform/seat-requests/{$request->id}/archive")->assertForbidden();
-        $this->delete("/platform/seat-requests/{$request->id}")->assertForbidden();
+        $this->post("/platform/requests/{$request->id}/archive")->assertForbidden();
+        $this->delete("/platform/requests/{$request->id}")->assertForbidden();
         $this->assertNull($request->fresh()->archived_at);
     }
 
@@ -287,7 +287,7 @@ class SeatLimitTest extends TenantTestCase
 
         $this->platformAdmin();
         $this->patch('/platform/pricing', ['price' => 99, 'currency' => 'USD', 'period' => 'year'])->assertRedirect();                 // changing the price later...
-        $this->get('/platform/seat-requests')->assertInertia(fn ($p) => $p->where('requests.0.price_per_user', 12.5)->where('requests.0.price_currency', 'EUR'));   // ...does not rewrite the quote
+        $this->get('/platform/requests')->assertInertia(fn ($p) => $p->where('requests.0.price_per_user', 12.5)->where('requests.0.price_currency', 'EUR'));   // ...does not rewrite the quote
     }
 
     public function test_pricing_can_be_cleared_and_is_validated_and_platform_only(): void

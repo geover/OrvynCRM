@@ -411,7 +411,7 @@ class Subscriptions
         $this->notifier->mail(
             PlatformNotifier::REQUESTS,
             "{$tenant->name} wants to subscribe again",
-            "{$by->name} ({$by->email}) asks to subscribe again for {$tenant->name} ({$plan}).".($request->message ? "\n\nMessage:\n{$request->message}" : '')."\n\nEnable it under Platform > Requests: ".url('/platform/seat-requests'),
+            "{$by->name} ({$by->email}) asks to subscribe again for {$tenant->name} ({$plan}).".($request->message ? "\n\nMessage:\n{$request->message}" : '')."\n\nEnable it under Platform > Requests: ".url('/platform/requests'),
         );
 
         return $request;

@@ -21,7 +21,7 @@ class ThreadAttachments
     public function rules(): array
     {
         return [
-            'body' => ['nullable', 'string', 'max:5000', 'required_without:attachments'],
+            'body' => ['nullable', 'string', 'max:20000', 'required_without:attachments'],
             'attachments' => ['sometimes', 'array', 'max:'.ThreadAttachment::MAX_PER_MESSAGE],
             'attachments.*' => ['file', 'image', 'mimes:'.implode(',', array_keys(ThreadAttachment::TYPES)), 'max:'.ThreadAttachment::MAX_KILOBYTES],
         ];

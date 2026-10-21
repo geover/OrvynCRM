@@ -1,7 +1,8 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { Copy, KeyRound, RefreshCw, Trash2 } from 'lucide-vue-next';
+import { Copy, KeyRound, RefreshCw, Settings2, Trash2, Webhook } from 'lucide-vue-next';
 import AdminPage from '@/Components/AdminPage.vue';
+import SectionTitle from '@/Components/SectionTitle.vue';
 import { api } from '@/lib/api';
 import { router } from '@inertiajs/vue3';
 import { timezones } from '@/lib/tz';
@@ -73,7 +74,7 @@ async function revoke(t) {
     <AdminPage title="App details" subtitle="General app details and configuration.">
         <div v-if="s" class="grid max-w-5xl gap-6 lg:grid-cols-2">
             <section class="card space-y-4 p-5">
-                <h2 class="text-sm font-semibold">General</h2>
+                <SectionTitle :icon="Settings2" title="General" hint="Name, tagline, time zone and the look of addresses" />
                 <div><label class="label">App name</label><input v-model="name" class="input" /></div>
                 <div><label class="label">Tagline</label><input v-model="tagline" class="input" maxlength="120" placeholder="Build. Connect. Automate." />
                     <p class="mt-1 text-xs text-slate-400">Shown under your logo in the sidebar and on the sign-in page. Leave empty to hide it.</p></div>
@@ -88,7 +89,7 @@ async function revoke(t) {
             </section>
 
             <section class="card space-y-4 p-5">
-                <h2 class="text-sm font-semibold">API access</h2>
+                <SectionTitle :icon="KeyRound" tone="bg-amber-100 text-amber-700" title="API access" hint="Personal tokens for scripts and integrations" />
                 <dl class="space-y-2 text-sm"><div><dt class="label">Base URL</dt><dd class="font-mono text-xs">{{ s.app_url }}/api/v1</dd></div></dl>
                 <p class="text-sm text-slate-600">Create a personal token for scripts and integrations. Send it as <code class="rounded bg-slate-100 px-1">Authorization: Bearer …</code>. Tokens are shown only once.</p>
                 <div class="flex gap-2"><input v-model="tokenName" class="input" placeholder="Token name, e.g. Zapier" /><button class="btn-outline shrink-0" @click="createToken"><KeyRound class="size-4" /> Create</button></div>
@@ -101,7 +102,7 @@ async function revoke(t) {
             </section>
 
             <section v-if="s.webhook_urls" class="card space-y-4 p-5">
-                <h2 class="text-sm font-semibold">Inbound webhooks</h2>
+                <SectionTitle :icon="Webhook" tone="bg-sky-100 text-sky-700" title="Inbound webhooks" hint="Where your e-mail and SMS providers report back" />
                 <p class="text-sm text-slate-600">Paste these callback URLs into your email and SMS providers so delivery events (bounces, unsubscribes, SMS status) reach this company. Each company has its own secret address.</p>
                 <div v-for="[label, key] in [['SendGrid event webhook', 'sendgrid'], ['Twilio status callback', 'twilio']]" :key="key">
                     <label class="label">{{ label }}</label>

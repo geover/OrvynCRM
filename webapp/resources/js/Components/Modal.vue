@@ -7,7 +7,8 @@ import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { X } from 'lucide-vue-next';
 import { confirmDiscard, hasUnsaved } from '@/lib/unsavedGuard';
 
-const props = defineProps({ title: String, width: { type: String, default: 'max-w-lg' } });
+// fill: the dialog takes the height of the screen and its content lays itself out, so one part (a conversation) scrolls while the rest stays in place
+const props = defineProps({ title: String, width: { type: String, default: 'max-w-lg' }, fill: Boolean });
 const emit = defineEmits(['close']);
 // X, Escape and a click outside ask first when something typed in here is not saved (Cancel and Save buttons are the form's own choice)
 async function close() {
@@ -39,12 +40,12 @@ onBeforeUnmount(() => { open.splice(open.indexOf(panel), 1); document.removeEven
 
 <template>
     <div class="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-slate-900/40 p-4 sm:items-center" @mousedown.self="close">
-        <div ref="panel" :class="width" class="card flex max-h-[92vh] w-full flex-col outline-none" role="dialog" aria-modal="true" :aria-label="title" tabindex="-1">
+        <div ref="panel" :class="[width, fill ? 'h-[92vh]' : 'max-h-[92vh]']" class="card flex w-full flex-col outline-none" role="dialog" aria-modal="true" :aria-label="title" tabindex="-1">
             <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
                 <h2 class="text-base font-semibold">{{ title }}</h2>
                 <button class="btn-ghost !px-1.5" type="button" aria-label="Close dialog" @click="close"><X class="size-4" /></button>
             </div>
-            <div class="overflow-y-auto p-5"><slot /></div>
+            <div :class="fill ? 'flex min-h-0 flex-1 flex-col overflow-hidden p-5' : 'overflow-y-auto p-5'"><slot /></div>
             <div v-if="$slots.footer" class="flex justify-end gap-2 border-t border-slate-100 px-5 py-3"><slot name="footer" /></div>
         </div>
     </div>

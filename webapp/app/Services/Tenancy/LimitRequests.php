@@ -127,7 +127,7 @@ class LimitRequests
             "{$r->requester_name} ({$r->requester_email}) asks for {$r->subject()} for {$company?->name}.\n\n"
             ."Current limit: {$r->current_limit}\nRequested limit: {$r->requested_limit}\n{$quote}"
             .($r->message ? "\nMessage:\n{$r->message}\n" : '')
-            ."\nReview it under Platform > Requests: ".url('/platform/seat-requests'),
+            ."\nReview it under Platform > Requests: ".url('/platform/requests'),
         );
     }
 }

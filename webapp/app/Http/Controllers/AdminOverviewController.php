@@ -10,7 +10,6 @@ use App\Models\EmailMessage;
 use App\Models\EmailTemplate;
 use App\Models\Form;
 use App\Models\Integration;
-use App\Models\MessageThread;
 use App\Models\PriceList;
 use App\Models\SavedQuery;
 use App\Models\Schedule;
@@ -29,7 +28,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/** The Admin settings overview: the same cards as the sub-menu, each with a few current facts (how much is set up, what is on or off). */
+/** The Company settings overview: the same cards as the sub-menu, each with a few current facts (how much is set up, what is on or off). */
 class AdminOverviewController extends Controller
 {
     public function __invoke(Request $request, Plans $plans, Seats $seats, Limits $limits, SmsSettings $sms, Subscriptions $subscriptions): Response
@@ -54,7 +53,6 @@ class AdminOverviewController extends Controller
                 }],
             ],
             '/admin/users' => [['Active users', $seats->usedFor($company).' of '.(Plans::isUnlimitedSeats((int) $company->max_users) ? 'unlimited' : (int) $company->max_users)]],
-            '/admin/platform-messages' => [['New replies', (string) MessageThread::unreadForTenant((string) tenant('id'))->count()]],
             '/objects' => [['Data objects', ($objects['used'] ?? 0).' of '.($objects['max'] ?? '?')]],
             '/admin/contact-relationships' => [$n('Types', ContactRelationshipType::count())],
             '/admin/queries' => [$n('Saved queries', SavedQuery::count())],

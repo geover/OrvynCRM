@@ -59,6 +59,7 @@ class PlatformController extends Controller
                 'last_active_at' => ($t->last_active_at ?? $t->created_at)?->toIso8601String(), 'idle_days' => $t->isActive() ? $inactive->daysIdle($t) : null,
                 'inactive' => $t->isActive() && $t->inactive_since !== null, 'status_note' => $t->status_note, 'closed_at' => $t->closed_at?->toIso8601String(),
                 ...$this->headlineCounts($t, $overview[$t->getTenantKey()] ?? null),
+                ...$this->automationFigures($t, $overview[$t->getTenantKey()] ?? null),
             ])->values(),
             'email' => $request->attributes->get('platform_identity')->email,
             'inactivity' => ['enabled' => $inactive->enabled(), 'days' => $inactive->days()],
@@ -94,6 +95,33 @@ class PlatformController extends Controller
             'data_objects' => DB::table('data_objects')->count(),
             'records' => DB::table('data_object_records')->whereNull('deleted_at')->count(),
         ]);
+    }
+
+    /**
+     * How many automations the company has, and how they spread over its data objects (the busiest first). They come from the hourly totals; a company whose totals
+     * do not hold them yet is counted live (one grouped query), so the list is never left blank.
+     *
+     * @return array{automations: int|null, automations_by_object: list<array{name: string, automations: int}>}
+     */
+    private function automationFigures(Tenant $t, ?TenantStat $stat): array
+    {
+        $rows = $stat?->object_breakdown;
+        if (is_array($rows) && $rows !== [] && array_key_exists('automations', $rows[0]) && $stat?->collected_at !== null) {
+            $by = collect($rows)->filter(fn ($r) => $r['automations'] > 0)->sortByDesc('automations')->map(fn ($r) => ['name' => $r['name'], 'automations' => (int) $r['automations']])->values()->all();
+
+            return ['automations' => (int) $stat->automations_total, 'automations_by_object' => $by];
+        }
+        if (! $t->isActive()) {
+            return ['automations' => $stat?->collected_at !== null ? (int) $stat->automations_total : null, 'automations_by_object' => []];
+        }
+
+        return $t->run(function () {
+            $names = DB::table('data_objects')->pluck('name', 'id');
+            $by = DB::table('automations')->whereNotNull('data_object_id')->selectRaw('data_object_id, count(*) as n')->groupBy('data_object_id')->orderByDesc('n')->pluck('n', 'data_object_id')
+                ->map(fn ($n, $id) => ['name' => $names[$id] ?? 'Deleted object', 'automations' => (int) $n])->values()->all();
+
+            return ['automations' => DB::table('automations')->count(), 'automations_by_object' => $by];
+        });
     }
 
     public function store(Request $request, TenantProvisioner $provisioner, Plans $plans): RedirectResponse

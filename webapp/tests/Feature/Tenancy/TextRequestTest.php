@@ -47,7 +47,7 @@ class TextRequestTest extends TenantTestCase
         $request = SeatRequest::first();
         $this->assertSame([SeatRequest::TEXTS, $now, $now + 400], [$request->kind, $request->current_limit, $request->requested_limit]);
         $this->platformAdmin();
-        $this->get('/platform/seat-requests')->assertOk()->assertInertia(fn ($p) => $p->where('requests.0.kind', 'texts')->where('requests.0.limit_now', $now));
+        $this->get('/platform/requests')->assertOk()->assertInertia(fn ($p) => $p->where('requests.0.kind', 'texts')->where('requests.0.limit_now', $now));
     }
 
     public function test_the_request_must_ask_for_more_than_the_company_has_and_only_one_waits_at_a_time(): void
@@ -78,7 +78,7 @@ class TextRequestTest extends TenantTestCase
         $this->api('owner@acme.test', 'acme')->postJson('/api/v1/billing/text-request', ['requested_limit' => $base + 300])->assertCreated();
         $this->platformAdmin();
 
-        $this->post('/platform/seat-requests/'.SeatRequest::first()->id.'/approve', ['granted_limit' => $base + 250])->assertSessionHasNoErrors();
+        $this->post('/platform/requests/'.SeatRequest::first()->id.'/approve', ['granted_limit' => $base + 250])->assertSessionHasNoErrors();
 
         $acme->refresh();
         $this->assertSame(250, (int) $acme->extra_sms);
@@ -88,7 +88,7 @@ class TextRequestTest extends TenantTestCase
         $second = $this->api('owner@acme.test', 'acme');
         $second->postJson('/api/v1/billing/text-request', ['requested_limit' => $base + 900])->assertCreated();
         $this->platformAdmin();
-        $this->post('/platform/seat-requests/'.SeatRequest::latest('id')->first()->id.'/decline', ['response' => 'Not now'])->assertSessionHasNoErrors();
+        $this->post('/platform/requests/'.SeatRequest::latest('id')->first()->id.'/decline', ['response' => 'Not now'])->assertSessionHasNoErrors();
         $this->assertSame(250, (int) $acme->fresh()->extra_sms);
     }
 
@@ -98,7 +98,7 @@ class TextRequestTest extends TenantTestCase
         $base = app(Plans::class)->smsLimit($acme);
         $this->api('owner@acme.test', 'acme')->postJson('/api/v1/billing/text-request', ['requested_limit' => $base + 100]);
         $this->platformAdmin();
-        $this->post('/platform/seat-requests/'.SeatRequest::first()->id.'/approve', []);
+        $this->post('/platform/requests/'.SeatRequest::first()->id.'/approve', []);
 
         $api = fn () => $this->api('owner@acme.test', 'acme');
         $id = $api()->getJson('/api/v1/billing')->assertJsonPath('data.text_request.status', 'approved')->json('data.text_request.id');
@@ -114,7 +114,7 @@ class TextRequestTest extends TenantTestCase
         $this->api('owner@acme.test', 'acme')->postJson('/api/v1/billing/text-request', ['requested_limit' => $base + 300])->assertCreated();
         $this->platformAdmin();
 
-        $this->post('/platform/seat-requests/'.SeatRequest::first()->id.'/approve', ['this_month_only' => true])->assertSessionHasNoErrors();
+        $this->post('/platform/requests/'.SeatRequest::first()->id.'/approve', ['this_month_only' => true])->assertSessionHasNoErrors();
 
         $acme->refresh();
         $this->assertSame([0, 300], [(int) $acme->extra_sms, (int) $acme->bonus_sms]);
@@ -134,13 +134,13 @@ class TextRequestTest extends TenantTestCase
         $acme->update(['extra_sms' => 100]);
         $this->api('owner@acme.test', 'acme')->postJson('/api/v1/billing/text-request', ['requested_limit' => $tier + 500])->assertCreated();
         $this->platformAdmin();
-        $this->post('/platform/seat-requests/'.SeatRequest::first()->id.'/approve', ['this_month_only' => true]);
+        $this->post('/platform/requests/'.SeatRequest::first()->id.'/approve', ['this_month_only' => true]);
         $acme->refresh();
         $this->assertSame([100, 400], [(int) $acme->extra_sms, (int) $acme->bonus_sms], 'the bonus only covers what the permanent extra does not');
 
         $this->api('owner@acme.test', 'acme')->postJson('/api/v1/billing/text-request', ['requested_limit' => $tier + 900])->assertCreated();
         $this->platformAdmin();
-        $this->post('/platform/seat-requests/'.SeatRequest::latest('id')->first()->id.'/approve', []);
+        $this->post('/platform/requests/'.SeatRequest::latest('id')->first()->id.'/approve', []);
         $acme->refresh();
         $this->assertSame([900, 0], [(int) $acme->extra_sms, (int) $acme->bonus_sms]);
     }

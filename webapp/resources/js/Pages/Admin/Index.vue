@@ -6,7 +6,7 @@ import SettingsFact from '@/Components/SettingsFact.vue';
 import { Search } from 'lucide-vue-next';
 import { ADMIN_GROUPS } from '@/lib/nav';
 
-// The Admin settings overview, like the platform's Settings: the sub-menu on the left, and a card per area with a few current facts.
+// The Company settings overview, like the platform's Settings: the sub-menu on the left, and a card per area with a few current facts.
 const props = defineProps({ facts: { type: Object, default: () => ({}) } });
 const term = ref('');
 const groups = computed(() => {
@@ -16,7 +16,7 @@ const groups = computed(() => {
 </script>
 
 <template>
-    <AdminPage overview title="Admin settings" subtitle="Everything that configures your workspace, grouped by area.">
+    <AdminPage overview title="Company settings" subtitle="Everything that configures your workspace, grouped by area.">
         <div class="space-y-7">
             <div class="relative max-w-sm"><Search class="pointer-events-none absolute left-3 top-2.5 size-4 text-slate-400" /><input v-model="term" class="input !pl-9" placeholder="Find a setting…" aria-label="Find a setting" data-testid="hub-search" /></div>
             <section v-for="g in groups" :key="g.title" :aria-label="g.title">

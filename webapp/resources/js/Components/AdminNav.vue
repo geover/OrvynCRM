@@ -2,14 +2,12 @@
 import { computed, onMounted, ref } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import { Search } from 'lucide-vue-next';
-import { liveCounts } from '@/lib/live';
 import { ADMIN_GROUPS } from '@/lib/nav';
 
-// The sub-menu of the company's Admin settings, in groups: a column on the left of wide screens (with a search box), a scrolling row of pills on
+// The sub-menu of the company's Company settings, in groups: a column on the left of wide screens (with a search box), a scrolling row of pills on
 // narrow ones. The same on every settings page, like the platform's Settings.
 const page = usePage();
 const term = ref('');
-const threadsUnread = computed(() => liveCounts.platformThreads ?? page.props.platformThreadsUnread);
 const groups = computed(() => {
     const t = term.value.trim().toLowerCase();
     return ADMIN_GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => !t || i.title.toLowerCase().includes(t)) })).filter((g) => g.items.length);
@@ -39,7 +37,6 @@ onMounted(() => pills.value?.querySelector('[aria-current="page"]')?.scrollIntoV
                 <Link v-for="i in g.items" :key="i.href" :href="i.href" :aria-current="here(i.href) ? 'page' : undefined"
                     :class="here(i.href) ? 'bg-brand-50 font-medium text-brand-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'" class="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm">
                     <component :is="i.icon" class="size-4 shrink-0" /> <span class="truncate">{{ i.title }}</span>
-                    <span v-if="i.href === '/admin/platform-messages' && threadsUnread" class="ml-auto grid min-w-5 place-items-center rounded-full bg-amber-500 px-1.5 text-[11px] font-semibold text-white" data-testid="subnav-unread-badge">{{ threadsUnread }}</span>
                 </Link>
             </div>
             <p v-if="!groups.length" class="px-3 text-xs text-slate-400">No match.</p>

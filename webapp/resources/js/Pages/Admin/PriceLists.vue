@@ -1,8 +1,10 @@
 <script setup>
-import { onMounted, ref } from 'vue';
-import { Copy, Lock, LockOpen, Pencil, Plus, Share2, Trash2 } from 'lucide-vue-next';
+import { computed, onMounted, ref } from 'vue';
+import { Copy, FileText, Lock, LockOpen, Pencil, Plus, Share2, Trash2 } from 'lucide-vue-next';
 import AdminPage from '@/Components/AdminPage.vue';
+import ItemCollection from '@/Components/ItemCollection.vue';
 import Modal from '@/Components/Modal.vue';
+import TicketTile from '@/Components/support/TicketTile.vue';
 import { api } from '@/lib/api';
 import { confirmDialog, fmtDate, run, toast } from '@/lib/ui';
 
@@ -11,6 +13,7 @@ const modal = ref(false);
 const d = ref(null);
 const errors = ref({});
 
+const lockedCount = computed(() => (lists.value ?? []).filter((l) => l.is_locked).length);
 const load = async () => (lists.value = (await api.get('/price-lists')).data);
 onMounted(load);
 
@@ -34,19 +37,24 @@ async function share(l) { try { await navigator.clipboard.writeText(l.share_url)
 <template>
     <AdminPage title="Price list generator" subtitle="Build custom price lists. Lock one to publish a read-only share link.">
         <template #actions><button class="btn-primary" @click="open()"><Plus class="size-4" /> New price list</button></template>
-        <div class="card divide-y divide-slate-100">
-            <div v-for="l in lists" :key="l.id" class="flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-sm">
-                <div><div class="font-medium">{{ l.title }} <span v-if="l.is_locked" class="badge ml-1"><Lock class="mr-1 size-3" /> locked</span></div><div class="mt-0.5 text-xs text-slate-400">{{ l.form_type }} · updated {{ fmtDate(l.updated_at) }}</div></div>
-                <div class="flex gap-1">
-                    <button v-if="l.is_locked" class="btn-outline" @click="share(l)"><Share2 class="size-4" /> Share</button>
-                    <button class="btn-ghost !px-1.5" :title="l.is_locked ? 'Unlock' : 'Lock & publish'" @click="toggleLock(l)"><component :is="l.is_locked ? LockOpen : Lock" class="size-4" /></button>
-                    <button class="btn-ghost !px-1.5" :disabled="l.is_locked" title="Edit" @click="open(l)"><Pencil class="size-4" /></button>
-                    <button class="btn-ghost !px-1.5" title="Duplicate" @click="dup(l)"><Copy class="size-4" /></button>
-                    <button class="btn-ghost !px-1.5 text-slate-400 hover:text-red-600" @click="remove(l)"><Trash2 class="size-4" /></button>
-                </div>
-            </div>
-            <p v-if="lists && !lists.length" class="px-5 py-10 text-center text-sm text-slate-400">No price lists yet.</p>
-        </div>
+                <section class="mb-5 grid grid-cols-2 gap-4 lg:grid-cols-3" data-testid="pricelists-summary" aria-label="Price lists in numbers">
+            <TicketTile :icon="FileText" tone="bg-indigo-100 text-indigo-700" label="Price lists" :value="lists?.length ?? 0" hint="built" />
+            <TicketTile :icon="Lock" tone="bg-emerald-100 text-emerald-700" label="Published" :value="lockedCount" hint="locked, with a share link" />
+            <TicketTile class="col-span-2 lg:col-span-1" :icon="Pencil" tone="bg-slate-100 text-slate-500" label="Being edited" :value="(lists?.length ?? 0) - lockedCount" hint="not shared yet" />
+        </section>
+        <ItemCollection :items="lists" storage-key="price-lists" :icon="FileText" :search-text="(l) => `${l.title} ${l.form_type}`" search-label="Find a price list…" empty-title="No price lists yet" empty-text="Build a price list, then lock it to publish a read-only link you can share.">
+            <template #title="{ item: l }">{{ l.title }}</template>
+            <template #badges="{ item: l }"><span v-if="l.is_locked" class="badge"><Lock class="mr-1 size-3" /> locked</span><span class="badge capitalize">{{ l.form_type }}</span></template>
+            <template #meta="{ item: l }">updated {{ fmtDate(l.updated_at) }}</template>
+            <template #actions="{ item: l }">
+                <button v-if="l.is_locked" class="btn-outline" @click="share(l)"><Share2 class="size-4" /> Share</button>
+                <button class="btn-ghost !px-1.5" :title="l.is_locked ? 'Unlock' : 'Lock & publish'" :aria-label="l.is_locked ? 'Unlock' : 'Lock and publish'" @click="toggleLock(l)"><component :is="l.is_locked ? LockOpen : Lock" class="size-4" /></button>
+                <button class="btn-ghost !px-1.5" :disabled="l.is_locked" title="Edit" aria-label="Edit" @click="open(l)"><Pencil class="size-4" /></button>
+                <button class="btn-ghost !px-1.5" title="Duplicate" aria-label="Duplicate" @click="dup(l)"><Copy class="size-4" /></button>
+                <button class="btn-ghost !px-1.5 text-slate-400 hover:text-red-600" title="Delete" aria-label="Delete" @click="remove(l)"><Trash2 class="size-4" /></button>
+            </template>
+            <template #empty><button class="btn-primary" @click="open()"><Plus class="size-4" /> New price list</button></template>
+        </ItemCollection>
 
         <Modal v-if="modal" :title="d.id ? 'Edit price list' : 'New price list'" width="max-w-3xl" @close="modal = false">
             <form id="pf" class="space-y-4" @submit.prevent="save">

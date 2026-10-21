@@ -78,7 +78,7 @@ test('a company administrator asks for more texts', async ({ page }) => {
 
 test('the platform sees the texts request, approves it for this month only, and the company sees the answer', async ({ page }) => {
     await signIn(page, PLATFORM);
-    await page.goto('/platform/seat-requests');
+    await page.goto('/platform/requests');
     await page.locator('[data-filter="texts"]').click();
 
     const card = page.locator('article[data-request][data-status="pending"]').first();

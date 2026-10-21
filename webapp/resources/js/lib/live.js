@@ -5,7 +5,8 @@ import { onBeforeUnmount, onMounted, reactive } from 'vue';
 // is gone or the thing it watches no longer exists.
 
 /** Unread counts that are fresher than the page props they came with (null: use the props). */
-export const liveCounts = reactive({ platformMessages: null, platformThreads: null });
+// tickets*: the badge, and the signature of all tickets (a page reloads its list when it changes)
+export const liveCounts = reactive({ platformMessages: null, platformThreads: null, tickets: null, ticketsSig: null, support: null, platformTickets: null, platformTicketsSig: null });
 
 /**
  * Calls `tick` every `every` ms while the tab is visible. `tick` may throw an error with a `status`: 401, 403 and 404 stop

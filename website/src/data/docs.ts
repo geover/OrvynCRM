@@ -90,7 +90,7 @@ export const docs: DocPage[] = [
                     {
                         steps: [
                             '**Follow the checklist.** Administrators see a *Get your workspace ready* card on the Dashboard with these steps, ticked off as you go. Hide it any time.',
-                            '**Make it yours.** Under Admin settings, *App details* and *Look & feel*, set the company name, your time zone, your logo and your colours.',
+                            '**Make it yours.** Under Company settings, *App details* and *Look & feel*, set the company name, your time zone, your logo and your colours.',
                             '**Describe your business.** In *Data Objects*, create the record types you really have (for example Deals or Properties) and add their fields. See Your data.',
                             '**Bring your people.** Import contacts from a CSV, or sync them from Keap. See Contacts.',
                             '**Invite your team.** Under *User management*, add people and give each a permission template.',
@@ -109,12 +109,12 @@ export const docs: DocPage[] = [
                         table: {
                             head: ['Where', 'What is there'],
                             rows: [
-                                ['Sidebar', 'Dashboard, Contacts, Data Objects, Workflow Boards, My Tasks, Schedules and, for administrators, Admin Settings.'],
+                                ['Sidebar', 'Dashboard, Contacts, Data Objects, Workflow Boards, My Tasks, Schedules and, for administrators, Messages, Support tickets and Company Settings.'],
                                 ['Search box', 'Searches contacts and records as you type. Press **Ctrl+K** (**Cmd+K** on a Mac) for the command palette: jump to any page, find a contact, or create a contact or task.'],
                                 ['Bell', 'Your notifications: tasks, import and export results, notices about your company.'],
-                                ['Admin settings', 'Every settings page has the same grouped menu on the left, with a filter box, and an overview of cards showing live facts such as your plan and how many users you use.'],
+                                ['Company settings', 'Every settings page has the same grouped menu on the left, with a filter box, and an overview of cards showing live facts such as your plan and how many users you use.'],
                                 ['Add contact', 'The person-with-a-plus button in the top bar opens the new-contact form from any page. The Contacts page has its own New contact button, so it is left out there.'],
-                                ['Account menu', 'User settings, switch company, light or dark theme, Admin settings and Sign out.'],
+                                ['Account menu', 'User settings, switch company, light or dark theme, Company settings and Sign out.'],
                             ],
                         },
                     },
@@ -204,7 +204,7 @@ export const docs: DocPage[] = [
                     { h: 'Import from CSV' },
                     {
                         steps: [
-                            'Open *Data import and export* in Admin settings and choose the **Import type**: Contacts, or a data object.',
+                            'Open *Data import and export* in Company settings and choose the **Import type**: Contacts, or a data object.',
                             'Choose the CSV file. The first rows are read and a preview of the columns appears.',
                             'Match each CSV column to a field, or choose *skip*.',
                             'For data objects pick an **Identifying field** so existing items are updated instead of duplicated, or *none, always create new*.',
@@ -364,7 +364,7 @@ export const docs: DocPage[] = [
                         ],
                     },
                     { h: 'Adding a tab' },
-                    { steps: ['Open **Admin settings → Custom tabs** and press **Add tab**, or the **Add a contact tab** / **Add a sidebar tab** button on one of the two cards.', 'Choose **where it appears**.', 'Give it a **title**, an optional **description** (a line in your own words saying what it is for, shown under the page title or above the tab) and a **picture**.', 'Choose what it shows: **a web page** (an https address) or **my own content**, written in an editor like the one for e-mails: headings, bold, lists, links, pictures and colours. The **</>** button shows the HTML for full control.', 'Choose **who can see it**: everyone, or only the roles, permission groups and people you pick. Administrators always see every tab.', 'Check **How it will look**, then **Save tab**.'] },
+                    { steps: ['Open **Company settings → Custom tabs** and press **Add tab**, or the **Add a contact tab** / **Add a sidebar tab** button on one of the two cards.', 'Choose **where it appears**.', 'Give it a **title**, an optional **description** (a line in your own words saying what it is for, shown under the page title or above the tab) and a **picture**.', 'Choose what it shows: **a web page** (an https address) or **my own content**, written in an editor like the one for e-mails: headings, bold, lists, links, pictures and colours. The **</>** button shows the HTML for full control.', 'Choose **who can see it**: everyone, or only the roles, permission groups and people you pick. Administrators always see every tab.', 'Check **How it will look**, then **Save tab**.'] },
                     { p: 'Each kind has its own list. Use the arrows to change the order, the pencil to change a tab and the bin to delete it. Changes are saved at once.' },
                     { h: 'Passing details to a web page' },
                     { p: 'Add these to the address: `{{user.id}}`, `{{user.email}}`, `{{user.name}}` for the person looking, and on a contact tab `{{contact.id}}` and `{{contact.email}}` for the contact. They are filled in when the tab opens.' },
@@ -496,7 +496,7 @@ export const docs: DocPage[] = [
                 blocks: [
                     {
                         steps: [
-                            'Open **Automation** in Admin settings and press **New automation**.',
+                            'Open **Automation** in Company settings and press **New automation**.',
                             'Name it and choose the **data object** it watches.',
                             'Choose **When to check**.',
                             'Under **If this…** build the conditions, or leave them empty.',
@@ -593,7 +593,7 @@ export const docs: DocPage[] = [
                 blocks: [
                     {
                         steps: [
-                            'Open *Twilio* in Admin settings and enter your **Account SID** and **Auth token** (on the front page of the Twilio console).',
+                            'Open *Twilio* in Company settings and enter your **Account SID** and **Auth token** (on the front page of the Twilio console).',
                             'Enter a **Send from** number, or a **Messaging Service SID**.',
                             'Press **Test the account** to check Twilio accepts it. The token is stored encrypted and never shown again.',
                             'Choose your **texting numbers** and the default one.',
@@ -616,6 +616,53 @@ export const docs: DocPage[] = [
                 title: 'Delivery reports and e-mail providers',
                 blocks: [
                     { p: 'E-mail goes out through the platform’s mail service, which can be SendGrid or any SMTP server. With SendGrid, bounces, spam reports, unsubscribes and clicks are reported back and applied to the right company automatically. You do not have to set anything up for this: it is done once, by the platform.' },
+                ],
+            },
+        ],
+    },
+
+    // ------------------------------------------------------------------------------------------------------------------------------
+    {
+        slug: 'support',
+        title: 'Support and messages',
+        icon: 'lifebuoy',
+        summary: 'Report a problem, talk to the platform, and let your own people ask your team.',
+        sections: [
+            {
+                id: 'support-tickets',
+                title: 'Support tickets',
+                lead: 'Report a problem and follow it until it is solved.',
+                blocks: [
+                    { steps: ['Open **Support tickets** in the sidebar, or choose **Report a problem** in your account menu on any page.', 'Give the problem a short title, say what it is about and how urgent it feels, and describe what happened. Attach screenshots, a PDF or a log (up to 5 files).', 'Tick *Include where I am and what I use* so the page and browser reach us with the ticket.'] },
+                    { p: 'Every administrator of your company sees every ticket and can write on it. A ticket is **With support** while we have to act, **Waiting for you** when we replied, **Resolved** when we think it is fixed and **Closed** when it is over. Four tiles at the top count them and filter the list.' },
+                    { p: 'If a resolved ticket is still a problem, write on it or press **Reopen**. A resolved ticket that stays quiet closes by itself after a few days.' },
+                    { tip: 'Choose how tickets are drawn with the layout switch: **Detailed**, **List** or **Boxes**. Your choice is remembered.' },
+                ],
+            },
+            {
+                id: 'messages',
+                title: 'Messages',
+                lead: 'One page for the conversations with the platform and the questions your own people ask.',
+                blocks: [
+                    { p: '**Messages** has two tabs. **Platform** holds your conversations with the people who run OrvynCRM: start one, write in the rich text editor and attach images. **Internal support** holds the questions people of your company asked with Contact support.' },
+                    { list: ['Unread conversations are marked, counted on the tab and on the sidebar item, and refresh by themselves.', 'Conversations can be archived and restored.', 'The conversation fills the window, so the reply box is always in view.'] },
+                ],
+            },
+            {
+                id: 'contact-support',
+                title: 'Contact support',
+                lead: 'A chat with your own support team, in the account menu of everyone who is not an administrator.',
+                blocks: [
+                    { p: 'Choose **Contact support** and a wide window opens: your conversations on the left, the chat on the right. Write a message, and read every answer when it comes. You can write again in the same conversation, so nothing is lost. A number on your avatar and a notice in the bell tell you about a new answer.' },
+                    { p: 'Administrators answer under **Messages**, **Internal support**, in a rich text editor. Under **Internal support emails** the company chooses whether its internal addresses are e-mailed when someone writes, and whether the person is e-mailed when they are answered. The app always shows both sides.' },
+                ],
+            },
+            {
+                id: 'layouts',
+                title: 'Tiles, search and layouts',
+                lead: 'The same way to find your way around on every list.',
+                blocks: [
+                    { p: 'Most lists open with a row of **tiles**: the numbers that matter. A tile that looks like a button is also a filter. Under it you find a search box and a switch between **Detailed** (a card each), **List** (one slim line each) and **Boxes** (a grid). It is there on tickets, automations, forms, queries, e-mail templates, webhooks, price lists, tours, schedules and permission templates.' },
                 ],
             },
         ],
@@ -964,7 +1011,7 @@ export const offer: { icon: string; title: string; text: string; page: string; p
     { icon: 'form', title: 'Forms and webhooks', page: 'forms-and-webhooks', text: 'Put a form on your website and let every answer land as a contact. Talk to other systems with signed webhooks.',
         points: ['Embed, iframe or direct link', 'Fields mapped to your data', 'Signed outbound webhooks', 'Delivery reports coming in'] },
     { icon: 'shield', title: 'Team and workspace', page: 'team-and-admin', text: 'Decide who sees and does what, and keep the workspace looking like your company.',
-        points: ['Users and permission templates', 'Your logo, colours and time zone', 'Message the platform from inside the app', 'Meters for every limit'] },
+        points: ['Users and permission templates', 'Your logo, colours and time zone', 'Write to the platform from inside the app', 'Meters for every limit'] },
     { icon: 'calendar', title: 'Plans and billing', page: 'plans-and-billing', text: 'A free trial, five plans, card payment on Stripe or invoicing, and clear limits.',
         points: ['Trial reminders', 'Pay by card or by invoice', 'Ask for more users, data objects, automations or texts', 'Usage by month'] },
     { icon: 'link', title: 'API', page: 'api', text: 'A JSON API over everything in the app, for your own scripts and integrations.',

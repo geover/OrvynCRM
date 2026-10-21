@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\MessageThread;
+use App\Models\SupportRequest;
 use App\Models\ThreadMessage;
 use App\Services\Tenancy\ThreadAttachments;
 use App\Services\Tenancy\ThreadMailer;
 use App\Services\Tenancy\ThreadPoll;
+use App\Support\SafeHtml;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -40,7 +42,7 @@ class PlatformThreadController extends Controller
         $unread = fn () => $visible()->where('unread_tenant', true)->count();
 
         if ($request->boolean('counts')) {
-            return response()->json(['unread' => $unread()]);
+            return response()->json(['unread' => $unread() + SupportRequest::where('unread_admin', true)->count()]);                // the menu badge: the platform and internal support
         }
         $signature = $poll->signature($visible());
         if ($signature === $request->query('sig')) {
@@ -155,7 +157,7 @@ class PlatformThreadController extends Controller
 
     private function snippet(ThreadMessage $m): string
     {
-        $text = str($m->body)->squish()->limit(110)->toString();
+        $text = str(SafeHtml::toText($m->body))->squish()->limit(110)->toString();
 
         return $text !== '' ? $text : ($m->attachments_count ? '[image]' : '');
     }

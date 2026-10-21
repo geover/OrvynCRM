@@ -43,7 +43,7 @@ test('no page is blocked by the content security policy', async ({ page }) => {
     await page.goto('/login');
     await submitSignIn(page, 'platform@orvyncrm.test', PASSWORD);
     await page.waitForURL((u) => !u.pathname.startsWith('/login'));
-    for (const u of ['/platform', '/platform/dashboard', '/platform/services', '/platform/usage', '/platform/settings/plans', '/platform/settings/payments', '/platform/seat-requests', '/platform/branding', '/platform/look', '/platform/signups', '/platform/messages']) await visit(page, bucket, u);
+    for (const u of ['/platform', '/platform/dashboard', '/platform/services', '/platform/usage', '/platform/settings/plans', '/platform/settings/payments', '/platform/requests', '/platform/branding', '/platform/look', '/platform/signups', '/platform/messages']) await visit(page, bucket, u);
 
     expect([...new Set(bucket)], 'pages blocked by the content security policy').toEqual([]);
 });

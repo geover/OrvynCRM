@@ -1,7 +1,9 @@
 <script setup>
 import { onMounted, ref } from 'vue';
+import { Image, Palette, Star } from 'lucide-vue-next';
 import { router, usePage } from '@inertiajs/vue3';
 import AdminPage from '@/Components/AdminPage.vue';
+import SectionTitle from '@/Components/SectionTitle.vue';
 import { api } from '@/lib/api';
 import { isLightColor } from '@/lib/brand';
 import { confirmDialog, run, toast } from '@/lib/ui';
@@ -68,7 +70,7 @@ async function removeLogo() {
     <AdminPage title="Look & feel" subtitle="Customise your brand logo and theme colour.">
         <div class="grid max-w-4xl gap-6 lg:grid-cols-2">
             <section class="card space-y-4 p-5">
-                <h2 class="text-sm font-semibold">Theme colour</h2>
+                <SectionTitle :icon="Palette" title="Theme colour" hint="Buttons, highlights and the sidebar" />
                 <div class="flex items-center gap-3"><input v-model="color" type="color" class="h-12 w-16 cursor-pointer rounded border border-slate-200" /><input v-model="color" class="input !w-32 font-mono" maxlength="7" /></div>
                 <div class="flex flex-wrap gap-2"><button v-for="c in PRESETS" :key="c" :style="{ background: c }" class="size-8 rounded-full ring-offset-2 hover:ring-2" :class="color === c && 'ring-2 ring-slate-400'" @click="color = c" /></div>
                 <div class="rounded-lg p-4 text-sm text-white" :style="{ background: color }">Preview: buttons and highlights use this colour{{ customSidebar ? '' : ', and so does the sidebar' }}.</div>
@@ -82,7 +84,7 @@ async function removeLogo() {
                 <button class="btn-primary" @click="saveColor">Save colour</button>
             </section>
             <section class="card space-y-4 p-5">
-                <h2 class="text-sm font-semibold">Company logo</h2>
+                <SectionTitle :icon="Image" tone="bg-sky-100 text-sky-700" title="Company logo" hint="Shown in the sidebar and on the sign-in page" />
                 <div class="grid min-h-28 place-items-center rounded-lg bg-slate-800 p-4"><img v-if="logo" :src="logo" alt="Logo" :style="{ maxHeight: `${logoHeight}px` }" class="max-w-full object-contain" data-testid="logo-preview" /><span v-else class="text-sm text-slate-400">Loading…</span></div>
                 <div class="space-y-2 rounded-lg border border-slate-200 p-3">
                     <div class="flex items-center justify-between gap-3"><label class="text-sm font-medium" for="logo-height">Tallest the logo may be in the sidebar</label><span class="flex items-center gap-1 text-sm"><input id="logo-height-n" v-model.number="logoHeight" type="number" :min="LOGO_HEIGHT.min" :max="LOGO_HEIGHT.max" class="input !w-20 !py-1 text-right" aria-label="Logo height in pixels" data-testid="logo-height" /> px</span></div>
@@ -94,7 +96,7 @@ async function removeLogo() {
                     <button v-if="!logoIsDefault" class="btn-ghost text-red-600" @click="removeLogo">Use platform logo</button></div>
             </section>
             <section class="card space-y-4 p-5">
-                <h2 class="text-sm font-semibold">Favicon</h2>
+                <SectionTitle :icon="Star" tone="bg-amber-100 text-amber-700" title="Favicon" hint="The small icon in the browser tab" />
                 <div class="flex h-28 items-center justify-center gap-6 rounded-lg bg-slate-100"><img v-if="favicon" :src="favicon" alt="Favicon" class="size-16 object-contain" /><img v-if="favicon" :src="favicon" alt="" class="size-8 object-contain" /><img v-if="favicon" :src="favicon" alt="" class="size-4 object-contain" /></div>
                 <p class="text-xs text-slate-400">{{ faviconIsDefault ? 'Showing the platform favicon. Upload your own to replace it for your company.' : 'Your company favicon.' }} The small icon in the browser tab. Square PNG, ICO or WebP, up to 512 KB (180x180 or larger is best).</p>
                 <div class="flex gap-2"><label class="btn-outline cursor-pointer">Choose file<input type="file" accept="image/png,image/x-icon,image/vnd.microsoft.icon,image/webp,.ico" class="hidden" data-testid="company-favicon" @change="uploadFavicon" /></label>

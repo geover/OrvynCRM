@@ -1,6 +1,8 @@
 <script setup>
 import { onMounted, ref } from 'vue';
+import { Activity, KeyRound } from 'lucide-vue-next';
 import AdminPage from '@/Components/AdminPage.vue';
+import SectionTitle from '@/Components/SectionTitle.vue';
 import PasswordField from '@/Components/PasswordField.vue';
 import { api } from '@/lib/api';
 import { confirmDialog, fmtRelative, run } from '@/lib/ui';
@@ -41,7 +43,7 @@ const sync = () => run(() => api.post('/integrations/keap/sync'), 'Sync queued')
     <AdminPage title="Keap" subtitle="Connect your Keap account so your contacts can be synced. You provide the details; the platform administrator switches the sync on.">
         <div v-if="keap" class="max-w-3xl space-y-4">
             <section class="card space-y-3 p-5" aria-labelledby="kp-status">
-                <h2 id="kp-status" class="text-sm font-semibold">Status</h2>
+                <SectionTitle id="kp-status" :icon="Activity" tone="bg-emerald-100 text-emerald-700" title="Status" hint="Your details, the platform switch and the last sync" />
                 <dl class="grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
                     <div class="flex justify-between gap-3"><dt class="text-slate-500">Your Keap details</dt><dd class="font-medium" data-testid="keap-details"><span class="badge" :class="keap.configured ? '!bg-emerald-50 !text-emerald-700' : '!bg-amber-50 !text-amber-700'">{{ keap.configured ? `Saved (${keap.key_hint})` : 'Not saved' }}</span></dd></div>
                     <div class="flex justify-between gap-3"><dt class="text-slate-500">Sync switched on by the platform</dt><dd class="font-medium" data-testid="keap-platform"><span class="badge" :class="keap.platform_on ? '!bg-emerald-50 !text-emerald-700' : ''">{{ keap.platform_on ? 'On' : keap.ready ? 'Off: waiting for the platform' : 'Off' }}</span></dd></div>
@@ -56,7 +58,7 @@ const sync = () => run(() => api.post('/integrations/keap/sync'), 'Sync queued')
             </section>
 
             <form class="card space-y-3 p-5" data-testid="keap-form" @submit.prevent="save">
-                <h2 class="text-sm font-semibold">{{ keap.configured ? 'Replace the key' : 'Your Keap key' }}</h2>
+                <SectionTitle :icon="KeyRound" tone="bg-amber-100 text-amber-700" :title="keap.configured ? 'Replace the key' : 'Your Keap key'" hint="Stored encrypted and never shown again" />
                 <div>
                     <label class="label" for="kp-key">Service account key or personal access token</label>
                     <PasswordField id="kp-key" v-model="apiKey" autocomplete="off" :placeholder="keap.configured ? 'Saved. Type to replace it.' : ''" />

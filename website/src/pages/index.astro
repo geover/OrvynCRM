@@ -7,6 +7,7 @@ import BoardMock from '../components/BoardMock.astro';
 import TabsMock from '../components/TabsMock.astro';
 import WhatsNew from '../components/WhatsNew.astro';
 import SignInMock from '../components/SignInMock.astro';
+import SupportMock from '../components/SupportMock.astro';
 import AppMock from '../components/AppMock.astro';
 import FeatureCard from '../components/FeatureCard.astro';
 import CtaBand from '../components/CtaBand.astro';
@@ -122,6 +123,21 @@ import { faq, features, reasons, site, steps, changelog } from '../data/site';
                 </ul>
                 <a href="/docs/data-objects" class="btn-light mt-8">See how custom tabs work</a>
             </div>
+        </div>
+    </Stage>
+
+    <Stage tone="berry" id="support">
+        <div class="grid grid-cols-[minmax(0,1fr)] items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <div>
+                <p class="text-xs font-bold uppercase tracking-widest text-gold-300">Support, built in</p>
+                <h2 class="display mt-3 text-4xl !text-white sm:text-5xl">Help is one click away</h2>
+                <p class="mt-5 max-w-lg text-lg leading-relaxed text-rose-100">Report a problem from any page and follow it on a board until it is solved. Colleagues ask your own team with Contact support, in a chat that keeps every answer, so nothing is ever lost.</p>
+                <ul class="mt-6 space-y-3 text-rose-100">
+                    {['Support tickets with a priority, screenshots and where you were', 'A chat for your colleagues, answered by your administrators', 'Badges and notices the moment there is an answer'].map((t) => <li class="flex gap-3"><span class="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-white/15"><Icon name="check" class="size-3" /></span>{t}</li>)}
+                </ul>
+                <a href="/docs/support" class="btn-light mt-8">See how support works</a>
+            </div>
+            <SupportMock />
         </div>
     </Stage>
 

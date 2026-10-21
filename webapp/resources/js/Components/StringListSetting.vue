@@ -41,5 +41,6 @@ const remove = (v) => persist(items.value.filter((x) => x !== v), 'Removed');
             </ul>
             <p v-if="help" class="border-t border-slate-100 px-4 py-3 text-xs text-slate-400">{{ help }}</p>
         </div>
+        <slot />
     </AdminPage>
 </template>

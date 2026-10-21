@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Services\Tenancy\ThreadAttachments;
+use App\Support\SafeHtml;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -69,7 +70,7 @@ class MessageThread extends Model
     {
         $message = $this->messages()->create([
             'sender_type' => $type, 'sender_account_id' => $sender['account_id'] ?? null,
-            'sender_name' => $sender['name'], 'sender_email' => $sender['email'], 'body' => trim((string) $body),
+            'sender_name' => $sender['name'], 'sender_email' => $sender['email'], 'body' => static::normalise($body),
         ]);
         $files && app(ThreadAttachments::class)->store($message, $files);
 
@@ -87,8 +88,20 @@ class MessageThread extends Model
      * @param  array{account_id?: int|null, name: string, email: string}  $sender
      * @param  list<UploadedFile>  $files
      */
+    /** What a person wrote, kept safe: formatted text is cleaned, plain text stays as typed, and an empty editor is nothing. */
+    public static function normalise(?string $body): string
+    {
+        $body = trim((string) $body);
+        if (preg_match('/<[a-z!\/][^>]*>/i', $body) !== 1) {
+            return $body;
+        }
+
+        return SafeHtml::toText($body) === '' ? '' : trim(SafeHtml::clean($body) ?? '');
+    }
+
     public static function start(string $tenantId, string $subject, array $sender, ?string $body, array $files = []): self
     {
+        abort_if(static::normalise($body) === '' && $files === [], 422, 'Write a message, or attach an image.');
         $thread = static::create([
             'tenant_id' => $tenantId, 'subject' => trim($subject), 'started_by_name' => $sender['name'], 'started_by_email' => $sender['email'],
             'last_message_at' => now(),

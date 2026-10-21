@@ -1,4 +1,4 @@
-import { AlarmClock, CreditCard, Boxes, MessageSquare, CalendarDays, CheckSquare, Columns3, ConciergeBell, Database, FileText, FormInput, Kanban, LayoutDashboard, Mail, MailCheck, Map as MapIcon, Palette, Phone, PlugZap, Rows3, Search, Settings2, Tag, Users, Workflow, Zap } from 'lucide-vue-next';
+import { AlarmClock, CreditCard, LifeBuoy, Boxes, MessageSquare, CalendarDays, CheckSquare, Columns3, ConciergeBell, Database, FileText, FormInput, Kanban, LayoutDashboard, Mail, MailCheck, Map as MapIcon, Palette, Phone, PlugZap, Rows3, Search, Settings2, Tag, Users, Workflow, Zap } from 'lucide-vue-next';
 
 /** Main sidebar entries (the Admin entry is added for administrators by the layout). */
 export const MAIN_NAV = [
@@ -10,7 +10,7 @@ export const MAIN_NAV = [
     { href: '/schedules', label: 'Schedules', icon: CalendarDays },
 ];
 
-/** Admin settings: one source for the hub cards, the sub-navigation and the command palette. */
+/** Company settings: one source for the hub cards, the sub-navigation and the command palette. */
 export const ADMIN_GROUPS = [
     { title: 'General', items: [
         { href: '/admin/app-details', icon: Settings2, title: 'App details', text: 'Timezone, generated email format and API access.' },
@@ -18,7 +18,6 @@ export const ADMIN_GROUPS = [
         { href: '/billing', icon: CreditCard, title: 'Billing & plan', text: 'Your plan, free trial, usage and billing information.' },
         { href: '/admin/users', icon: Users, title: 'User management', text: 'Manage user accounts and permission templates.' },
         { href: '/admin/phone', icon: Phone, title: 'Phone call', text: 'Configure users with caller IDs.' },
-        { href: '/admin/platform-messages', icon: MessageSquare, title: 'Message the platform', text: 'Write directly to the platform administrators and see what you sent.' },
     ] },
     { title: 'Data', items: [
         { href: '/objects', icon: Boxes, title: 'Object builder', text: 'Configure data objects, their fields and relationship rules.' },
@@ -45,4 +44,10 @@ export const ADMIN_GROUPS = [
         { href: '/admin/tours', icon: MapIcon, title: 'Tour manager', text: 'Schedule and manage tours.' },
     ] },
 ];
+/** Reaching the platform: sidebar entries for company administrators (they used to live in the Admin hub). */
+export const SUPPORT_NAV = [
+    { href: '/messages', icon: MessageSquare, title: 'Messages', text: 'Write directly to the platform administrators and see what you sent.' },
+    { href: '/tickets', icon: LifeBuoy, title: 'Support tickets', text: 'Report a problem and follow it until it is solved. Every administrator sees them.' },
+];
+
 export const ADMIN_ITEMS = ADMIN_GROUPS.flatMap((g) => g.items.map((i) => ({ ...i, group: g.title })));

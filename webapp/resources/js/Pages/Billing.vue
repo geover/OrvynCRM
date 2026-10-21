@@ -1,7 +1,8 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue';
 import { router } from '@inertiajs/vue3';
-import { Check, Clock, CreditCard, ExternalLink, TriangleAlert } from 'lucide-vue-next';
+import { ChartColumn, Check, Clock, CreditCard, ExternalLink, Layers, TriangleAlert } from 'lucide-vue-next';
+import SectionTitle from '@/Components/SectionTitle.vue';
 import Modal from '@/Components/Modal.vue';
 import AdminFrame from '@/Components/AdminFrame.vue';
 import RequestOutcome from '@/Components/RequestOutcome.vue';
@@ -150,10 +151,10 @@ async function choose(t) {
 
         <template v-if="data.is_admin">
             <section aria-labelledby="bl-plans">
-                <h2 id="bl-plans" class="mb-3 text-sm font-semibold">Plans</h2>
+                <SectionTitle id="bl-plans" class="mb-3" :icon="Layers" title="Plans" hint="Pick the one that fits; you can change it any time" />
                 <p v-if="planError" class="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert" data-testid="plan-error">{{ planError }}</p>
                 <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                    <div v-for="t in data.tiers" :key="t.tier" class="card flex flex-col p-4" :class="t.tier === data.tier.tier && 'ring-2 ring-brand-500'" :data-tier="t.tier">
+                    <div v-for="t in data.tiers" :key="t.tier" class="card flex flex-col p-4 transition duration-200 hover:-translate-y-0.5 hover:shadow-md" :class="t.tier === data.tier.tier && 'tile-on'" :data-tier="t.tier">
                         <div class="flex items-center justify-between"><h3 class="font-semibold">{{ t.name }}</h3><span v-if="t.tier === data.tier.tier" class="badge !bg-brand-50 !text-brand-700">Current</span></div>
                         <p class="mt-2 text-lg font-semibold tabular-nums">{{ price(t) }}</p>
                         <ul class="mt-3 flex-1 space-y-1.5 text-sm text-slate-600">
@@ -169,7 +170,7 @@ async function choose(t) {
             </section>
 
             <section v-if="data.history?.length" class="card space-y-3 p-5" aria-labelledby="bl-hist" data-testid="usage-history">
-                <h2 id="bl-hist" class="text-sm font-semibold">Usage by month</h2>
+                <SectionTitle id="bl-hist" :icon="ChartColumn" tone="bg-sky-100 text-sky-700" title="Usage by month" />
                 <p class="text-xs text-slate-500">How much of your plan you used. You are told by e-mail and in the bell when you reach 80% and 100% of a limit.</p>
                 <div class="overflow-x-auto"><table class="w-full text-sm">
                     <thead class="text-left text-xs text-slate-400"><tr><th class="py-1 pr-4 font-medium">Month</th><th class="py-1 pr-4 font-medium">Plan</th><th class="py-1 pr-4 font-medium">Most active users</th><th class="py-1 pr-4 font-medium">Texts</th><th class="py-1 font-medium">Texting numbers</th></tr></thead>

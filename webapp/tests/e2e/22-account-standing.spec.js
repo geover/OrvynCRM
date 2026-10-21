@@ -34,7 +34,7 @@ test('the account standing page lists every company with a standing and filters 
 test('a company overview shows its account standing and payment history box', async ({ page }) => {
     await signIn(page);
     await page.goto('/platform');
-    await page.locator('tr[data-company]').first().getByRole('link').first().click();
+    await page.goto(await page.locator('tr[data-company]').first().getByRole('link').first().getAttribute('href'));        // the company's own page (the list opens a window)
     await expect(page.getByTestId('company-standing')).toBeVisible();
     await expect(page.getByTestId('company-standing-badge')).toBeVisible();
 });
@@ -42,7 +42,7 @@ test('a company overview shows its account standing and payment history box', as
 test('the platform adds an invoice to a company it bills itself, sees it overdue, and marks it paid', async ({ page }) => {
     await signIn(page);
     await page.goto('/platform');
-    await page.locator('tr[data-company]').first().getByRole('link').first().click();
+    await page.goto(await page.locator('tr[data-company]').first().getByRole('link').first().getAttribute('href'));        // the company's own page (the list opens a window)
     await expect(page.getByTestId('manual-invoices')).toBeVisible();
 
     await page.getByTestId('add-invoice').click();

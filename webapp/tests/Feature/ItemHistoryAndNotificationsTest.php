@@ -119,5 +119,56 @@ class ItemHistoryAndNotificationsTest extends TestCase
         $this->assertSame($this->admin->email, $m->cc[0]['email']);
         $this->assertStringNotContainsString('<script>', $m->html);               // user text is escaped
         $this->assertStringContainsString("/contacts/{$c->id}", $m->html);
+
+        $this->getJson('/api/v1/support-requests')->assertOk()->assertJsonCount(1, 'data')                                  // kept for Messages > Internal support
+            ->assertJsonPath('data.0.subject', 'Help')->assertJsonPath('data.0.sent_to', ['support@acme.io', 'it@acme.io'])->assertJsonPath('data.0.contact.id', $c->id);
+
+        $id = $this->getJson('/api/v1/support-requests')->json('data.0.id');
+        $this->postJson("/api/v1/support-requests/$id/replies", ['body' => ''])->assertUnprocessable();
+        $this->postJson("/api/v1/support-requests/$id/replies", ['body' => '<p>We are <b>on</b> it.</p><script>x</script>'])->assertOk()->assertJsonPath('data.replies.0.name', $this->admin->name);
+        $answer = EmailMessage::latest('id')->first();
+        $this->assertSame('Re: [Support] Help', $answer->subject);
+        $this->assertSame($this->admin->email, $answer->to[0]['email']);                                                  // the sender is answered by e-mail
+        $this->assertStringContainsString('<b>on</b>', $answer->html);
+        $this->assertStringNotContainsString('<script>', $answer->html);
+    }
+
+    public function test_contact_support_is_a_conversation_the_person_can_come_back_to(): void
+    {
+        Setting::put('support.internal_emails', ['support@acme.io']);
+        $person = User::factory()->create();                                                                                // no administrator
+        Sanctum::actingAs($person);
+        $id = $this->postJson('/api/v1/support', ['subject' => 'Cannot export', 'message' => '<p>It <b>fails</b>.</p>'])->assertAccepted()->json('data.id');
+        $this->postJson("/api/v1/support/$id/messages", ['body' => '<p>Still failing</p>'])->assertOk()->assertJsonCount(1, 'data.replies');
+        $this->assertSame(2, EmailMessage::count());                                                                        // each message reached the internal address
+
+        $this->getJson('/api/v1/support-requests')->assertForbidden();                                                      // reading all of them is for administrators
+        Sanctum::actingAs($this->admin);
+        $this->getJson('/api/v1/support/conversations')->assertOk()->assertJsonCount(0, 'data');                            // and the list is only the person's own
+        $this->getJson('/api/v1/support-requests/poll')->assertOk()->assertJsonPath('unread', 1);
+        $this->postJson("/api/v1/support-requests/$id/replies", ['body' => '<p>Try again now.</p>'])->assertOk();
+        $this->getJson('/api/v1/support-requests/poll')->assertOk()->assertJsonPath('unread', 0);                           // answered: nothing waits for the administrators
+
+        $this->assertSame(1, DB::table('notifications_feed')->where('user_id', $person->id)->where('title', 'Support answered: Cannot export')->count());   // the bell
+        Sanctum::actingAs($person);
+        $this->getJson('/api/v1/support/unread')->assertOk()->assertJsonPath('unread', 1);                                  // the badge
+        $mine = $this->getJson('/api/v1/support/conversations')->assertOk()->assertJsonPath('data.0.unread', true)->json('data.0');
+        $this->assertSame(['user', 'admin'], array_column($mine['replies'], 'side'));                                       // the whole conversation, both sides
+        $this->postJson("/api/v1/support/$id/read")->assertOk();
+        $this->getJson('/api/v1/support/conversations')->assertJsonPath('data.0.unread', false);
+        $this->getJson('/api/v1/support/unread')->assertJsonPath('unread', 0);
+        Sanctum::actingAs(User::factory()->create());
+        $this->postJson("/api/v1/support/$id/messages", ['body' => 'not mine'])->assertNotFound();                          // somebody else's conversation
+    }
+
+    public function test_the_company_chooses_whether_support_messages_are_e_mailed(): void
+    {
+        Sanctum::actingAs($this->admin);
+        $this->putJson('/api/v1/settings', ['support_email_admins' => false, 'support_email_user' => false])->assertOk()->assertJsonPath('data.support_email_admins', false);
+
+        $id = $this->postJson('/api/v1/support', ['subject' => 'Quiet', 'message' => '<p>Only in the app</p>'])->assertAccepted()->assertJsonPath('sent', 0)->json('data.id');   // no addresses needed
+        $this->postJson("/api/v1/support-requests/$id/replies", ['body' => '<p>Answer</p>'])->assertOk();
+        $this->assertSame(0, EmailMessage::count());                                                                        // nothing was e-mailed, both sides still have it
+        $this->getJson('/api/v1/support/conversations')->assertJsonPath('data.0.replies.0.body', '<p>Answer</p>');
     }
 }

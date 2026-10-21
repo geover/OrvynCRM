@@ -1,8 +1,9 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { RefreshCw } from 'lucide-vue-next';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { Hourglass, MailCheck, RefreshCw, Send, TriangleAlert } from 'lucide-vue-next';
 import AdminPage from '@/Components/AdminPage.vue';
 import Modal from '@/Components/Modal.vue';
+import TicketTile from '@/Components/support/TicketTile.vue';
 import { api } from '@/lib/api';
 import { fmtDate } from '@/lib/ui';
 
@@ -12,6 +13,8 @@ const data = ref(null);
 let timer;
 
 const blasts = ref([]);
+const total = (key) => blasts.value.reduce((n, b) => n + (b[key] ?? 0), 0);
+const inProgress = computed(() => blasts.value.filter((b) => b.status !== 'done').length);
 const detail = ref(null);
 async function load() {
     data.value = await api.get('/messages/blast', { user_id: userId.value });
@@ -38,6 +41,13 @@ const sum = (o) => Object.entries(o ?? {});
             <button class="btn-outline" @click="load"><RefreshCw class="size-4" /></button>
         </template>
         <div v-if="data" class="space-y-6">
+            <section class="grid grid-cols-2 gap-4 lg:grid-cols-4" data-testid="blast-summary" aria-label="Blasts in numbers">
+                <TicketTile :icon="Send" tone="bg-sky-100 text-sky-700" label="Blasts" :value="blasts.length" :hint="inProgress ? `${inProgress} still going` : 'all finished'" />
+                <TicketTile :icon="MailCheck" tone="bg-emerald-100 text-emerald-700" label="Sent" :value="total('sent').toLocaleString()" hint="messages delivered to the provider" />
+                <TicketTile :icon="Hourglass" tone="bg-amber-100 text-amber-700" label="Waiting" :value="total('waiting').toLocaleString()" hint="in the queue" />
+                <TicketTile :icon="TriangleAlert" tone="bg-rose-100 text-rose-700" label="Failed" :value="total('failed').toLocaleString()" :alert="total('failed') > 0" hint="did not go out" />
+            </section>
+
             <!-- each Email all / Text all as a whole -->
             <section class="card" data-testid="blasts">
                 <h2 class="card-title">Blasts <span class="font-normal text-slate-400">(Email all and Text all, newest first)</span></h2>

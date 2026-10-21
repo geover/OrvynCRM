@@ -10,6 +10,7 @@ use App\Models\ThreadMessage;
 use App\Services\Tenancy\ThreadAttachments;
 use App\Services\Tenancy\ThreadMailer;
 use App\Services\Tenancy\ThreadPoll;
+use App\Support\SafeHtml;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,7 +35,7 @@ class PlatformMessageController extends Controller
             'sig' => app(ThreadPoll::class)->signature(MessageThread::query()),
             'selected' => $selected ? [
                 'id' => $selected->id, 'company_id' => $selected->tenant_id, 'company' => $companies[$selected->tenant_id] ?? 'Deleted company',
-                'subject' => $selected->subject, 'archived_at' => $selected->archived_at?->toIso8601String(), 'company_deleted' => $selected->tenant_deleted_at !== null,
+                'subject' => $selected->subject, 'ticket_id' => $selected->ticket_id, 'archived_at' => $selected->archived_at?->toIso8601String(), 'company_deleted' => $selected->tenant_deleted_at !== null,
                 'messages' => $selected->messages()->with('attachments')->get()->map->toArrayForViewer('platform')->values(),
             ] : null,
             'me' => $request->attributes->get('platform_identity')?->name,
@@ -141,7 +142,7 @@ class PlatformMessageController extends Controller
 
     private function snippet(ThreadMessage $m): string
     {
-        $text = str($m->body)->squish()->limit(110)->toString();
+        $text = str(SafeHtml::toText($m->body))->squish()->limit(110)->toString();
 
         return $text !== '' ? $text : ($m->attachments_count ? '[image]' : '');
     }

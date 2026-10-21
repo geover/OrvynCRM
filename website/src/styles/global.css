@@ -39,10 +39,10 @@
 .js .reveal.in { opacity: 1; transform: none; }
 
 @utility btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50 active:scale-[0.98];
 }
-@utility btn-primary { @apply btn bg-brand-600 text-white shadow-sm hover:bg-brand-700; }
-@utility btn-light { @apply btn bg-white text-brand-700 shadow-sm hover:bg-brand-50; }
+@utility btn-primary { @apply btn bg-gradient-to-b from-brand-500 to-brand-700 text-white shadow-md shadow-brand-700/25 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-700/30; }
+@utility btn-light { @apply btn bg-white text-brand-700 shadow-sm hover:-translate-y-0.5 hover:bg-brand-50 hover:shadow-md; }
 @utility btn-outline { @apply btn border border-stone-300 bg-white text-stone-700 hover:bg-stone-50; }
 @utility btn-ghost-dark { @apply btn border border-white/25 text-white hover:bg-white/10; }
 @utility text-gradient { @apply bg-gradient-to-r from-brand-600 to-gold-600 bg-clip-text text-transparent; }

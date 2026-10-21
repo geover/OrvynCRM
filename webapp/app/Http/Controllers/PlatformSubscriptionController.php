@@ -72,7 +72,7 @@ class PlatformSubscriptionController extends Controller
         if ($tenant = Tenant::find($subscriptionRequest->tenant_id)) {
             $notices->tell($tenant, 'Your request to subscribe again', [
                 'The platform cannot enable your subscription at the moment.',
-                'You can get in touch from Admin settings, Message the platform.'.($subscriptionRequest->response ? "\n\n".$subscriptionRequest->response : ''),
+                'You can get in touch from Messages in the sidebar.'.($subscriptionRequest->response ? "\n\n".$subscriptionRequest->response : ''),
             ]);
         }
 

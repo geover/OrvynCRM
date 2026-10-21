@@ -24,7 +24,7 @@ const mail = `mailto:${site.contactEmail}?subject=${encodeURIComponent('OrvynCRM
 
         <div class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8" data-testid="demo-box">
             {site.demoFormUrl ? (
-                // The form is built in OrvynCRM itself (Admin settings > Form builder): answers arrive as contacts in your own CRM.
+                // The form is built in OrvynCRM itself (Company settings > Form builder): answers arrive as contacts in your own CRM.
                 <script is:inline src={site.demoFormUrl}></script>
             ) : (
                 <div class="text-center">

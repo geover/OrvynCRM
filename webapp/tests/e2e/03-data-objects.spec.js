@@ -167,7 +167,7 @@ test.describe('records of an object', () => {
     test('table shows list columns; row click opens the edit dialog; edit saves and history records the change', async ({ page }) => {
         await page.goto(`/objects/${state.id}`);
         const row = page.locator('tbody tr', { hasText: '3 Elm St' });
-        await expect(row).toContainText('250000');
+        await expect(row).toContainText('250,000');
         await expect(row).toContainText('Live');
         await row.click();
         const m = modal(page);

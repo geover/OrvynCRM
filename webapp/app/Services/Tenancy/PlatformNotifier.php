@@ -23,8 +23,10 @@ class PlatformNotifier
 
     public const ONBOARDING = 'onboarding';
 
+    public const TICKETS = 'tickets';
+
     /**
-     * @param  self::REQUESTS|self::MESSAGES|self::AUTOMATION_FAILURES|self::INACTIVE_COMPANIES|self::ONBOARDING  $topic
+     * @param  self::REQUESTS|self::MESSAGES|self::AUTOMATION_FAILURES|self::INACTIVE_COMPANIES|self::ONBOARDING|self::TICKETS  $topic
      * @return list<string> distinct addresses
      */
     public function recipients(string $topic): array
@@ -34,6 +36,7 @@ class PlatformNotifier
             self::AUTOMATION_FAILURES => 'notify_automation_failures',
             self::INACTIVE_COMPANIES => 'notify_inactive_companies',
             self::ONBOARDING => 'notify_onboarding',
+            self::TICKETS => 'notify_tickets',
             default => 'notify_requests',
         };
 

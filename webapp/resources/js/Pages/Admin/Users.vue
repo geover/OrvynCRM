@@ -1,8 +1,9 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { KeyRound, Pencil, Plus, ShieldOff, Trash2 } from 'lucide-vue-next';
+import { KeyRound, Pencil, Plus, ShieldCheck, ShieldOff, Trash2 } from 'lucide-vue-next';
 import AdminPage from '@/Components/AdminPage.vue';
+import ItemCollection from '@/Components/ItemCollection.vue';
 import PeopleBoard from '@/Components/people/PeopleBoard.vue';
 import UserFormFields from '@/Components/people/UserFormFields.vue';
 import Modal from '@/Components/Modal.vue';
@@ -114,15 +115,13 @@ const editing = computed(() => (draft.value.id ? users.value.find((x) => x.id ==
             </template>
         </PeopleBoard>
 
-        <div v-else class="card divide-y divide-slate-100">
-            <div v-for="t in templates" :key="t.id" class="flex items-center justify-between gap-4 px-5 py-4 text-sm">
-                <div class="min-w-0"><div class="font-medium">{{ t.name }} <span v-if="t.is_admin" class="badge ml-1 !bg-brand-50 !text-brand-700">full access</span></div><div class="truncate text-slate-500">{{ t.description || 'No description' }}</div></div>
-                <div class="flex shrink-0 items-center gap-2"><span class="badge">{{ t.users_count }} user{{ t.users_count === 1 ? '' : 's' }}</span>
-                    <Link :href="`/admin/users/templates/${t.id}`" class="btn-outline">Edit</Link>
-                    <button class="btn-ghost !px-1.5 text-slate-400 hover:text-red-600" @click="removeTemplate(t)"><Trash2 class="size-4" /></button></div>
-            </div>
-            <p v-if="!templates.length" class="px-5 py-10 text-center text-sm text-slate-400">No templates yet.</p>
-        </div>
+                <ItemCollection v-else :items="templates" storage-key="permission-templates" :icon="ShieldCheck" tone="bg-sky-100 text-sky-700" :search-text="(t) => `${t.name} ${t.description ?? ''}`" search-label="Find a template…" empty-title="No templates yet" empty-text="A permission template is a named set of permissions you can give to several users.">
+            <template #title="{ item: t }">{{ t.name }}</template>
+            <template #badges="{ item: t }"><span v-if="t.is_admin" class="badge !bg-brand-50 !text-brand-700">full access</span><span class="badge">{{ t.users_count }} user{{ t.users_count === 1 ? '' : 's' }}</span></template>
+            <template #meta="{ item: t }">{{ t.description || 'No description' }}</template>
+            <template #actions="{ item: t }"><Link :href="`/admin/users/templates/${t.id}`" class="btn-outline">Edit</Link><button class="btn-ghost !px-1.5 text-slate-400 hover:text-red-600" title="Delete" aria-label="Delete" @click="removeTemplate(t)"><Trash2 class="size-4" /></button></template>
+            <template #empty><Link href="/admin/users/templates/new" class="btn-primary"><Plus class="size-4" /> Create template</Link></template>
+        </ItemCollection>
 
         <Modal v-if="asking" title="Request more users" @close="asking = false">
             <form id="seat-request" class="space-y-3" @submit.prevent="sendRequest">

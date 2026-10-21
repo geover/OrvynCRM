@@ -1,12 +1,14 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { Building2, Check, Database, ExternalLink, Hourglass, Pause, Pencil, Play, Plus, Power, Users } from 'lucide-vue-next';
+import { Building2, CheckCheck, Database, Hourglass, LayoutGrid, LayoutList, List, Plus, Search, Timer, Users } from 'lucide-vue-next';
 import { Link } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
+import CompanyActions from '@/Components/company/CompanyActions.vue';
 import PasswordField from '@/Components/PasswordField.vue';
 import SeatMeter from '@/Components/SeatMeter.vue';
 import PageHeader from '@/Components/PageHeader.vue';
+import TicketTile from '@/Components/support/TicketTile.vue';
 import TierChangeDialog from '@/Components/company/TierChangeDialog.vue';
 import { useStored } from '@/lib/stored';
 import { confirmDialog, fmtDate, fmtRelative, toast } from '@/lib/ui';
@@ -33,7 +35,18 @@ const VIEWS = [['all', 'All'], ['active', 'Active'], ['inactive', 'Inactive'], [
 const view = ref(new URLSearchParams(page.url.split('?')[1] ?? '').get('show') && VIEWS.some(([v]) => v === new URLSearchParams(page.url.split('?')[1]).get('show')) ? new URLSearchParams(page.url.split('?')[1]).get('show') : 'all');
 const matches = (c, v) => v === 'all' || (v === 'inactive' ? c.inactive : v === 'billing' ? c.trial.state === 'expired' : v === 'active' ? c.status === 'active' : c.status === v);
 const counts = computed(() => Object.fromEntries(VIEWS.map(([v]) => [v, props.companies.filter((c) => matches(c, v)).length])));
-const rows = computed(() => props.companies.filter((c) => matches(c, view.value)).sort((a, b) => (view.value === 'inactive' ? b.idle_days - a.idle_days : 0)));
+const q = ref('');
+const rows = computed(() => {
+    const term = q.value.trim().toLowerCase();
+    return props.companies.filter((c) => matches(c, view.value) && (!term || `${c.name} ${c.slug}`.toLowerCase().includes(term))).sort((a, b) => (view.value === 'inactive' ? b.idle_days - a.idle_days : 0));
+});
+// how the companies are laid out, kept in this browser: 'list' (the table), 'detailed' (a card each) or 'boxes' (a grid)
+const layout = useStored('companies:layout', 'list');
+const LAYOUTS = [['list', List, 'List'], ['detailed', LayoutList, 'Detailed'], ['boxes', LayoutGrid, 'Boxes']];
+const onTrial = computed(() => props.companies.filter((c) => c.trial.state === 'trial').length);
+const trialsEnding = computed(() => props.companies.filter((c) => c.trial.state === 'trial' && c.trial.days_left !== null && c.trial.days_left <= 14).length);
+const seatsInUse = computed(() => props.companies.reduce((n, c) => n + (c.users ?? 0), 0));
+const statusTone = (c) => (c.status === 'active' ? '!bg-emerald-50 !text-emerald-700' : c.status === 'closed' ? '!bg-slate-200 !text-slate-700' : '!bg-amber-50 !text-amber-700');
 
 // Keep, suspend or close a company that has gone quiet (the administrators are e-mailed unless unticked).
 const deciding = ref(null);                                  // { company, action: 'suspend' | 'close' }
@@ -113,12 +126,24 @@ const open = (c) => router.post(`/platform/companies/${c.id}/open`);
 
     <p v-if="page.props.flash.success" class="mb-4 rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-800">{{ page.props.flash.success }}</p>
 
+    <section class="mb-5 grid grid-cols-2 gap-4 lg:grid-cols-5" data-testid="companies-summary" aria-label="Companies in numbers">
+        <TicketTile :icon="Building2" tone="bg-indigo-100 text-indigo-700" label="Companies" :value="companies.length" hint="on the platform" clickable :active="view === 'all'" @click="view = 'all'" />
+        <TicketTile :icon="CheckCheck" tone="bg-emerald-100 text-emerald-700" label="Active" :value="counts.active" hint="can sign in" clickable :active="view === 'active'" @click="view = 'active'" />
+        <TicketTile :icon="Timer" tone="bg-sky-100 text-sky-700" label="On a trial" :value="onTrial" :hint="trialsEnding ? `${trialsEnding} ending within 14 days` : 'none ending soon'" />
+        <TicketTile :icon="Hourglass" tone="bg-amber-100 text-amber-700" label="Inactive" :value="counts.inactive" :alert="counts.inactive > 0" :hint="`no activity for ${inactivityDays} days`" clickable :active="view === 'inactive'" @click="view = view === 'inactive' ? 'all' : 'inactive'" />
+        <TicketTile :icon="Users" tone="bg-slate-100 text-slate-500" label="Users" :value="seatsInUse.toLocaleString()" hint="across every company" />
+    </section>
+
     <div class="mb-4 flex flex-wrap items-center gap-2" role="tablist" aria-label="Show companies" data-testid="company-views">
         <button v-for="[v, label] in VIEWS" :key="v" type="button" role="tab" :aria-selected="view === v" :data-testid="`view-${v}`" class="rounded-full border px-3 py-1 text-sm transition"
             :class="view === v ? 'border-brand-600 bg-brand-50 font-medium text-brand-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'" @click="view = v">
             {{ label }} <span class="ml-1 tabular-nums" :class="v === 'inactive' && counts.inactive ? 'font-semibold text-amber-700' : 'text-slate-400'">{{ counts[v] }}</span>
         </button>
-        <div class="ml-auto flex items-center gap-2 text-xs text-slate-500" data-testid="open-mode">
+        <div class="relative ml-2"><Search class="pointer-events-none absolute left-3 top-2.5 size-4 text-slate-400" /><input v-model="q" class="input !w-52 !pl-9" placeholder="Find a company…" aria-label="Find a company" data-testid="company-search" /></div>
+        <div class="ml-auto inline-flex rounded-xl border border-slate-200 p-1 text-sm" role="group" aria-label="Layout">
+            <button v-for="[v, icon, l] in LAYOUTS" :key="v" type="button" class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-medium transition" :class="layout === v ? 'bg-brand-50 text-brand-700' : 'text-slate-500 hover:text-slate-700'" :aria-pressed="layout === v" :title="l" :data-testid="`layout-${v}`" @click="layout = v"><component :is="icon" class="size-4" /><span class="hidden sm:inline">{{ l }}</span></button>
+        </div>
+        <div class="flex items-center gap-2 text-xs text-slate-500" data-testid="open-mode">
             <span id="open-mode-label">Open a company in</span>
             <div class="flex rounded-lg bg-slate-100 p-0.5" role="group" aria-labelledby="open-mode-label">
                 <button v-for="[v, label] in [['window', 'Window'], ['page', 'Full page']]" :key="v" type="button" :aria-pressed="openIn === v" :data-testid="`open-${v}`" class="rounded-md px-2.5 py-1 font-medium transition" :class="openIn === v ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'" @click="openIn = v">{{ label }}</button>
@@ -131,51 +156,87 @@ const open = (c) => router.post(`/platform/companies/${c.id}/open`);
         <button class="btn-outline !border-amber-300 !py-1.5 text-xs" data-testid="show-inactive" @click="view = 'inactive'">Review them</button>
     </div>
 
-    <div class="card table-scroll">
+    <div v-if="layout === 'list'" class="card table-scroll">
         <table class="w-full text-sm" data-testid="companies-table">
             <thead class="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500"><tr>
                 <th class="px-4 py-3">Company</th><th class="px-3 py-3">Status</th><th class="px-3 py-3">Users</th><th class="hidden px-3 py-3 xl:table-cell">Data</th><th class="hidden px-3 py-3 md:table-cell">Last active</th><th class="px-3 py-3"><span class="sr-only">Actions</span></th>
             </tr></thead>
             <tbody class="divide-y divide-slate-100">
-                <tr v-for="c in rows" :key="c.id" :data-company="c.slug" :class="c.inactive && 'bg-amber-50/40'">
+                <tr v-for="c in rows" :key="c.id" class="msg-row" :data-company="c.slug" :class="c.inactive && 'bg-amber-50/40'">
                     <td class="px-4 py-3"><div class="flex items-center gap-3"><span class="hidden size-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-brand-50 text-brand-600 sm:grid" data-testid="company-icon"><img v-if="c.favicon_url" :src="c.favicon_url" :alt="`${c.name} icon`" class="size-9 object-contain p-1" loading="lazy" /><Building2 v-else class="size-4" /></span>
                         <div class="min-w-0"><a :href="`/platform/companies/${c.id}`" class="block truncate font-medium hover:underline" :data-overview="c.slug" @click="openOverview(c, $event)">{{ c.name }}</a><div class="truncate text-xs text-slate-400">{{ c.slug }}</div><div class="truncate font-mono text-[11px] text-slate-400" :title="`Database: ${c.database}`" data-testid="company-database"><Database class="mr-1 inline size-3 align-[-1px]" />{{ c.database }}</div></div></div></td>
                     <td class="px-3 py-3"><span class="badge" :class="c.status === 'active' ? '!bg-emerald-50 !text-emerald-700' : c.status === 'closed' ? '!bg-slate-200 !text-slate-700' : '!bg-amber-50 !text-amber-700'">{{ c.status }}</span><div v-if="c.status_note && c.status !== 'active'" class="mt-1 max-w-40 truncate text-xs text-slate-400" :title="c.status_note">{{ c.status_note }}</div>
                         <div class="mt-1 whitespace-nowrap text-xs text-slate-500" data-cell="plan">Tier {{ c.tier }}<span v-if="c.trial.state === 'trial'" class="ml-1 text-sky-700" data-testid="trial-badge">· trial, {{ c.trial.days_left }}d left</span><span v-else-if="c.trial.state === 'expired'" class="ml-1 font-medium text-red-600" data-testid="trial-ended-badge">· trial ended</span><Link v-if="c.usage_level !== 'ok'" href="/platform/usage" class="ml-1 rounded-full px-1.5 py-0.5 text-[11px] font-medium" :class="c.usage_level === 'at' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'" :data-testid="`usage-${c.usage_level}`" :title="c.usage_level === 'at' ? 'At a limit of its plan' : 'Near a limit of its plan (80% or more)'">{{ c.usage_level === 'at' ? 'at limit' : 'near limit' }}</Link><span v-if="c.subscription" class="ml-1" :class="['active', 'trialing'].includes(c.subscription) ? 'text-emerald-700' : 'text-amber-700'" data-testid="subscription-badge">· {{ { active: 'paying', trialing: 'subscribed', past_due: 'payment late', canceled: 'cancelled', unpaid: 'unpaid' }[c.subscription] ?? c.subscription }}</span></div></td>
-                    <td class="px-3 py-3"><SeatMeter :used="c.users" :max="c.max_users" compact /><Link v-if="c.pending_user_requests" href="/platform/seat-requests" class="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800" data-testid="company-request-badge">asks for more</Link><Link v-if="c.pending_other_requests" href="/platform/seat-requests" class="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800 xl:hidden" data-testid="company-request-badge-narrow">asks for more</Link></td>
+                    <td class="px-3 py-3"><SeatMeter :used="c.users" :max="c.max_users" compact /><Link v-if="c.pending_user_requests" href="/platform/requests" class="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800" data-testid="company-request-badge">asks for more</Link><Link v-if="c.pending_other_requests" href="/platform/requests" class="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800 xl:hidden" data-testid="company-request-badge-narrow">asks for more</Link></td>
                     <td class="hidden whitespace-nowrap px-3 py-3 text-xs text-slate-500 xl:table-cell">
                         <div><span class="tabular-nums font-medium text-slate-700" data-cell="contacts">{{ c.contacts === null ? '-' : c.contacts.toLocaleString() }}</span> contacts</div>
                         <div><span class="tabular-nums font-medium text-slate-700" data-cell="data-objects">{{ c.data_objects === null ? '-' : c.data_objects.toLocaleString() }}</span> data objects</div>
                         <div><span class="tabular-nums font-medium text-slate-700" data-cell="records">{{ c.records === null ? '-' : c.records.toLocaleString() }}</span> records</div>
-                        <Link v-if="c.pending_other_requests" href="/platform/seat-requests" class="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800" title="Waiting for more data objects, automations or texts" data-testid="company-request-badge-data">asks for more</Link>
+                        <div class="mt-1.5 min-w-40 border-t border-slate-100 pt-1.5" data-testid="company-automations">
+                            <div><span class="tabular-nums font-medium text-slate-700" data-cell="automations">{{ c.automations === null ? '-' : c.automations.toLocaleString() }}</span> automations</div>
+                            <ul v-if="c.automations_by_object?.length" class="mt-0.5 space-y-0.5" aria-label="Automations per data object">
+                                <li v-for="o in c.automations_by_object.slice(0, 4)" :key="o.name" class="flex items-center justify-between gap-3 text-[11px]"><span class="truncate text-slate-500" :title="o.name">{{ o.name }}</span><span class="tabular-nums font-medium text-slate-700">{{ o.automations }}</span></li>
+                                <li v-if="c.automations_by_object.length > 4" class="text-[11px] text-slate-400">+{{ c.automations_by_object.length - 4 }} more {{ c.automations_by_object.length - 4 === 1 ? 'object' : 'objects' }}</li>
+                            </ul>
+                        </div>
+                        <Link v-if="c.pending_other_requests" href="/platform/requests" class="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800" title="Waiting for more data objects, automations or texts" data-testid="company-request-badge-data">asks for more</Link>
                     </td>
                     <td class="hidden whitespace-nowrap px-3 py-3 text-slate-500 md:table-cell" data-cell="last-active">
                         <template v-if="c.status === 'active'">{{ idleText(c) }}<span v-if="c.inactive" class="badge ml-2 !bg-amber-50 !text-amber-700" data-testid="inactive-badge">Inactive</span></template><template v-else>-</template>
                         <div class="text-xs text-slate-400">Created {{ fmtDate(c.created_at) }}</div>
                     </td>
-                    <td class="whitespace-nowrap px-3 py-3 text-right">
-                        <div class="inline-flex items-center gap-0.5">
-                            <Link :href="`/platform/companies/${c.id}/database`" class="btn-ghost !p-2" :title="`Database of ${c.name}`" :aria-label="`Database of ${c.name}`" data-testid="company-database-link"><Database class="size-4" /></Link>
-                            <Link :href="`/platform/companies/${c.id}/users`" class="btn-ghost !p-2" :title="`People of ${c.name}`" :aria-label="`Users of ${c.name}`"><Users class="size-4" /></Link>
-                            <button class="btn-ghost !p-2" :title="`Edit ${c.name}`" aria-label="Edit" @click="edit(c)"><Pencil class="size-4" /></button>
-                            <button class="btn-ghost !p-2 disabled:opacity-40" :disabled="c.status !== 'active'" :title="`Open ${c.name} as an administrator`" aria-label="Open" @click="open(c)"><ExternalLink class="size-4" /></button>
-                            <template v-if="c.inactive">
-                                <button class="btn-ghost !p-2 text-emerald-700" title="Keep: not abandoned, start the clock again" aria-label="Keep" data-testid="keep" @click="keep(c)"><Check class="size-4" /></button>
-                                <button class="btn-ghost !p-2" title="Suspend" aria-label="Suspend" data-testid="suspend-inactive" @click="decide(c, 'suspend')"><Pause class="size-4" /></button>
-                                <button class="btn-ghost !p-2 text-red-600" title="Close" aria-label="Close" data-testid="close-inactive" @click="decide(c, 'close')"><Power class="size-4" /></button>
-                            </template>
-                            <template v-else>
-                                <button v-if="c.status === 'active'" class="btn-ghost !p-2" title="Suspend" aria-label="Suspend" @click="setStatus(c, 'suspended')"><Pause class="size-4" /></button>
-                                <button v-else class="btn-ghost !p-2 text-emerald-700" title="Activate" aria-label="Activate" data-testid="activate" @click="setStatus(c, 'active')"><Play class="size-4" /></button>
-                                <button v-if="c.status !== 'closed'" class="btn-ghost !p-2 text-red-600" title="Close" aria-label="Close" data-testid="close" @click="setStatus(c, 'closed')"><Power class="size-4" /></button>
-                            </template>
-                        </div>
-                    </td>
+                    <td class="whitespace-nowrap px-3 py-3 text-right"><CompanyActions :c="c" @edit="edit" @open="open" @keep="keep" @decide="decide" @status="setStatus" /></td>
                 </tr>
                 <tr v-if="!rows.length"><td colspan="6" class="px-5 py-10 text-center text-slate-400">{{ companies.length ? (view === 'inactive' ? `No company has been quiet for ${inactivityDays} days. Everything is in use.` : 'No company here.') : 'No companies yet. Create the first one.' }}</td></tr>
             </tbody>
         </table>
     </div>
+
+    <div v-else-if="rows.length && layout === 'detailed'" class="space-y-3" data-testid="companies-cards">
+        <article v-for="c in rows" :key="c.id" class="card msg-row p-4" :data-company="c.slug" :class="c.inactive && 'border-amber-200 bg-amber-50/40'">
+            <div class="flex flex-wrap items-center gap-4">
+                <span class="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-brand-50 text-brand-600" data-testid="company-icon"><img v-if="c.favicon_url" :src="c.favicon_url" :alt="`${c.name} icon`" class="size-12 object-contain p-1.5" loading="lazy" /><Building2 v-else class="size-5" /></span>
+                <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2"><a :href="`/platform/companies/${c.id}`" class="font-semibold hover:underline" :data-overview="c.slug" @click="openOverview(c, $event)">{{ c.name }}</a>
+                        <span class="badge" :class="statusTone(c)">{{ c.status }}</span><span v-if="c.inactive" class="badge !bg-amber-50 !text-amber-700" data-testid="inactive-badge">Inactive</span>
+                        <span class="text-xs text-slate-500">Tier {{ c.tier }}<span v-if="c.trial.state === 'trial'" class="ml-1 text-sky-700">· trial, {{ c.trial.days_left }}d left</span></span></div>
+                    <div class="text-xs text-slate-400">{{ c.slug }} · created {{ fmtDate(c.created_at) }}<template v-if="c.status === 'active'"> · active {{ idleText(c) }}</template></div>
+                    <p v-if="c.status_note && c.status !== 'active'" class="mt-0.5 truncate text-xs text-slate-400" :title="c.status_note">{{ c.status_note }}</p>
+                    <div class="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-500">
+                        <div class="w-40"><SeatMeter :used="c.users" :max="c.max_users" compact /></div>
+                        <span><span class="font-medium tabular-nums text-slate-700">{{ c.contacts === null ? '-' : c.contacts.toLocaleString() }}</span> contacts</span>
+                        <span><span class="font-medium tabular-nums text-slate-700">{{ c.data_objects === null ? '-' : c.data_objects.toLocaleString() }}</span> data objects</span>
+                        <span><span class="font-medium tabular-nums text-slate-700">{{ c.records === null ? '-' : c.records.toLocaleString() }}</span> records</span>
+                        <span><span class="font-medium tabular-nums text-slate-700">{{ c.automations === null ? '-' : c.automations.toLocaleString() }}</span> automations</span>
+                        <Link v-if="c.pending_user_requests || c.pending_other_requests" href="/platform/requests" class="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">Request waiting</Link>
+                    </div>
+                    <div v-if="c.automations_by_object?.length" class="mt-2 flex flex-wrap items-center gap-1.5 text-xs" aria-label="Automations per data object">
+                        <span class="text-slate-400">Automations per object:</span>
+                        <span v-for="o in c.automations_by_object" :key="o.name" class="badge">{{ o.name }} <span class="ml-1 font-semibold tabular-nums">{{ o.automations }}</span></span>
+                    </div>
+                </div>
+                <CompanyActions :c="c" @edit="edit" @open="open" @keep="keep" @decide="decide" @status="setStatus" />
+            </div>
+        </article>
+    </div>
+
+    <div v-else-if="rows.length" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" data-testid="companies-boxes">
+        <article v-for="c in rows" :key="c.id" class="card msg-row flex flex-col p-4 transition duration-200 hover:-translate-y-0.5 hover:shadow-md" :data-company="c.slug" :class="c.inactive && 'border-amber-200 bg-amber-50/40'">
+            <div class="flex items-start gap-3">
+                <span class="grid size-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-brand-50 text-brand-600" data-testid="company-icon"><img v-if="c.favicon_url" :src="c.favicon_url" :alt="`${c.name} icon`" class="size-11 object-contain p-1.5" loading="lazy" /><Building2 v-else class="size-5" /></span>
+                <div class="min-w-0 flex-1"><a :href="`/platform/companies/${c.id}`" class="block truncate font-semibold hover:underline" :data-overview="c.slug" @click="openOverview(c, $event)">{{ c.name }}</a>
+                    <div class="truncate text-xs text-slate-400">{{ c.slug }}</div>
+                    <div class="mt-1 flex flex-wrap items-center gap-1.5"><span class="badge" :class="statusTone(c)">{{ c.status }}</span><span v-if="c.inactive" class="badge !bg-amber-50 !text-amber-700" data-testid="inactive-badge">Inactive</span></div></div>
+            </div>
+            <p class="mt-3 text-xs text-slate-500">Tier {{ c.tier }}<span v-if="c.trial.state === 'trial'" class="ml-1 text-sky-700">· trial, {{ c.trial.days_left }}d left</span><template v-if="c.status === 'active'"> · active {{ idleText(c) }}</template></p>
+            <div class="mt-2"><SeatMeter :used="c.users" :max="c.max_users" compact /></div>
+            <p class="mt-2 text-xs text-slate-400"><span class="tabular-nums">{{ c.contacts === null ? '-' : c.contacts.toLocaleString() }}</span> contacts · <span class="tabular-nums">{{ c.records === null ? '-' : c.records.toLocaleString() }}</span> records · <span class="tabular-nums">{{ c.automations === null ? '-' : c.automations.toLocaleString() }}</span> automations</p>
+            <div v-if="c.automations_by_object?.length" class="mt-1.5 flex flex-wrap gap-1" aria-label="Automations per data object"><span v-for="o in c.automations_by_object.slice(0, 3)" :key="o.name" class="badge !text-[11px]">{{ o.name }} {{ o.automations }}</span><span v-if="c.automations_by_object.length > 3" class="text-[11px] text-slate-400">+{{ c.automations_by_object.length - 3 }}</span></div>
+            <div class="mt-auto flex justify-end pt-3"><CompanyActions :c="c" @edit="edit" @open="open" @keep="keep" @decide="decide" @status="setStatus" /></div>
+        </article>
+    </div>
+
+    <div v-else class="card msg-row px-6 py-14 text-center text-slate-500"><span class="mx-auto mb-3 grid size-16 place-items-center rounded-3xl bg-indigo-100 text-indigo-700"><Building2 class="size-8" /></span><p class="font-semibold text-slate-700">{{ companies.length ? 'No company here' : 'No companies yet' }}</p><p class="mt-1 text-sm">{{ companies.length ? (view === 'inactive' ? `No company has been quiet for ${inactivityDays} days. Everything is in use.` : 'Try another filter or search.') : 'Create the first one.' }}</p></div>
 
     <Modal v-if="deciding" :title="`${deciding.action === 'close' ? 'Close' : 'Suspend'} ${deciding.company.name}?`" @close="deciding = null">
         <form id="decision-form" class="space-y-3" data-testid="decision-form" @submit.prevent="submitDecision">

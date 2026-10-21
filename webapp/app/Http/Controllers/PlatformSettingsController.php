@@ -75,7 +75,7 @@ class PlatformSettingsController extends Controller
             'administrators' => AccountUser::where('is_platform_admin', true)->orderBy('name')->get()->map(fn (AccountUser $a) => [
                 'id' => $a->id, 'name' => $a->name, 'email' => $a->email, 'status' => $a->status, 'is_me' => $a->is($me),
                 'notify_requests' => (bool) $a->notify_requests, 'notify_messages' => (bool) $a->notify_messages,
-                'notify_automation_failures' => (bool) $a->notify_automation_failures, 'notify_inactive_companies' => (bool) $a->notify_inactive_companies, 'notify_onboarding' => (bool) $a->notify_onboarding, 'notify_email' => $a->notify_email,
+                'notify_automation_failures' => (bool) $a->notify_automation_failures, 'notify_inactive_companies' => (bool) $a->notify_inactive_companies, 'notify_onboarding' => (bool) $a->notify_onboarding, 'notify_tickets' => (bool) $a->notify_tickets, 'notify_email' => $a->notify_email,
             ])->values(),
         ]);
     }
@@ -95,6 +95,7 @@ class PlatformSettingsController extends Controller
             'administrators.*.notify_automation_failures' => ['sometimes', 'boolean'],
             'administrators.*.notify_inactive_companies' => ['sometimes', 'boolean'],
             'administrators.*.notify_onboarding' => ['sometimes', 'boolean'],
+            'administrators.*.notify_tickets' => ['sometimes', 'boolean'],
             'administrators.*.notify_email' => ['nullable', 'email', 'max:255'],
         ], ['administrators.*.notify_email.email' => 'Enter a valid e-mail address, or leave it empty to use the administrator\'s own address.']);
 
@@ -104,6 +105,7 @@ class PlatformSettingsController extends Controller
                 'notify_automation_failures' => $row['notify_automation_failures'] ?? false,
                 'notify_inactive_companies' => $row['notify_inactive_companies'] ?? false,
                 'notify_onboarding' => $row['notify_onboarding'] ?? false,
+                'notify_tickets' => $row['notify_tickets'] ?? false,
                 'notify_email' => trim((string) ($row['notify_email'] ?? '')) ?: null,
             ]);
         }

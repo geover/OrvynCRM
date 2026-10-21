@@ -163,7 +163,7 @@ class SubscriptionCancellationTest extends TenantTestCase
 
         $this->platformAdmin();
         $request = SubscriptionRequest::first();
-        $this->get('/platform/seat-requests')->assertInertia(fn ($p) => $p->has('subscription_requests', 1)->where('subscription_requests.0.status', 'pending'));
+        $this->get('/platform/requests')->assertInertia(fn ($p) => $p->has('subscription_requests', 1)->where('subscription_requests.0.status', 'pending'));
         $this->post("/platform/subscription-requests/{$request->id}/approve", ['response' => 'Welcome back'])->assertRedirect();
 
         $this->assertTrue((bool) CompanySubscription::first()->resubscribe_enabled);

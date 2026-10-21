@@ -7,6 +7,7 @@ use App\Models\MessageThread;
 use App\Models\ThreadAttachment;
 use App\Models\ThreadMessage;
 use App\Services\Tenancy\TenantProvisioner;
+use App\Support\SafeHtml;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -158,7 +159,7 @@ class PlatformMessageTest extends TenantTestCase
         $owner()->postJson("/api/v1/platform-threads/{$id}/messages", ['body' => ''])->assertUnprocessable()->assertJsonValidationErrors('body');
         $this->platformAdmin();
         $this->post("/platform/messages/{$id}/reply", ['body' => ''])->assertSessionHasErrors('body');
-        $this->post("/platform/messages/{$id}/reply", ['body' => str_repeat('x', 5001)])->assertSessionHasErrors('body');
+        $this->post("/platform/messages/{$id}/reply", ['body' => str_repeat('x', 20001)])->assertSessionHasErrors('body');
     }
 
     public function test_a_platform_support_profile_does_not_write_as_the_company(): void
@@ -210,7 +211,10 @@ class PlatformMessageTest extends TenantTestCase
         $this->post("/platform/messages/{$id}/archive")->assertForbidden();
         $this->delete("/platform/messages/{$id}")->assertForbidden();
         $this->assertSame(1, ThreadMessage::count());
-        $this->get('/admin/platform-messages')->assertOk()->assertInertia(fn ($p) => $p->component('Admin/PlatformMessages'));
+        $this->get('/messages')->assertOk()->assertInertia(fn ($p) => $p->component('Admin/PlatformMessages'));
+        $this->get('/admin/platform-messages?thread=5')->assertRedirect('/messages?thread=5');                       // the old addresses forward
+        $this->get('/admin/tickets?ticket=7')->assertRedirect('/tickets?ticket=7');
+        $this->get('/tickets')->assertOk()->assertInertia(fn ($p) => $p->component('Admin/Tickets'));
     }
 
     public function test_the_old_one_way_messages_became_one_message_threads(): void
@@ -382,5 +386,13 @@ class PlatformMessageTest extends TenantTestCase
         $this->company('Acme', 'owner@acme.test');
         $this->flushSession();
         $this->getJson('/platform/messages/poll?counts=1')->assertRedirect();                 // not signed in as a platform administrator
+    }
+
+    public function test_messages_can_be_formatted_and_stay_safe(): void
+    {
+        $this->assertSame('<p>See <b>this</b></p>', MessageThread::normalise('<p>See <b>this</b></p><script>x()</script>'));
+        $this->assertSame('', MessageThread::normalise('<p><br></p>'));                                    // an empty editor is nothing
+        $this->assertSame("Plain text\nstays", MessageThread::normalise("Plain text\nstays "));
+        $this->assertSame("Hello\nSecond & last", SafeHtml::toText('<p>Hello</p><p>Second &amp; last</p>'));      // the e-mail and the list preview read plain text
     }
 }

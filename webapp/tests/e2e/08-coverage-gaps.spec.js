@@ -92,7 +92,7 @@ test.describe('admin hub', () => {
         const hrefs = await page.locator('main a.card').evaluateAll((els) => els.map((e) => e.getAttribute('href')));
         expect(hrefs.sort()).toEqual(['/admin/app-details', '/admin/look-and-feel', '/admin/users', '/admin/phone', '/objects', '/admin/contact-relationships', '/admin/queries', '/admin/data-tools',
             '/admin/custom-tabs', '/automations', '/admin/webhooks', '/admin/email-templates', '/admin/forms', '/admin/blast-progress', '/admin/support-emails', '/admin/email-domains',
-            '/admin/workflow-boards', '/admin/scheduler', '/admin/price-lists', '/admin/tours', '/admin/platform-messages', '/admin/keap', '/admin/twilio', '/billing'].sort());
+            '/admin/workflow-boards', '/admin/scheduler', '/admin/price-lists', '/admin/tours', '/admin/keap', '/admin/twilio', '/billing'].sort());
         for (const title of ['General', 'Data', 'Automation & communication', 'Planning']) await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
 
         // really click through a card of each group, and come back with the breadcrumb
@@ -103,7 +103,7 @@ test.describe('admin hub', () => {
             await expect(page.locator('h1').first()).toBeVisible();
         }
         await page.goto('/admin/scheduler');
-        await page.getByRole('link', { name: 'Admin settings' }).first().click();
+        await page.getByRole('link', { name: 'Company settings' }).first().click();
         await expect(page).toHaveURL(/\/admin$/);
     });
 });
@@ -278,7 +278,7 @@ test.describe('dashboard, boards and objects index pages', () => {
         await login(p, { email, password: 'Plain-Passw0rd-1' });
         await p.goto('/boards');
         await expect(p.getByRole('link', { name: 'Manage boards' })).toHaveCount(0);
-        await expect(p.locator('aside')).not.toContainText('Admin Settings');
+        await expect(p.locator('aside')).not.toContainText('Company Settings');
         for (const url of ['/admin', '/admin/users', '/automations', '/admin/forms/new']) expect((await p.goto(url)).status()).toBe(403);
         await ctx.close();
     });
@@ -369,7 +369,7 @@ test.describe('app shell', () => {
         await page.locator('header').getByRole('link', { name: 'User settings' }).click();
         await expect(page).toHaveURL(/\/user-settings$/);
         await page.locator('header button:has(span.rounded-full)').last().click();
-        await page.locator('header').getByRole('link', { name: 'Admin settings' }).click();
+        await page.locator('header').getByRole('link', { name: 'Company settings' }).click();
         await expect(page).toHaveURL(/\/admin$/);
         await page.locator('header button:has(span.rounded-full)').last().click();
         await page.getByRole('button', { name: 'Sign out' }).click();
@@ -380,7 +380,7 @@ test.describe('app shell', () => {
 
     test('sidebar highlights the current section and every entry navigates', async ({ page }) => {
         await page.goto('/');
-        for (const [label, url] of [['Contacts', /\/contacts$/], ['Data Objects', /\/objects$/], ['Workflow Boards', /\/boards$/], ['My Tasks', /\/tasks$/], ['Schedules', /\/schedules$/], ['Admin Settings', /\/admin$/], ['Dashboard', /\/$/]]) {
+        for (const [label, url] of [['Contacts', /\/contacts$/], ['Data Objects', /\/objects$/], ['Workflow Boards', /\/boards$/], ['My Tasks', /\/tasks$/], ['Schedules', /\/schedules$/], ['Company Settings', /\/admin$/], ['Dashboard', /\/$/]]) {
             await page.locator('aside nav').getByRole('link', { name: label }).click();
             await expect(page).toHaveURL(url);
             await expect(page.locator('aside nav').getByRole('link', { name: label })).toHaveClass(/bg-white\/15/);

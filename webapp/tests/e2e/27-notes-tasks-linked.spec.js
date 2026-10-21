@@ -16,7 +16,7 @@ test('a note with a link and a file, a task made from it, and the note written w
     await page.getByRole('button', { name: 'Add note' }).click();
     let m = modal(page);
     await field(m, 'Title').fill('Quote request');
-    await field(m, 'Note').fill('Wants a quote for twenty seats.');
+    await m.locator('[contenteditable]').fill('Wants a quote for twenty seats.');       // the note is rich text
     await m.getByTestId('attach-link-url').fill('https://example.com/pricing');
     await m.getByTestId('attach-link-add').click();
     await m.getByTestId('attach-file').setInputFiles({ name: 'brief.txt', mimeType: 'text/plain', buffer: Buffer.from('twenty seats') });

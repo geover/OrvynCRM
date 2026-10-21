@@ -45,7 +45,7 @@ async function remove(r) {
                 <li v-if="!data.direct.length" class="px-5 py-6 text-center text-sm text-slate-400">No direct relationships.</li>
             </ul>
             <div class="space-y-2 border-t border-slate-100 p-4">
-                <p v-if="!types.length" class="text-xs text-slate-400">No relationship types yet. An admin can add them under Admin settings → Contact relationships.</p>
+                <p v-if="!types.length" class="text-xs text-slate-400">No relationship types yet. An admin can add them under Company settings → Contact relationships.</p>
                 <template v-else>
                     <div class="flex gap-2">
                         <select v-model="typeId" class="input !w-40"><option v-for="t in types" :key="t.id" :value="t.id">{{ t.label }}</option></select>

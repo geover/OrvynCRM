@@ -1,6 +1,9 @@
 <script setup>
 import { onMounted, ref } from 'vue';
+import { Phone, PhoneCall, Users } from 'lucide-vue-next';
 import AdminPage from '@/Components/AdminPage.vue';
+import SectionTitle from '@/Components/SectionTitle.vue';
+import TicketTile from '@/Components/support/TicketTile.vue';
 import CallerIdVerifier from '@/Components/CallerIdVerifier.vue';
 import { api } from '@/lib/api';
 import { confirmDialog, run } from '@/lib/ui';
@@ -33,6 +36,11 @@ async function save(u) {
 <template>
     <AdminPage title="Phone call" subtitle="Configure users with caller IDs.">
         <p v-if="!phone.can_set" class="mb-3 max-w-3xl rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800" data-testid="phone-locked">Caller IDs are set by the platform administrator for all companies, so they cannot be changed here.</p>
+        <section class="mb-4 grid max-w-3xl grid-cols-3 gap-4" data-testid="phone-summary" aria-label="Caller IDs in numbers">
+            <TicketTile :icon="Users" tone="bg-indigo-100 text-indigo-700" label="Users" :value="users.length" hint="who can call" />
+            <TicketTile :icon="Phone" tone="bg-emerald-100 text-emerald-700" label="With a caller ID" :value="users.filter((u) => u.caller_id).length" hint="their own number" />
+            <TicketTile :icon="PhoneCall" tone="bg-slate-100 text-slate-500" label="On the default" :value="users.filter((u) => !u.caller_id).length" :hint="phone.default_caller_id ? phone.default_caller_id : 'no default set'" />
+        </section>
         <div class="card table-scroll max-w-3xl">
             <table class="w-full text-sm">
                 <thead class="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">User</th><th class="px-5 py-3">Caller ID</th><th /></tr></thead>
@@ -51,8 +59,8 @@ async function save(u) {
         </div>
 
         <section class="card mt-4 max-w-3xl p-5" aria-labelledby="ph-numbers" data-testid="caller-numbers">
-            <h2 id="ph-numbers" class="text-sm font-semibold">Numbers you can call from</h2>
-            <p v-if="!ids.source" class="mt-2 text-sm text-slate-500" data-testid="caller-none">No Twilio account is set up for this company, so a caller ID is typed in. To pick from verified numbers instead, add your own Twilio account (Admin settings, Twilio), or ask the platform administrator to set one up.</p>
+            <SectionTitle id="ph-numbers" :icon="Phone" tone="bg-sky-100 text-sky-700" title="Numbers you can call from" hint="What a caller ID can be" />
+            <p v-if="!ids.source" class="mt-2 text-sm text-slate-500" data-testid="caller-none">No Twilio account is set up for this company, so a caller ID is typed in. To pick from verified numbers instead, add your own Twilio account (Company settings, Twilio), or ask the platform administrator to set one up.</p>
             <p v-else-if="ids.error" class="mt-2 text-sm text-red-600">Twilio could not be reached: {{ ids.error }}</p>
             <template v-else>
                 <p class="mb-3 mt-1 text-xs text-slate-500">{{ ids.can_manage ? 'These are the numbers on your Twilio account. A user can only use a number from this list, because Twilio refuses calls from any other.' : 'The platform offers these numbers. Ask the platform administrator if you need another one.' }}</p>

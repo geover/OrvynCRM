@@ -108,7 +108,7 @@ test.describe('platform administrators', () => {
         const p = await ctx.newPage();
         await signIn(p, email, 'Second-Passw0rd-12');
         await expect(p).toHaveURL(/127\.0\.0\.1:8123\/$/);
-        await expect(p.locator('aside')).toContainText('Admin Settings');
+        await expect(p.locator('aside')).toContainText('Company Settings');
         expect((await p.goto('/platform')).status()).toBe(403);
         await ctx.close();
     });
@@ -146,9 +146,9 @@ test.describe('company user management', () => {
         await signIn(page, 'multi@orvyncrm.test');                                                              // a regular user in Demo, an administrator in Other
         await page.locator('[data-company="demo"]').click();
         await expect(page).toHaveURL(/127\.0\.0\.1:8123\/$/);
-        await expect(page.locator('aside')).not.toContainText('Admin Settings');
+        await expect(page.locator('aside')).not.toContainText('Company Settings');
         await page.locator('header button:has(span.rounded-full)').last().click();
-        await expect(page.getByRole('link', { name: 'Admin settings' })).toHaveCount(0);
+        await expect(page.getByRole('link', { name: 'Company settings' })).toHaveCount(0);
         for (const path of ['/admin', '/admin/users', '/admin/app-details', '/automations']) {
             expect((await page.goto(path)).status(), path).toBe(403);
         }

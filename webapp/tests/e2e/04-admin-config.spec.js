@@ -42,7 +42,7 @@ test.describe('custom tabs & contact relationship types', () => {
         await m.getByTestId('type-html').click();
         await m.getByTestId('rich-source').click();
         await m.getByTestId('rich-source-text').fill('<h2>Team handbook</h2>');
-        await m.getByTestId('who-chosen').check({ force: true });
+        await m.locator('label:has([data-testid="who-chosen"])').click();
         await m.getByTestId('save-tab').click();
         await expect(m.getByTestId('tab-error')).toContainText('who can see it');                 // "only chosen people" with nobody chosen is refused
         await m.getByTestId('role-manager').check();
@@ -240,7 +240,7 @@ test.describe('users & permission templates', () => {
         await login(p, { email: state.userEmail, password: 'Viewer-Passw0rd-1' });
 
         // view-only: no admin link in the sidebar, cannot create a contact, cannot reach admin pages
-        await expect(p.locator('aside')).not.toContainText('Admin Settings');
+        await expect(p.locator('aside')).not.toContainText('Company Settings');
         await p.locator('header .btn-primary').click();
         await field(modal(p), 'First name').fill('Nope');
         await modal(p).getByRole('button', { name: 'Create contact' }).click();
@@ -341,10 +341,10 @@ test.describe('email templates & webhooks', () => {
         await expect(m.locator('iframe')).toBeVisible();
         await m.getByRole('button', { name: 'Edit', exact: true }).click();
         await m.getByRole('button', { name: 'Save template' }).click();
-        await expect(page.locator('main .divide-y > div', { hasText: 'Welcome mail' })).toContainText('Onboarding');
+        await expect(page.locator('main [data-testid="item-collection"] article', { hasText: 'Welcome mail' })).toContainText('Onboarding');
 
         // edit
-        await page.locator('main .divide-y > div', { hasText: 'Welcome mail' }).getByRole('button').first().click();
+        await page.locator('main [data-testid="item-collection"] article', { hasText: 'Welcome mail' }).getByRole('button').first().click();
         m = modal(page);
         await field(m, 'Subject').fill('Hello {{contact.first_name}}!');
         await m.getByRole('button', { name: 'Save template' }).click();
@@ -352,12 +352,12 @@ test.describe('email templates & webhooks', () => {
         expect(t).toMatchObject({ subject: 'Hello {{contact.first_name}}!', group: 'Onboarding' });
 
         // duplicate then delete the copy
-        await page.locator('main .divide-y > div', { hasText: 'Welcome mail' }).getByTitle('Duplicate').click();
-        await expect(page.locator('main .divide-y > div', { hasText: 'Welcome mail (copy)' })).toBeVisible();
-        await page.locator('main .divide-y > div', { hasText: 'Welcome mail (copy)' }).locator('button.text-slate-400').click();
+        await page.locator('main [data-testid="item-collection"] article', { hasText: 'Welcome mail' }).getByTitle('Duplicate').click();
+        await expect(page.locator('main [data-testid="item-collection"] article', { hasText: 'Welcome mail (copy)' })).toBeVisible();
+        await page.locator('main [data-testid="item-collection"] article', { hasText: 'Welcome mail (copy)' }).locator('button.text-slate-400').click();
         await confirm(page, 'Delete');
-        await expect(page.locator('main .divide-y > div', { hasText: 'Welcome mail (copy)' })).toHaveCount(0);
-        await expect(page.locator('main .divide-y > div', { hasText: 'Welcome mail' })).toBeVisible();
+        await expect(page.locator('main [data-testid="item-collection"] article', { hasText: 'Welcome mail (copy)' })).toHaveCount(0);
+        await expect(page.locator('main [data-testid="item-collection"] article', { hasText: 'Welcome mail' })).toBeVisible();
     });
 
     test('webhooks: https + public hosts only, secret shown once, edit, deliveries list, delete', async ({ page }) => {
@@ -378,19 +378,19 @@ test.describe('email templates & webhooks', () => {
         const hook = (await api(page, 'GET', '/webhooks')).json.data.find((w) => w.name === 'CRM sync');
         expect(hook.secret).toBeUndefined();                                                  // never returned again
 
-        await page.locator('main .divide-y > div', { hasText: 'CRM sync' }).getByRole('button', { name: 'Edit' }).click();
+        await page.locator('main [data-testid="item-collection"] article', { hasText: 'CRM sync' }).getByRole('button', { name: 'Edit' }).click();
         m = modal(page);
         await field(m, 'Name').fill('CRM sync v2');
         await m.getByText('Active').click();                                                  // switch off
         await m.getByRole('button', { name: 'Save' }).click();
-        await expect(page.locator('main .divide-y > div', { hasText: 'CRM sync v2' })).toContainText('off');
+        await expect(page.locator('main [data-testid="item-collection"] article', { hasText: 'CRM sync v2' })).toContainText('off');
 
-        await page.locator('main .divide-y > div', { hasText: 'CRM sync v2' }).getByRole('button', { name: /deliveries/ }).click();
+        await page.locator('main [data-testid="item-collection"] article', { hasText: 'CRM sync v2' }).getByRole('button', { name: /deliveries/ }).click();
         await expect(modal(page)).toContainText('No deliveries yet');
         await page.keyboard.press('Escape');
 
-        await page.locator('main .divide-y > div', { hasText: 'CRM sync v2' }).locator('button.text-slate-400').click();
+        await page.locator('main [data-testid="item-collection"] article', { hasText: 'CRM sync v2' }).locator('button.text-slate-400').click();
         await confirm(page, 'Delete');
-        await expect(page.locator('main .divide-y > div', { hasText: 'CRM sync v2' })).toHaveCount(0);
+        await expect(page.locator('main [data-testid="item-collection"] article', { hasText: 'CRM sync v2' })).toHaveCount(0);
     });
 });

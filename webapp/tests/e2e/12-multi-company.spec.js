@@ -96,7 +96,7 @@ test.describe('sign-in and the company chooser', () => {
         // Demo Company: a plain user, with the sample contacts
         await list.locator('[data-company="demo"]').click();
         await expect(page).toHaveURL(/127\.0\.0\.1:8123\/$/);
-        await expect(page.locator('aside')).not.toContainText('Admin Settings');
+        await expect(page.locator('aside')).not.toContainText('Company Settings');
         await page.goto('/contacts');
         await page.getByPlaceholder('Search name, email, company, phone…').fill('Lovelace');      // other specs add contacts: find the sample one
         await expect(page.getByRole('link', { name: 'Ada Lovelace' }).first()).toBeVisible();
@@ -108,7 +108,7 @@ test.describe('sign-in and the company chooser', () => {
         await expect(page).toHaveURL(/\/choose-company$/);
         await expect(page.locator('[data-company="demo"]').locator('svg[aria-label="Currently open"]')).toBeVisible();
         await page.locator('[data-company="other"]').click();
-        await expect(page.locator('aside')).toContainText('Admin Settings');
+        await expect(page.locator('aside')).toContainText('Company Settings');
         await page.goto('/contacts');
         await expect(page.getByText('No contacts found.')).toBeVisible();
         await expect(page.getByRole('link', { name: 'Ada Lovelace' })).toHaveCount(0);
@@ -261,7 +261,7 @@ test.describe('platform area', () => {
         // open a company for support: as an administrator, labelled; "Platform" brings us back
         await page.locator('tr[data-company="other"]').getByRole('button', { name: 'Open' }).click();
         await expect(page).toHaveURL(/127\.0\.0\.1:8123\/$/);
-        await expect(page.locator('aside')).toContainText('Admin Settings');
+        await expect(page.locator('aside')).toContainText('Company Settings');
         await userMenu(page).click();
         await expect(page.getByText('Platform Administrator (platform support)').or(page.locator('header').getByText('(platform support)')).first()).toBeVisible();
         await page.getByRole('link', { name: 'Platform' }).click();

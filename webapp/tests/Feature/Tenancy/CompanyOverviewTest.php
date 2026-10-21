@@ -4,6 +4,7 @@ namespace Tests\Feature\Tenancy;
 
 use App\Jobs\CollectCompanyMetrics;
 use App\Models\AccountUser;
+use App\Models\Automation;
 use App\Models\Contact;
 use App\Models\DataObject;
 use App\Models\DataObjectRecord;
@@ -40,9 +41,20 @@ class CompanyOverviewTest extends TenantTestCase
             }
             DataObjectRecord::create(['data_object_id' => $cases->id, 'data' => [], 'search_text' => 'case', 'status' => 'active']);
             Tag::create(['name' => 'VIP']);
+            foreach (['Welcome', 'Follow up'] as $name) {
+                Automation::create(['name' => $name, 'data_object_id' => $deals->id, 'status' => 'active', 'conditions' => [], 'actions' => [], 'schedule' => 'on_change']);
+            }
             (new CollectCompanyMetrics)->handle();
         });
         $beta->run(fn () => (new CollectCompanyMetrics)->handle());
+
+        $this->platformAdmin();
+        $this->get('/platform')->assertInertia(fn ($p) => $p->where('companies', function ($rows) {                       // the Companies list says how the automations spread over the objects
+            $acme = collect($rows)->firstWhere('name', 'Acme');
+            $beta = collect($rows)->firstWhere('name', 'Beta');
+
+            return $acme['automations'] === 2 && $acme['automations_by_object'] === [['name' => 'Deals', 'automations' => 2]] && $beta['automations'] === 0 && $beta['automations_by_object'] === [];
+        }));
 
         $stat = TenantStat::findOrFail($acme->id);
         $this->assertSame(2, $stat->contacts);
@@ -50,7 +62,7 @@ class CompanyOverviewTest extends TenantTestCase
         $this->assertSame(2, $stat->counts['data_objects']);
         $this->assertSame(1, $stat->counts['tags']);
         $this->assertSame(0, $stat->counts['notes']);
-        $this->assertSame([['name' => 'Deals', 'records' => 3], ['name' => 'Cases', 'records' => 1]], $stat->object_breakdown);       // biggest first
+        $this->assertSame([['name' => 'Deals', 'records' => 3, 'automations' => 2], ['name' => 'Cases', 'records' => 1, 'automations' => 0]], $stat->object_breakdown);       // biggest first
         $this->assertSame(0, TenantStat::findOrFail($beta->id)->contacts, "one company's data never counts for another");
     }
 

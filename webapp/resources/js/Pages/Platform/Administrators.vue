@@ -1,13 +1,18 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { Camera, ChevronDown, ChevronRight, Fingerprint, KeyRound, Pencil, Plus, Search, ShieldCheck, ShieldOff, Smile, Trash2, UserMinus } from 'lucide-vue-next';
+import { Camera, ChevronDown, ChevronRight, Clock, Fingerprint, LayoutGrid, LayoutList, List, Plus, Radio, Search, ShieldCheck, Smile, Trash2, UserCog, UserX } from 'lucide-vue-next';
 import AvatarPicker from '@/Components/AvatarPicker.vue';
 import Modal from '@/Components/Modal.vue';
 import PasswordField from '@/Components/PasswordField.vue';
+import AdminActions from '@/Components/people/AdminActions.vue';
+import AdminAvatar from '@/Components/people/AdminAvatar.vue';
+import AdminDetails from '@/Components/people/AdminDetails.vue';
 import ProfileFields from '@/Components/people/ProfileFields.vue';
 import PageHeader from '@/Components/PageHeader.vue';
-import StatTile from '@/Components/StatTile.vue';
+import TicketTile from '@/Components/support/TicketTile.vue';
+import { ACTIVITY, device, duration, initials, METHOD } from '@/lib/adminInfo';
+import { useStored } from '@/lib/stored';
 import { timezones } from '@/lib/tz';
 import { fmtDate, fmtRelative, toast } from '@/lib/ui';
 
@@ -17,6 +22,9 @@ const page = usePage();
 
 const FILTERS = [['all', 'All'], ['online', 'Online now'], ['active', 'Active (last 30 days)'], ['inactive', 'Inactive'], ['never', 'Never signed in']];
 const filter = ref('all');
+// how the administrators are laid out, kept in this browser: 'list' (the table), 'detailed' (a card each) or 'boxes' (a grid)
+const layout = useStored('administrators:layout', 'list');
+const LAYOUTS = [['list', List, 'List'], ['detailed', LayoutList, 'Detailed'], ['boxes', LayoutGrid, 'Boxes']];
 const q = ref('');
 const open = ref(new Set());
 const count = (k) => (k === 'all' ? props.administrators.length : props.administrators.filter((a) => a.activity === k).length);
@@ -30,25 +38,6 @@ const toggle = (id) => { const s = new Set(open.value); s.has(id) ? s.delete(id)
 const twoStep = computed(() => props.administrators.filter((a) => a.two_factor || a.passkeys > 0).length);
 const monthSeconds = computed(() => props.administrators.reduce((n, a) => n + a.seconds_30d, 0));
 const monthSessions = computed(() => props.administrators.reduce((n, a) => n + a.sessions_30d, 0));
-
-const ACTIVITY = { online: ['Online now', '!bg-emerald-50 !text-emerald-700', 'bg-emerald-500'], active: ['Active', '!bg-sky-50 !text-sky-700', 'bg-sky-400'], inactive: ['Inactive', '!bg-amber-50 !text-amber-700', 'bg-amber-400'], never: ['Never signed in', '!bg-slate-100 !text-slate-600', 'bg-slate-300'] };
-const METHOD = { password: 'Password', passkey: 'Passkey', social: 'Single sign-on' };
-
-// 3725 seconds -> "1h 2m"
-function duration(sec) {
-    if (!sec) return '0m';
-    const h = Math.floor(sec / 3600);
-    const m = Math.round((sec % 3600) / 60);
-    return h ? `${h}h ${m}m` : m ? `${m}m` : '<1m';
-}
-// "Mozilla/5.0 (Windows NT 10.0; ...) Chrome/120 ..." -> "Chrome on Windows"
-function device(agent) {
-    if (!agent) return 'Unknown device';
-    const browser = /Edg\//.test(agent) ? 'Edge' : /OPR\//.test(agent) ? 'Opera' : /Firefox\//.test(agent) ? 'Firefox' : /Chrome\//.test(agent) ? 'Chrome' : /Safari\//.test(agent) ? 'Safari' : 'Browser';
-    const os = /Windows/.test(agent) ? 'Windows' : /Android/.test(agent) ? 'Android' : /iPhone|iPad/.test(agent) ? 'iOS' : /Mac OS X/.test(agent) ? 'macOS' : /Linux/.test(agent) ? 'Linux' : '';
-    return os ? `${browser} on ${os}` : browser;
-}
-const initials = (name) => name.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 
 const adding = ref(false);
 const addForm = useForm({ name: '', email: '', password: '', job_title: '', phone: '', timezone: '', notes: '' });
@@ -108,11 +97,11 @@ const sendReset = (a) => router.post(`/platform/administrators/${a.id}/reset-pas
     </PageHeader>
 
     <section class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-5" aria-label="Administrators in numbers" data-testid="admin-summary">
-        <StatTile label="Administrators" :value="administrators.length" :hint="`${count('active') + count('online')} signed in during the last 30 days`" />
-        <StatTile label="Online now" :value="count('online')" hint="seen in the last 5 minutes" />
-        <StatTile label="Inactive" :value="count('inactive') + count('never')" :danger="count('inactive') + count('never') > 0" hint="no sign-in for 30 days, or never" />
-        <StatTile label="Protected" :value="`${twoStep} of ${administrators.length}`" hint="have a second step or a passkey" />
-        <StatTile label="Time on the platform" :value="duration(monthSeconds)" :hint="`${monthSessions} sign-ins, last 30 days`" />
+        <TicketTile :icon="UserCog" tone="bg-indigo-100 text-indigo-700" label="Administrators" :value="administrators.length" :hint="`${count('active') + count('online')} signed in during the last 30 days`" clickable :active="filter === 'all'" @click="filter = 'all'" />
+        <TicketTile :icon="Radio" tone="bg-emerald-100 text-emerald-700" label="Online now" :value="count('online')" hint="seen in the last 5 minutes" clickable :active="filter === 'online'" @click="filter = filter === 'online' ? 'all' : 'online'" />
+        <TicketTile :icon="UserX" tone="bg-amber-100 text-amber-700" label="Inactive" :value="count('inactive') + count('never')" :alert="count('inactive') + count('never') > 0" hint="no sign-in for 30 days, or never" clickable :active="filter === 'inactive'" @click="filter = filter === 'inactive' ? 'all' : 'inactive'" />
+        <TicketTile :icon="ShieldCheck" tone="bg-sky-100 text-sky-700" label="Protected" :value="`${twoStep} of ${administrators.length}`" hint="have a second step or a passkey" />
+        <TicketTile :icon="Clock" tone="bg-slate-100 text-slate-500" label="Time on the platform" :value="duration(monthSeconds)" :hint="`${monthSessions} sign-ins, last 30 days`" />
     </section>
 
     <div class="mb-3 flex flex-wrap items-center gap-2">
@@ -123,9 +112,12 @@ const sendReset = (a) => router.post(`/platform/administrators/${a.id}/reset-pas
             </button>
         </div>
         <div class="relative ml-auto"><Search class="pointer-events-none absolute left-3 top-2.5 size-4 text-slate-400" /><input v-model="q" class="input !w-56 !pl-9" placeholder="Find an administrator…" aria-label="Find an administrator" data-testid="admin-search" /></div>
+        <div class="inline-flex rounded-xl border border-slate-200 p-1 text-sm" role="group" aria-label="Layout">
+            <button v-for="[v, icon, l] in LAYOUTS" :key="v" type="button" class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-medium transition" :class="layout === v ? 'bg-brand-50 text-brand-700' : 'text-slate-500 hover:text-slate-700'" :aria-pressed="layout === v" :title="l" :data-testid="`layout-${v}`" @click="layout = v"><component :is="icon" class="size-4" /><span class="hidden sm:inline">{{ l }}</span></button>
+        </div>
     </div>
 
-    <div class="card table-scroll">
+    <div v-if="layout === 'list'" class="card table-scroll">
         <table class="w-full text-sm" aria-label="Platform administrators">
             <thead class="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500"><tr>
                 <th class="w-8 px-2 py-3"><span class="sr-only">Details</span></th><th class="px-3 py-3">Administrator</th><th class="px-3 py-3">Activity</th><th class="px-3 py-3">Last sign-in</th><th class="px-3 py-3">Sign-ins, 30 days</th>
@@ -150,45 +142,11 @@ const sendReset = (a) => router.post(`/platform/administrators/${a.id}/reset-pas
                             <span v-if="a.passkeys" class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-700"><Fingerprint class="size-3.5" /> {{ a.passkeys }} {{ a.passkeys === 1 ? 'passkey' : 'passkeys' }}</span>
                             <span v-for="p in a.sso" :key="p" class="rounded-full bg-sky-50 px-2 py-0.5 capitalize text-sky-700">{{ p }}</span>
                             <span v-if="!a.two_factor && !a.passkeys" class="rounded-full bg-amber-50 px-2 py-0.5 text-amber-700">Password only</span></div></td>
-                        <td class="whitespace-nowrap px-3 py-3 text-right">
-                            <button class="btn-ghost !py-1.5" @click="edit(a)"><Pencil class="size-4" /> Edit</button>
-                            <button class="btn-ghost !py-1.5" @click="sendReset(a)"><KeyRound class="size-4" /> Reset password</button>
-                            <button v-if="a.two_factor && !a.is_me" class="btn-ghost !py-1.5" data-testid="admin-reset-two-factor" @click="resetTwoFactor(a)"><ShieldOff class="size-4" /> Reset 2-step</button>
-                            <button class="btn-ghost !py-1.5" :disabled="a.is_me" :title="a.is_me ? 'You cannot demote yourself' : 'Demote'" @click="demoting = a"><UserMinus class="size-4" /> Demote</button>
-                        </td>
+                        <td class="px-3 py-3"><AdminActions :a="a" @edit="edit" @reset-password="sendReset" @reset-two-factor="resetTwoFactor" @demote="demoting = $event" /></td>
                     </tr>
                     <tr v-if="open.has(a.id)" :data-detail="a.email" class="bg-slate-50/60">
                         <td colspan="8" class="px-6 py-4">
-                            <div class="grid gap-6 lg:grid-cols-[2fr_1fr]">
-                                <div>
-                                    <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Latest sign-ins</h3>
-                                    <table v-if="a.recent.length" class="w-full text-left text-xs">
-                                        <thead class="text-slate-400"><tr><th class="py-1 pr-4 font-medium">When</th><th class="py-1 pr-4 font-medium">Time spent</th><th class="py-1 pr-4 font-medium">How</th><th class="py-1 pr-4 font-medium">Device</th><th class="py-1 font-medium">Address</th></tr></thead>
-                                        <tbody class="divide-y divide-slate-200/70">
-                                            <tr v-for="s in a.recent" :key="s.id">
-                                                <td class="py-1.5 pr-4" :title="fmtDate(s.started_at, true)">{{ fmtDate(s.started_at, true) }}</td>
-                                                <td class="py-1.5 pr-4 tabular-nums">{{ duration(s.seconds) }}<span v-if="s.live" class="ml-1 text-emerald-600">· here now</span><span v-else-if="!s.signed_out" class="ml-1 text-slate-400">· left without signing out</span></td>
-                                                <td class="py-1.5 pr-4">{{ METHOD[s.method] ?? s.method }}<span v-if="s.two_step && s.method !== 'passkey'" class="text-slate-400"> + 2-step</span></td>
-                                                <td class="py-1.5 pr-4">{{ device(s.agent) }}</td>
-                                                <td class="py-1.5 tabular-nums text-slate-500">{{ s.ip ?? '' }}</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                    <p v-else class="text-xs text-slate-400">No sign-in has been recorded yet. Sign-ins are recorded from now on.</p>
-                                </div>
-                                <dl class="space-y-1.5 text-xs text-slate-600">
-                                    <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">About</h3>
-                                    <div v-if="a.phone" class="flex justify-between gap-3"><dt>Phone</dt><dd>{{ a.phone }}</dd></div>
-                                    <div v-if="a.timezone" class="flex justify-between gap-3"><dt>Time zone</dt><dd>{{ a.timezone }}</dd></div>
-                                    <div v-if="a.notes" class="rounded-lg bg-white p-2 text-slate-600" data-testid="admin-notes"><dt class="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Note</dt><dd class="whitespace-pre-wrap">{{ a.notes }}</dd></div>
-                                    <div class="flex justify-between gap-3"><dt>Added</dt><dd>{{ a.created_at ? fmtDate(a.created_at) : 'Unknown' }}</dd></div>
-                                    <div class="flex justify-between gap-3"><dt>First recorded sign-in</dt><dd>{{ a.first_login_at ? fmtDate(a.first_login_at) : 'None yet' }}</dd></div>
-                                    <div class="flex justify-between gap-3"><dt>Last seen</dt><dd>{{ a.last_seen_at ? fmtRelative(a.last_seen_at) : 'Never' }}</dd></div>
-                                    <div class="flex justify-between gap-3"><dt>Sign-ins in all</dt><dd class="tabular-nums">{{ a.sessions_total }}</dd></div>
-                                    <div class="flex justify-between gap-3"><dt>Longest, last 30 days</dt><dd class="tabular-nums">{{ duration(a.longest_seconds) }}</dd></div>
-                                    <div class="flex justify-between gap-3"><dt>Account</dt><dd class="capitalize">{{ a.status }}</dd></div>
-                                </dl>
-                            </div>
+                            <AdminDetails :a="a" />
                         </td>
                     </tr>
                 </template>
@@ -196,6 +154,52 @@ const sendReset = (a) => router.post(`/platform/administrators/${a.id}/reset-pas
             </tbody>
         </table>
     </div>
+    <div v-else-if="rows.length && layout === 'detailed'" class="space-y-3" data-testid="admin-cards">
+        <article v-for="a in rows" :key="a.id" class="card msg-row p-4" :data-admin="a.email" :data-activity="a.activity">
+            <div class="flex flex-wrap items-center gap-4">
+                <AdminAvatar :a="a" size="size-12" />
+                <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2"><span class="font-semibold">{{ a.name }}</span><span v-if="a.is_me" class="badge">you</span><span class="badge" :class="ACTIVITY[a.activity][1]">{{ ACTIVITY[a.activity][0] }}</span><span v-if="a.two_factor" class="badge !bg-emerald-50 !text-emerald-700" data-testid="admin-two-factor">2-step</span></div>
+                    <div class="truncate text-sm text-slate-500">{{ a.email }}<template v-if="a.job_title"> · {{ a.job_title }}</template></div>
+                    <div class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400">
+                        <span v-if="a.last_login_at" :title="fmtDate(a.last_login_at, true)">Last sign-in {{ fmtRelative(a.last_login_at) }} · {{ METHOD[a.last_method] ?? a.last_method }} · {{ device(a.last_agent) }}</span><span v-else>Never signed in</span>
+                        <span>{{ a.sessions_30d }} sign-ins · {{ duration(a.seconds_30d) }} in 30 days</span>
+                    </div>
+                    <div class="mt-2 flex flex-wrap items-center gap-1 text-xs">
+                        <span v-if="a.two_factor" class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-700"><ShieldCheck class="size-3.5" /> App code</span>
+                        <span v-if="a.passkeys" class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-700"><Fingerprint class="size-3.5" /> {{ a.passkeys }} {{ a.passkeys === 1 ? 'passkey' : 'passkeys' }}</span>
+                        <span v-for="p in a.sso" :key="p" class="rounded-full bg-sky-50 px-2 py-0.5 capitalize text-sky-700">{{ p }}</span>
+                        <span v-if="!a.two_factor && !a.passkeys" class="rounded-full bg-amber-50 px-2 py-0.5 text-amber-700">Password only</span>
+                    </div>
+                </div>
+                <div class="flex shrink-0 items-center gap-1">
+                    <button type="button" class="btn-ghost !px-1.5" :aria-expanded="open.has(a.id)" :aria-label="`Details of ${a.name}`" data-testid="admin-expand" @click="toggle(a.id)"><component :is="open.has(a.id) ? ChevronDown : ChevronRight" class="size-4" /></button>
+                    <AdminActions icons :a="a" @edit="edit" @reset-password="sendReset" @reset-two-factor="resetTwoFactor" @demote="demoting = $event" />
+                </div>
+            </div>
+            <div v-if="open.has(a.id)" :data-detail="a.email" class="mt-4 rounded-xl bg-slate-50/60 px-5 py-4"><AdminDetails :a="a" /></div>
+        </article>
+    </div>
+
+    <div v-else-if="rows.length" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" data-testid="admin-boxes">
+        <article v-for="a in rows" :key="a.id" class="card msg-row flex flex-col p-4 transition duration-200 hover:-translate-y-0.5 hover:shadow-md" :data-admin="a.email" :data-activity="a.activity">
+            <div class="flex items-start gap-3">
+                <AdminAvatar :a="a" />
+                <div class="min-w-0 flex-1"><div class="flex flex-wrap items-center gap-1.5"><span class="truncate font-semibold">{{ a.name }}</span><span v-if="a.is_me" class="badge">you</span></div>
+                    <div class="truncate text-xs text-slate-500">{{ a.email }}</div><div v-if="a.job_title" class="truncate text-xs text-slate-400">{{ a.job_title }}</div></div>
+            </div>
+            <div class="mt-3 flex flex-wrap items-center gap-1.5 text-xs"><span class="badge" :class="ACTIVITY[a.activity][1]">{{ ACTIVITY[a.activity][0] }}</span>
+                <span v-if="a.two_factor || a.passkeys" class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-700"><ShieldCheck class="size-3.5" /> Protected</span>
+                <span v-else class="rounded-full bg-amber-50 px-2 py-0.5 text-amber-700">Password only</span></div>
+            <p class="mt-2 text-xs text-slate-400"><template v-if="a.last_login_at">Last sign-in {{ fmtRelative(a.last_login_at) }}</template><template v-else>Never signed in</template> · {{ duration(a.seconds_30d) }} in 30 days</p>
+            <div class="mt-auto flex items-center gap-1 pt-3"><button type="button" class="btn-ghost !px-1.5" :aria-expanded="open.has(a.id)" :aria-label="`Details of ${a.name}`" data-testid="admin-expand" @click="toggle(a.id)"><component :is="open.has(a.id) ? ChevronDown : ChevronRight" class="size-4" /></button>
+                <div class="ml-auto"><AdminActions icons :a="a" @edit="edit" @reset-password="sendReset" @reset-two-factor="resetTwoFactor" @demote="demoting = $event" /></div></div>
+            <div v-if="open.has(a.id)" :data-detail="a.email" class="mt-3 rounded-xl bg-slate-50/60 p-4"><AdminDetails compact :a="a" /></div>
+        </article>
+    </div>
+
+    <div v-else class="card msg-row px-6 py-14 text-center text-slate-500"><span class="mx-auto mb-3 grid size-16 place-items-center rounded-3xl bg-indigo-100 text-indigo-700"><UserCog class="size-8" /></span><p class="font-semibold text-slate-700">No administrator matches</p></div>
+
     <p class="mt-3 text-xs text-slate-400">A sign-in is recorded when someone signs in and kept fresh while they use the app; the time spent is how long it lasted, until they signed out or were last seen. Someone seen in the last 5 minutes is online. Active means a sign-in in the last 30 days. Sign-ins made before this page recorded them are not counted.</p>
 
     <Modal v-if="adding" title="Add platform administrator" @close="adding = false">

@@ -48,6 +48,9 @@ Schedule::command('orvyn:trial-reminders')->cron($frequency->cron('trial-reminde
 Schedule::command('orvyn:onboarding-run')->everyFifteenMinutes()->name('companies:onboarding')->withoutOverlapping(30);
 Schedule::command('orvyn:onboarding-digest')->dailyAt('08:00')->name('companies:onboarding-digest')->withoutOverlapping(30);
 
+// Support tickets that were resolved and went quiet are closed by themselves
+Schedule::command('orvyn:tickets-housekeeping')->dailyAt('03:10')->name('tickets:housekeeping')->withoutOverlapping(30);
+
 // Central housekeeping (tables that are shared by every company)
 Schedule::command('queue:prune-batches --hours=48')->daily();
 Schedule::command('queue:prune-failed --hours=168')->daily();
