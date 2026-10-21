@@ -174,7 +174,7 @@ test.describe('records of an object', () => {
         await m.locator('div:has(> label:text-matches("^Price")) input').fill('260000');
         await m.locator('button[form=rform]').click();
         await expect(modal(page)).toHaveCount(0);
-        await expect(page.locator('tbody tr', { hasText: '3 Elm St' })).toContainText('260000');
+        await expect(page.locator('tbody tr', { hasText: '3 Elm St' })).toContainText('260,000');
 
         await page.locator('tbody tr', { hasText: '3 Elm St' }).click();
         await modal(page).getByRole('button', { name: 'History' }).click();

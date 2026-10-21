@@ -25,7 +25,7 @@ test('a company administrator starts a thread with a new message', async ({ page
 
     await page.getByTestId('new-thread').click();
     await page.locator('#pm-subject').fill(state.subject);
-    await page.locator('#pm-body').fill('Can you raise our storage?\nThanks.');
+    await page.locator('#pm-body [contenteditable]').fill('Can you raise our storage?\nThanks.');
     await page.getByRole('button', { name: 'Send message' }).click();
     await expect(toast(page, 'success').first()).toContainText('Message sent to the platform');
     await expect(page.getByTestId('thread-subject')).toHaveText(state.subject);                     // the thread is open
@@ -102,7 +102,7 @@ test('the company sees the reply in the same thread, answers it, and a second me
     state.second = `Another topic ${uniq('t')}`.replace(/[^A-Za-z0-9 ]/g, '');
     await page.getByTestId('new-thread').click();
     await page.locator('#pm-subject').fill(state.second);
-    await page.locator('#pm-body').fill('A separate question.');
+    await page.locator('#pm-body [contenteditable]').fill('A separate question.');
     await page.getByRole('button', { name: 'Send message' }).click();
     await expect(page.getByTestId('thread-subject')).toHaveText(state.second);
     await expect(bubbles(page)).toHaveCount(1);                                                      // a new thread with its own messages
@@ -152,7 +152,7 @@ test('messages arrive on both sides without a refresh, and the view can be compa
     await tenant.goto('/messages?section=platform');
     await tenant.getByTestId('new-thread').click();
     await tenant.locator('#pm-subject').fill(subject);
-    await tenant.locator('#pm-body').fill('First message');
+    await tenant.locator('#pm-body [contenteditable]').fill('First message');
     await tenant.getByRole('button', { name: 'Send message' }).click();
     await expect(bubbles(tenant)).toHaveCount(1);
 

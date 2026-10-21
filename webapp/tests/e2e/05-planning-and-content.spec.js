@@ -6,6 +6,7 @@ test.describe.configure({ mode: 'serial' });
 test.beforeEach(async ({ page }) => { await login(page); });
 
 const row = (page, text) => page.getByTestId('board-row').filter({ hasText: text }).first();
+const schedRow = (page, text) => page.locator('main [data-testid="item-collection"] article', { hasText: text }).first();            // the Scheduler list
 const today = () => new Date().toISOString().slice(0, 10);
 
 test.describe('workflow boards', () => {
@@ -99,7 +100,7 @@ test.describe('scheduler & calendar', () => {
         await field(m, 'Data object type').selectOption({ label: 'Deals' });
         await expect(field(m, 'Start date field')).toHaveValue('close_date');
         await m.getByRole('button', { name: 'Save' }).click();
-        await expect(row(page, state.schedName)).toContainText('starts close_date');
+        await expect(schedRow(page, state.schedName)).toContainText('starts close_date');
 
         await page.goto('/schedules');
         await expect(page.locator('aside.card, aside').last()).toContainText('Calendar deal');   // today is selected by default
@@ -121,14 +122,14 @@ test.describe('scheduler & calendar', () => {
 
         // edit + delete
         await page.goto('/admin/scheduler');
-        await row(page, state.schedName).getByRole('button').first().click();
+        await schedRow(page, state.schedName).getByRole('button').first().click();
         m = modal(page);
         await field(m, 'Description').fill('Closing dates');
         await m.getByRole('button', { name: 'Save' }).click();
         await expect.poll(async () => (await api(page, 'GET', '/schedules')).json.data.find((s) => s.name === state.schedName).description).toBe('Closing dates');
-        await row(page, state.schedName).locator('button.text-slate-400').click();
+        await schedRow(page, state.schedName).locator('button.text-slate-400').click();
         await confirm(page, 'Delete');
-        await expect(row(page, state.schedName)).toHaveCount(0);
+        await expect(schedRow(page, state.schedName)).toHaveCount(0);
     });
 
     test('a non-date field cannot be the start field (server validation)', async ({ page }) => {

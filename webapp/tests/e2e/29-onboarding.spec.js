@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { modal, submitSignIn, toast } from './helpers.js';
+import { confirm, modal, submitSignIn, toast } from './helpers.js';
 
 /** Platform > Onboarding: the numbers, the companies in the series, an e-mail edited and previewed, and the settings. */
 const PASSWORD = 'E2e-Passw0rd!x';
@@ -8,6 +8,7 @@ test.describe.configure({ mode: 'serial' });
 test.beforeEach(async ({ page }) => {
     await page.goto('/login');
     await submitSignIn(page, 'platform@orvyncrm.test', PASSWORD);
+    await page.waitForURL((url) => !url.pathname.startsWith('/login'));
     await page.goto('/platform/onboarding');
 });
 
@@ -28,7 +29,8 @@ test('the page shows the numbers, adds a company to the series and opens its ste
     const detail = page.getByTestId('onboarding-detail');
     await expect(detail).toContainText('Create your account');
     await expect(detail).toContainText('Add your first contacts');
-    await page.getByTestId('detail-pause').click();                                           // pause, then resume
+    await page.getByTestId('detail-pause').click();                                           // pause (after asking), then resume
+    await confirm(page, 'Pause');
     await expect(toast(page, 'success').first()).toContainText('Paused');
     await page.getByTestId('detail-pause').click();
     await expect(toast(page, 'success').last()).toContainText('The e-mails will go out again');

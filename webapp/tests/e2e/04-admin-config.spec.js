@@ -70,7 +70,7 @@ test.describe('custom tabs & contact relationship types', () => {
 
         // the sidebar tab is in the main menu under "Your pages" (administrators see every tab) and opens as a page
         await page.goto('/');
-        await expect(page.getByTestId('nav-pages-heading')).toHaveText('Your pages');
+        await expect(page.getByTestId('nav-pages-heading').filter({ hasText: 'Your pages' })).toHaveText('Your pages');
         await page.getByTestId('nav-custom-tab').filter({ hasText: 'Handbook' }).click();
         await expect(page).toHaveURL(/\/tabs\/\d+$/);
         await expect(page.frameLocator('iframe[title="Handbook"]').locator('h2')).toHaveText('Team handbook');

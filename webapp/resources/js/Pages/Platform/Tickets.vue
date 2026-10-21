@@ -53,7 +53,7 @@ const scroller = ref(null);                   // the row of columns, which scrol
 function fit() {
     if (!scroller.value) return;
     const top = scroller.value.getBoundingClientRect().top + window.scrollY;
-    scroller.value.style.height = `${Math.max(384, window.innerHeight - top - 24)}px`;
+    scroller.value.style.height = `${Math.max(384, window.innerHeight - top - 34)}px`;
 }
 const refit = () => nextTick(fit);
 onMounted(() => { window.addEventListener('resize', fit); refit(); });

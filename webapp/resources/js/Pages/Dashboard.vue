@@ -12,6 +12,7 @@ import { insertAtCursor } from '@/lib/mergeFields';
 import GettingStarted from '@/Components/GettingStarted.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import { api } from '@/lib/api';
+import { useFit } from '@/lib/fit';
 import { confirmDialog, fmtDate, fmtDue, fmtRelative, run } from '@/lib/ui';
 
 const page = usePage();
@@ -30,6 +31,8 @@ function trend(key) {
 }
 const activityLabel = (t) => t.split('.').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 const widgets = ref([]);
+const bottom = ref(null);                   // the three lists at the foot: they fill what is left of the window and scroll inside themselves, so the page does not
+useFit(bottom, { min: 300, gap: 34, from: 1024, also: [() => widgets.value.length, () => d.value?.setup, d] });
 const data = ref({});          // widget id -> result
 const queries = ref([]);
 const modal = ref(null);       // {type:'widget'|'email'|'sms', widget?}
@@ -99,6 +102,11 @@ const cell = (v) => (Array.isArray(v) ? v.join(', ') : v);
 <template>
     <Head title="Dashboard" />
     <PageHeader title="Dashboard" :subtitle="`${greeting} · ${today}`">
+        <nav class="flex flex-wrap gap-2" aria-label="Quick actions">
+            <Link href="/contacts?new=1" class="btn-outline"><UserPlus class="size-4" /> Create contact</Link>
+            <Link href="/tasks?new=1" class="btn-outline"><ListPlus class="size-4" /> Create task</Link>
+            <Link v-if="isAdmin" href="/admin/data-tools" class="btn-outline"><FileUp class="size-4" /> Import data</Link>
+        </nav>
         <button class="btn-primary" @click="openWidget()"><Plus class="size-4" /> Add widget</button>
     </PageHeader>
 
@@ -107,15 +115,10 @@ const cell = (v) => (Array.isArray(v) ? v.join(', ') : v);
     </div>
     <template v-else>
         <GettingStarted v-if="d.setup" :setup="d.setup" @hide="d.setup = null" />
-        <nav class="mb-5 flex flex-wrap gap-2" aria-label="Quick actions">
-            <Link href="/contacts?new=1" class="btn-outline"><UserPlus class="size-4" /> Create contact</Link>
-            <Link href="/tasks?new=1" class="btn-outline"><ListPlus class="size-4" /> Create task</Link>
-            <Link v-if="isAdmin" href="/admin/data-tools" class="btn-outline"><FileUp class="size-4" /> Import data</Link>
-        </nav>
-        <div class="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
-            <component :is="tileLink(s.key) ? Link : 'div'" v-for="s in stats" :key="s.key" :href="tileLink(s.key) || undefined" class="card group block p-4" :class="tileLink(s.key) && 'transition hover:border-brand-500 hover:shadow-sm'" :data-testid="`tile-${s.key}`" :title="tileLink(s.key) ? `Open ${s.label}` : undefined">
+        <div class="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+            <component :is="tileLink(s.key) ? Link : 'div'" v-for="s in stats" :key="s.key" :href="tileLink(s.key) || undefined" class="card group block p-3" :class="tileLink(s.key) && 'transition hover:border-brand-500 hover:shadow-sm'" :data-testid="`tile-${s.key}`" :title="tileLink(s.key) ? `Open ${s.label}` : undefined">
                 <div class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ s.label }}</div>
-                <div class="mt-2 text-2xl font-semibold" :class="s.key === 'my_overdue_tasks' && d[s.key] ? 'text-red-600' : ''">{{ Number(d[s.key]).toLocaleString() }}{{ s.suffix }}</div>
+                <div class="mt-1 text-2xl font-semibold" :class="s.key === 'my_overdue_tasks' && d[s.key] ? 'text-red-600' : ''">{{ Number(d[s.key]).toLocaleString() }}{{ s.suffix }}</div>
                 <div v-if="trend(s.key)" class="mt-1.5 flex items-center gap-1 text-xs" :class="trend(s.key).flat ? 'text-slate-400' : trend(s.key).up ? 'text-emerald-600' : 'text-red-600'" :title="'Compared with the previous 30 days'">
                     <component :is="trend(s.key).up ? ArrowUpRight : ArrowDownRight" class="size-3.5" />{{ trend(s.key).text }} <span class="text-slate-400">vs prev. 30d</span>
                 </div>
@@ -124,7 +127,7 @@ const cell = (v) => (Array.isArray(v) ? v.join(', ') : v);
         </div>
 
         <!-- query widgets -->
-        <div class="mt-6 grid gap-6 xl:grid-cols-2">
+        <div class="mt-4 grid gap-4 xl:grid-cols-2">
             <section v-for="w in widgets" :key="w.id" class="card flex flex-col">
                 <div class="flex items-center justify-between gap-2 border-b border-slate-100 px-5 py-3">
                     <div class="min-w-0"><h2 class="truncate text-sm font-semibold">{{ w.name }}</h2>
@@ -138,7 +141,7 @@ const cell = (v) => (Array.isArray(v) ? v.join(', ') : v);
                         <button v-if="isAdmin || w.user_id" class="btn-ghost !px-1.5 text-slate-400 hover:text-red-600" title="Remove" @click="removeWidget(w)"><Trash2 class="size-4" /></button>
                     </div>
                 </div>
-                <div class="overflow-x-auto">
+                <div class="max-h-60 overflow-auto">
                     <p v-if="data[w.id]?.loading" class="px-5 py-6 text-sm text-slate-400">Loading…</p>
                     <p v-else-if="data[w.id]?.error" class="px-5 py-6 text-sm text-red-600">{{ data[w.id].error }}</p>
                     <table v-else-if="data[w.id]?.rows" class="w-full text-sm">
@@ -156,10 +159,10 @@ const cell = (v) => (Array.isArray(v) ? v.join(', ') : v);
             </section>
         </div>
 
-        <div class="mt-6 grid gap-6 lg:grid-cols-3">
-            <section class="card">
-                <h2 class="card-title">Upcoming tasks</h2>
-                <ul class="divide-y divide-slate-100">
+        <div ref="bottom" class="mt-4 grid min-h-0 gap-4 lg:grid-cols-3">
+            <section class="card flex min-h-72 flex-col overflow-hidden lg:min-h-0">
+                <h2 class="card-title shrink-0">Upcoming tasks</h2>
+                <ul class="min-h-0 flex-1 divide-y divide-slate-100 overflow-y-auto">
                     <li v-for="t in d.upcoming_tasks" :key="t.id" class="flex items-center justify-between px-5 py-3 text-sm">
                         <div class="min-w-0"><button type="button" class="block max-w-full truncate text-left font-medium hover:text-brand-700 hover:underline" data-testid="upcoming-task" @click="openUpcoming(t)">{{ t.title }}</button>
                             <Link v-if="t.contact" :href="`/contacts/${t.contact_id}`" class="text-xs text-brand-600">{{ t.contact.first_name }} {{ t.contact.last_name }}</Link></div>
@@ -168,9 +171,9 @@ const cell = (v) => (Array.isArray(v) ? v.join(', ') : v);
                     <li v-if="!d.upcoming_tasks.length" class="px-5 py-6 text-center text-sm text-slate-400">Nothing due. 🎉</li>
                 </ul>
             </section>
-            <section class="card">
-                <h2 class="card-title flex items-center gap-2"><Activity class="size-4 text-slate-400" /> Recent activity</h2>
-                <ul class="divide-y divide-slate-100">
+            <section class="card flex min-h-72 flex-col overflow-hidden lg:min-h-0">
+                <h2 class="card-title flex shrink-0 items-center gap-2"><Activity class="size-4 text-slate-400" /> Recent activity</h2>
+                <ul class="min-h-0 flex-1 divide-y divide-slate-100 overflow-y-auto">
                     <li v-for="a in d.recent_activity" :key="a.id" class="px-5 py-3 text-sm">
                         <div class="flex items-start justify-between gap-3"><div class="min-w-0"><span class="font-medium">{{ activityLabel(a.type) }}</span>
                             <Link v-if="a.contact" :href="`/contacts/${a.contact.id}`" class="ml-1 text-brand-600 hover:underline">{{ a.contact.name }}</Link>
@@ -181,9 +184,9 @@ const cell = (v) => (Array.isArray(v) ? v.join(', ') : v);
                     <li v-if="!d.recent_activity?.length" class="px-5 py-6 text-center text-sm text-slate-400">No activity yet.</li>
                 </ul>
             </section>
-            <section class="card">
-                <h2 class="card-title">Data objects</h2>
-                <ul class="divide-y divide-slate-100">
+            <section class="card flex min-h-72 flex-col overflow-hidden lg:min-h-0">
+                <h2 class="card-title shrink-0">Data objects</h2>
+                <ul class="min-h-0 flex-1 divide-y divide-slate-100 overflow-y-auto">
                     <li v-for="o in d.objects" :key="o.id" class="flex items-center justify-between px-5 py-3 text-sm"><Link :href="`/objects/${o.id}`" class="font-medium hover:text-brand-600">{{ o.name }}</Link><span class="badge">{{ o.records_count.toLocaleString() }} records</span></li>
                     <li v-if="!d.objects.length" class="px-5 py-6 text-center text-sm text-slate-400">No data objects yet.</li>
                 </ul>
