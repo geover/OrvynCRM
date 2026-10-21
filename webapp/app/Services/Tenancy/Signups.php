@@ -6,6 +6,7 @@ use App\Models\AccountUser;
 use App\Models\Setting;
 use App\Models\Signup;
 use App\Models\Tenant;
+use App\Services\Onboarding\Onboarding;
 use App\Support\NoticeMail;
 use App\Support\Tenancy\Company;
 use Illuminate\Support\Str;
@@ -155,6 +156,12 @@ class Signups
 
         $this->mail($signup->email, "Your workspace {$signup->company_name} is ready", ["Hi {$signup->first_name},", 'Your workspace is ready. Sign in any time with your e-mail address and the password you chose.'], ['Open my workspace', url('/login')]);
         $this->notifier->mail(PlatformNotifier::REQUESTS, "New company signed up: {$signup->company_name}", "{$signup->fullName()} ({$signup->email}) created the workspace {$signup->company_name}.\n\n".url('/platform'));
+
+        try {
+            app(Onboarding::class)->start($tenant);            // the getting-started e-mails begin; a problem here never spoils a sign-up
+        } catch (Throwable $e) {
+            report($e);
+        }
 
         return $tenant;
     }

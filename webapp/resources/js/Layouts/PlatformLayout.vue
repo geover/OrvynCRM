@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { BookOpen, Building2, Database, Gauge, Inbox, KeyRound, MessageSquare, LayoutDashboard, LogOut, Megaphone, Menu, Moon, Settings, Sun, SunMoon, UserCog, WalletCards, X } from 'lucide-vue-next';
+import { BookOpen, Building2, Database, Gauge, Inbox, KeyRound, MessageSquare, LayoutDashboard, LogOut, Megaphone, Menu, Moon, Rocket, Settings, Sun, SunMoon, UserCog, WalletCards, X } from 'lucide-vue-next';
 import Hosts from '@/Components/Hosts.vue';
 import { useFavicon } from '@/lib/favicon';
 import { applyBrandColor } from '@/lib/brand';
@@ -37,6 +37,7 @@ const groups = [
     ] },
     { title: 'Manage', items: [
         { href: '/platform', label: 'Companies', icon: Building2, badge: 'inactiveCompanies' },
+        { href: '/platform/onboarding', label: 'Onboarding', icon: Rocket, badge: 'onboardingHelp' },
         { href: '/platform/usage', label: 'Usage', icon: Gauge },
         { href: '/platform/standing', label: 'Account standing', icon: WalletCards, badge: 'paymentsFailing' },
         { href: '/platform/administrators', label: 'Administrators', icon: UserCog },

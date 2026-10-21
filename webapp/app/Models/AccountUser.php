@@ -17,7 +17,7 @@ class AccountUser extends Authenticatable
 
     protected $table = 'account_users';
 
-    protected $fillable = ['name', 'email', 'password', 'is_platform_admin', 'status', 'notify_requests', 'notify_messages', 'notify_automation_failures', 'notify_inactive_companies', 'notify_email', 'phone', 'job_title', 'timezone', 'notes', 'avatar_path', 'avatar_updated_at'];
+    protected $fillable = ['name', 'email', 'password', 'is_platform_admin', 'status', 'notify_requests', 'notify_messages', 'notify_automation_failures', 'notify_inactive_companies', 'notify_onboarding', 'notify_email', 'phone', 'job_title', 'timezone', 'notes', 'avatar_path', 'avatar_updated_at'];
 
     protected $hidden = ['password', 'two_factor_secret', 'two_factor_recovery_codes'];
 

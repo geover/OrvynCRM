@@ -44,6 +44,10 @@ Schedule::command('orvyn:payment-followups')->dailyAt('05:00')->name('companies:
 // Free trials running out: remind the administrators 14, 7 and 1 days before, and once when it has ended
 Schedule::command('orvyn:trial-reminders')->cron($frequency->cron('trial-reminders'))->name('companies:trial-reminders')->withoutOverlapping(30);
 
+// New companies: the onboarding e-mails (each step they have not taken yet, no more often than the platform allows) and the companies that need a hand
+Schedule::command('orvyn:onboarding-run')->everyFifteenMinutes()->name('companies:onboarding')->withoutOverlapping(30);
+Schedule::command('orvyn:onboarding-digest')->dailyAt('08:00')->name('companies:onboarding-digest')->withoutOverlapping(30);
+
 // Central housekeeping (tables that are shared by every company)
 Schedule::command('queue:prune-batches --hours=48')->daily();
 Schedule::command('queue:prune-failed --hours=168')->daily();

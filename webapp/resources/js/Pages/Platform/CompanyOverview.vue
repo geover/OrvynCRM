@@ -32,7 +32,7 @@ async function subscriptionAction(action, title, message, confirmLabel) {
 }
 
 const props = defineProps({
-    company: Object, standing: Object, manual_invoices: { type: Array, default: () => [] }, invoices: { type: Array, default: () => [] }, plan: Object, usage_history: { type: Array, default: () => [] }, users: Number, collected_at: String, counts: Object, automations: Object, activities_total: Number, db_mb: Number,
+    company: Object, onboarding: { type: Object, default: null }, standing: Object, manual_invoices: { type: Array, default: () => [] }, invoices: { type: Array, default: () => [] }, plan: Object, usage_history: { type: Array, default: () => [] }, users: Number, collected_at: String, counts: Object, automations: Object, activities_total: Number, db_mb: Number,
     breakdown: Array, labels: Array, series: Object, week: Object, services: Object, limits: Object,
 });
 
@@ -127,6 +127,14 @@ const cards = computed(() => [
         </form>
         <template #footer><button class="btn-ghost" @click="invoicing = false">Cancel</button><button class="btn-primary" form="invoice-form" :disabled="invoiceForm.processing" data-testid="save-invoice">Add invoice</button></template>
     </Modal>
+
+    <section v-if="onboarding" class="card mb-5 flex flex-wrap items-center gap-4 p-5" aria-labelledby="co-onboarding" data-testid="company-onboarding">
+        <div class="min-w-0 flex-1"><h2 id="co-onboarding" class="text-sm font-semibold">Onboarding</h2>
+            <div class="mt-2 flex items-center gap-3"><div class="h-2 w-40 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-gradient-to-r from-brand-500 to-emerald-500" :style="{ width: `${Math.max(onboarding.done ? 4 : 0, (onboarding.done / onboarding.total) * 100)}%` }" /></div><span class="text-sm tabular-nums text-slate-600">{{ onboarding.done }} of {{ onboarding.total }} steps</span>
+                <span v-if="onboarding.asks_help" class="badge !bg-red-50 !text-red-600">Needs a hand</span><span v-else-if="onboarding.state === 'completed'" class="badge !bg-sky-50 !text-sky-700">Completed</span><span v-else-if="onboarding.state !== 'active'" class="badge">{{ onboarding.state === 'paused' ? 'Paused' : 'Stopped' }}</span></div>
+            <p class="mt-1 text-xs text-slate-400">{{ onboarding.emails_sent }} e-mails sent<template v-if="onboarding.last_sent_at">, the last {{ fmtRelative(onboarding.last_sent_at) }}</template></p></div>
+        <Link :href="`/platform/onboarding?company=${company.id}`" class="btn-outline" data-testid="company-onboarding-link">See the steps</Link>
+    </section>
 
     <section class="card mb-5 p-5" aria-labelledby="co-standing" data-testid="company-standing">
         <div class="flex flex-wrap items-center gap-3">

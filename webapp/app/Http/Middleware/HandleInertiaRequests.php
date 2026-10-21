@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\SettingsController;
 use App\Models\AccountUser;
 use App\Models\Announcement;
 use App\Models\CompanyManualInvoice;
+use App\Models\CompanyOnboarding;
 use App\Models\CompanySubscription;
 use App\Models\CustomTab;
 use App\Models\MessageThread;
@@ -13,6 +14,7 @@ use App\Models\SeatRequest;
 use App\Models\SubscriptionRequest;
 use App\Models\Tenant;
 use App\Services\Heartbeat;
+use App\Services\Onboarding\OnboardingSettings;
 use App\Services\Tenancy\Plans;
 use App\Services\Tenancy\UserProfiles;
 use App\Support\Tenancy\Company;
@@ -114,6 +116,9 @@ class HandleInertiaRequests extends Middleware
             'stoppedServices' => fn () => Company::isPlatformArea($request) && $identityId ? app(Heartbeat::class)->problems() : [],
             // companies whose payment failed (the badge on the platform's Account standing menu)
             'paymentsFailing' => fn () => Company::isPlatformArea($request) ? CompanySubscription::whereIn('status', ['past_due', 'unpaid'])->count() + CompanyManualInvoice::unpaid()->where('due_on', '<', now()->toDateString())->distinct()->count('tenant_id') : 0,
+            // new companies that need a hand getting started (the badge on the platform's Onboarding menu; the platform can switch it off)
+            'onboardingHelp' => fn () => Company::isPlatformArea($request) && app(OnboardingSettings::class)->on('alert_badge')
+                ? CompanyOnboarding::where('needs_help', true)->where(fn ($q) => $q->whereNull('help_snoozed_until')->orWhere('help_snoozed_until', '<', now()))->count() : 0,
             'seatRequestsPending' => fn () => Company::isPlatformArea($request) ? SeatRequest::pending()->count() + SubscriptionRequest::pending()->count() : 0,
             'platformMessagesUnread' => fn () => Company::isPlatformArea($request) ? MessageThread::unreadForPlatform()->count() : 0,
             // a company administrator: conversations with the platform that have a new reply

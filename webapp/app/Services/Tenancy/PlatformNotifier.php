@@ -21,8 +21,10 @@ class PlatformNotifier
 
     public const INACTIVE_COMPANIES = 'inactive_companies';
 
+    public const ONBOARDING = 'onboarding';
+
     /**
-     * @param  self::REQUESTS|self::MESSAGES|self::AUTOMATION_FAILURES|self::INACTIVE_COMPANIES  $topic
+     * @param  self::REQUESTS|self::MESSAGES|self::AUTOMATION_FAILURES|self::INACTIVE_COMPANIES|self::ONBOARDING  $topic
      * @return list<string> distinct addresses
      */
     public function recipients(string $topic): array
@@ -31,6 +33,7 @@ class PlatformNotifier
             self::MESSAGES => 'notify_messages',
             self::AUTOMATION_FAILURES => 'notify_automation_failures',
             self::INACTIVE_COMPANIES => 'notify_inactive_companies',
+            self::ONBOARDING => 'notify_onboarding',
             default => 'notify_requests',
         };
 

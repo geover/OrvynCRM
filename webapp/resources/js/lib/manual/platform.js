@@ -145,6 +145,37 @@ export default {
                     ],
                 },
                 {
+                    id: "platform-onboarding",
+                    title: "Onboarding",
+                    lead: "Guide every new company to the system’s full potential with e-mails that follow what it has actually done, and see who needs a hand.",
+                    blocks: [
+                        { p: "Every company that **signs up** joins the onboarding series. A company created by hand can be added from the **Add a company to the series** box. The series sends e-mails to the company’s **owner** (its first administrator). What is sent depends on what the company has really done, not only on the date." },
+                        { h: "The steps" },
+                        { list: ["**Contacts**: at least three contacts.", "**Data**: a data object of its own, or an import that finished.", "**Message**: a first e-mail or text sent.", "**Automate**: a first automation.", "**Team**: a second person in the company.", "**Boards**: a workflow board or a form.", "**Brand**: a logo or colours of its own."] },
+                        { p: "The **welcome** e-mail goes first, at once. Then, when the gap has passed, the company gets the e-mail for the first step it has **not** taken yet. A step it has taken is never nagged about. When every step is done, one last **all set** e-mail goes out and the series ends. The company is read again every 15 minutes." },
+                        { h: "The Companies tab" },
+                        { p: "Every company with a progress bar and a dot for each step, when it was last e-mailed and last active, and its status: **On track**, **Needs a hand**, **Paused**, **Stopped by the owner** (it used the *Stop these tips* link in an e-mail) or **Completed**. Click a company for its steps with dates, every e-mail sent to it (and any that failed), and your own note. From there you can:" },
+                        {
+                            table: {
+                                head: ["Button", "Result"],
+                                rows: [
+                                    ["Send the next e-mail now", "Sends the e-mail that is next in line to the owner at once, whatever the gap and the weekly limit say."],
+                                    ["Pause the e-mails", "Nothing more is sent until you resume. The company is still watched."],
+                                    ["Check now", "Reads the company’s steps again now instead of at the next run."],
+                                    ["Handled", "Sets the “needs a hand” flag aside for 3, 7 or 14 days. It comes back if the problem is still there afterwards."],
+                                ],
+                            },
+                        },
+                        { h: "Needs a hand" },
+                        { p: "A company is flagged when **no new step** has been taken for a while, **nobody has signed in** for a while, its **trial ends soon** with little done, or a **payment failed**. The number of days for each is yours to set. You are told by a **badge** on the Onboarding menu and by **one e-mail a day at 8:00** that lists the companies, both of which you can switch off. Each administrator chooses whether to get the e-mail under *E-mail notifications*." },
+                        { h: "The E-mails tab" },
+                        { p: "Each e-mail has a subject, a preview line, an emoji and headline, a message written in the rich text editor, a button, and a *Did you know?* tip. **Edit and preview** shows it as the company will see it, with a made-up company, and **Send me a test** sends it to you. The merge fields (the owner’s first name, the company name, the steps done, the next step and more) are inserted with one click. Every e-mail also shows the company’s own progress, step by step, and ends with a **Stop these tips** link; an owner who uses it is left alone. Untick *Sent* to take an e-mail out of the series. Under **Send a copy (CC) to** you can add one or more addresses (separated by commas) that get the same e-mail, for your customer success team, say. The owner is never copied to themselves." },
+                        { h: "The Settings tab" },
+                        { p: "Switch the series on or off, choose the **days between two e-mails** (3 to start with) and the **most e-mails in any 7 days** (2), the thresholds for *needs a hand*, and how you are told. **Reply-to address** is where an owner’s reply goes: leave it empty and replies go to the first platform administrator (the page shows which address that is). Every e-mail also carries the one-click *Unsubscribe* header, so Gmail and Outlook show their own Unsubscribe button next to it." },
+                        { tip: "A good first week: look at **Needs a hand** every morning, open the company, read what it was sent, and write to the owner from Messages. Put what you learn in the note so the next person knows." },
+                    ],
+                },
+                {
                     id: "platform-usage",
                     title: "Usage",
                     lead: "Every company against what its tier allows: active users, texts this month and texting numbers, month by month.",

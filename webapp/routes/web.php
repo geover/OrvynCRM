@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\PriceListController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\WidgetController;
 use App\Http\Controllers\BrandingController;
+use App\Http\Controllers\OnboardingUnsubscribeController;
 use App\Http\Controllers\PasskeyController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PlatformAdministratorController;
@@ -28,6 +29,7 @@ use App\Http\Controllers\PlatformIntegrationController;
 use App\Http\Controllers\PlatformManualInvoiceController;
 use App\Http\Controllers\PlatformMessageController;
 use App\Http\Controllers\PlatformObjectLimitController;
+use App\Http\Controllers\PlatformOnboardingController;
 use App\Http\Controllers\PlatformPaymentsController;
 use App\Http\Controllers\PlatformPlansController;
 use App\Http\Controllers\PlatformPricingController;
@@ -67,6 +69,12 @@ Route::get('/u/{tracker}', [UnsubscribeController::class, 'show'])->middleware([
 Route::post('/u/{tracker}', [UnsubscribeController::class, 'confirm'])->withoutMiddleware([PreventRequestForgery::class])->middleware(['tenant.public:tracker', 'throttle:60,1']);
 Route::post('/u/{tracker}/resubscribe', [UnsubscribeController::class, 'resubscribe'])->withoutMiddleware([PreventRequestForgery::class])->middleware(['tenant.public:tracker', 'throttle:60,1']);
 
+// "Stop these tips" in an onboarding e-mail: the token in the link says which company. The POSTs are also what a mail program's own Unsubscribe button sends (RFC 8058), so
+// they cannot carry a CSRF token: the unguessable token is the secret.
+Route::get('/onboarding/stop/{token}', [OnboardingUnsubscribeController::class, 'show'])->name('onboarding.stop')->middleware('throttle:60,1');
+Route::post('/onboarding/stop/{token}', [OnboardingUnsubscribeController::class, 'confirm'])->withoutMiddleware([PreventRequestForgery::class])->middleware('throttle:60,1');
+Route::post('/onboarding/stop/{token}/resume', [OnboardingUnsubscribeController::class, 'resume'])->withoutMiddleware([PreventRequestForgery::class])->middleware('throttle:60,1');
+
 // Two-step verification and the other ways to sign in, for whoever is signed in (company or platform area)
 Route::prefix('account/security')->group(function () {
     Route::post('2fa/start', [AccountSecurityController::class, 'start']);
@@ -103,6 +111,19 @@ Route::middleware('platform')->prefix('platform')->group(function () {
     Route::post('companies/{tenant}/invoices', [PlatformManualInvoiceController::class, 'store']);
     Route::patch('companies/{tenant}/invoices/{invoice}/paid', [PlatformManualInvoiceController::class, 'paid']);
     Route::delete('companies/{tenant}/invoices/{invoice}', [PlatformManualInvoiceController::class, 'destroy']);
+    Route::get('onboarding', [PlatformOnboardingController::class, 'index']);
+    Route::get('onboarding/companies/{tenant}', [PlatformOnboardingController::class, 'show']);
+    Route::post('onboarding/companies/{tenant}/start', [PlatformOnboardingController::class, 'start']);
+    Route::post('onboarding/companies/{tenant}/pause', [PlatformOnboardingController::class, 'pause']);
+    Route::post('onboarding/companies/{tenant}/resume', [PlatformOnboardingController::class, 'resume']);
+    Route::post('onboarding/companies/{tenant}/handled', [PlatformOnboardingController::class, 'handled']);
+    Route::post('onboarding/companies/{tenant}/refresh', [PlatformOnboardingController::class, 'refresh']);
+    Route::post('onboarding/companies/{tenant}/send-next', [PlatformOnboardingController::class, 'sendNext'])->middleware('throttle:30,1');
+    Route::patch('onboarding/companies/{tenant}/note', [PlatformOnboardingController::class, 'note']);
+    Route::patch('onboarding/emails/{email}', [PlatformOnboardingController::class, 'updateEmail'])->whereNumber('email');
+    Route::post('onboarding/emails/{email}/preview', [PlatformOnboardingController::class, 'previewEmail'])->whereNumber('email');
+    Route::post('onboarding/emails/{email}/test', [PlatformOnboardingController::class, 'testEmail'])->whereNumber('email')->middleware('throttle:10,1');
+    Route::patch('onboarding/settings', [PlatformOnboardingController::class, 'saveSettings']);
     Route::get('standing', [PlatformStandingController::class, 'index']);
     Route::post('standing/{tenant}/remind', [PlatformStandingController::class, 'remind'])->middleware('throttle:30,1');
     Route::get('usage', [PlatformUsageController::class, 'index']);

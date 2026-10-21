@@ -6,12 +6,14 @@ use App\Jobs\CollectCompanyMetrics;
 use App\Models\Automation;
 use App\Models\CompanyInvoice;
 use App\Models\CompanyManualInvoice;
+use App\Models\CompanyOnboarding;
 use App\Models\CompanyUsage;
 use App\Models\DataObject;
 use App\Models\Setting;
 use App\Models\Tenant;
 use App\Models\TenantMetric;
 use App\Models\TenantStat;
+use App\Services\Onboarding\Milestones;
 use App\Services\Tenancy\AccountStanding;
 use App\Services\Tenancy\CompanyServices;
 use App\Services\Tenancy\Limits;
@@ -53,6 +55,11 @@ class PlatformCompanyOverviewController extends Controller
             ],
             'limits' => $tenant->isActive() ? $tenant->run(fn () => ['data_objects' => $limits->dataObjects(), 'objects' => $limits->objects()]) : null,
             'plan' => $this->plan($tenant),
+            // how far it has come in the onboarding series (null: it is not in it)
+            'onboarding' => ($o = CompanyOnboarding::where('tenant_id', $tenant->getTenantKey())->first()) ? [
+                'state' => $o->state, 'done' => collect(array_keys($o->milestones ?? []))->reject(fn ($k) => $k === 'account')->count(), 'total' => count(Milestones::steps()),
+                'asks_help' => $o->asksForHelp(), 'help_reasons' => $o->help_reasons ?? [], 'last_sent_at' => $o->last_sent_at?->toIso8601String(), 'emails_sent' => $o->emails_sent,
+            ] : null,
             // where it stands with paying, and what Stripe invoiced it
             'standing' => app(AccountStanding::class)->of($tenant),
             'manual_invoices' => CompanyManualInvoice::where('tenant_id', $tenant->getTenantKey())->orderByDesc('due_on')->limit(30)->get()->map(fn (CompanyManualInvoice $i) => [
